@@ -1,12 +1,12 @@
 {
-    "version": 2,
-    "routes": [
-        {
-            "handle": "filesystem"
-        },
-        {
-            "src": "/.*",
-            "dest": "/api/ssr.js"
-        }
-    ]
+  "version": 2,
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
+      "dest": "/api/ssr.js"
+    }
+  ]
 }

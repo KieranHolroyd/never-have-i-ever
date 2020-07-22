@@ -7,5 +7,11 @@
   metatags.version = version;
 </script>
 
+<style>
+  h1 {
+    text-align: center;
+  }
+</style>
+
 <h1>{name}</h1>
 <NeverHaveIEver />
