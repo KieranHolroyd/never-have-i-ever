@@ -18,16 +18,14 @@
     letter-spacing: 0.5px;
     font-weight: bolder;
   }
-  .container {
-    position: relative;
-    max-width: 600px;
-    margin: auto;
-  }
 </style>
 
-<div class="container">
+<div>
   <h1>{name}</h1>
   <hr />
   <NeverHaveIEver />
-  <p class="madeby">Made by Kieran</p>
+  <p class="madeby">
+    Made by Kieran.
+    <a href="/suggest">Suggest Changes.</a>
+  </p>
 </div>

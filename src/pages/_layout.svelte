@@ -1,2 +1,11 @@
+<style>
+  .container {
+    position: relative;
+    max-width: 600px;
+    margin: auto;
+  }
+</style>
 
-<slot />
+<div class="container">
+  <slot />
+</div>

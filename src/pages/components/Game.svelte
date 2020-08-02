@@ -1,5 +1,6 @@
 <script>
   import { ready } from "@sveltech/routify";
+  import { onMount } from "svelte";
   let data = {};
   let data_base = {};
   let current_question = {};
@@ -22,6 +23,20 @@
     game_completed: false,
     current_catagory: []
   };
+  // onMount(() => {
+  //   const onShake = new Shake({
+  //     threshold: 15,
+  //     timeout: 2500
+  //   });
+  //   onShake.start();
+
+  //   window.addEventListener("shake", onShakeHandler, false);
+  // });
+
+  // function onShakeHandler() {
+  //   if (!game_state.catagory_select && !game_state.game_completed)
+  //     selectQuestion();
+  // }
 
   init();
 
