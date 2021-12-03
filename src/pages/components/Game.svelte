@@ -1,5 +1,5 @@
 <script>
-  import { ready } from "@sveltech/routify";
+  import { ready } from "@roxi/routify";
   import { onMount } from "svelte";
   let data = {};
   let data_base = {};
@@ -16,12 +16,12 @@
     "rules",
     "random",
     "couples",
-    "embarassing"
+    "embarassing",
   ];
   let game_state = {
     catagory_select: true,
     game_completed: false,
-    current_catagory: []
+    current_catagory: [],
   };
   // onMount(() => {
   //   const onShake = new Shake({
@@ -117,7 +117,7 @@
     console.log(`Catagory: ${sel_cat}; question: ${sel_question}`);
     return (current_question = {
       question_content: sel_question,
-      question_catagory: sel_cat
+      question_catagory: sel_cat,
     });
   }
   function chooseQuestionFromCatagory(cat) {
@@ -139,6 +139,59 @@
     conf_reset_display = false;
   }
 </script>
+
+<div class="board">
+  {#if !game_state.game_completed}
+    {#if game_state.catagory_select}
+      <div class="catagories">
+        {#each available_catagories as cat}
+          <div class="catagory">
+            <label class="checktext">
+              <input
+                type="checkbox"
+                class="catagory"
+                bind:group={game_state.current_catagory}
+                value={cat}
+                checked={game_state.current_catagory.includes(cat)}
+              />
+              <span>{cat}</span>
+            </label>
+          </div>
+        {/each}
+      </div>
+      <button class="green-button" on:click={() => confirmSelections()}>
+        Continue
+      </button>
+    {:else}
+      {#if current_question.question_content !== undefined}
+        <div class="paper question_container">
+          <p class="small">Catagory: {current_question.question_catagory}</p>
+          <p class="question">{current_question.question_content}</p>
+        </div>
+      {:else}
+        <h2>Choose a question</h2>
+      {/if}
+      <hr />
+      <button class="red-button" on:click={() => conf_reset()}>
+        Reset Game
+      </button>
+      <button style="width: auto;" on:click={() => selectCatagories()}>
+        Return to catagory selection
+      </button>
+
+      <button class="green-button" on:click={() => selectQuestion()}>
+        Next Question
+      </button>
+    {/if}
+  {:else}
+    <p class="nomore">There are no more questions...</p>
+    <button on:click={() => reset()}>Reset Game</button>
+  {/if}
+  {#if conf_reset_display}
+    <hr />
+    <button class="red-button" on:click={() => reset()}>Confirm Reset</button>
+  {/if}
+</div>
 
 <style>
   button {
@@ -189,55 +242,3 @@
     font-weight: bolder;
   }
 </style>
-
-<div class="board">
-  {#if !game_state.game_completed}
-    {#if game_state.catagory_select}
-      <div class="catagories">
-        {#each available_catagories as cat}
-          <div class="catagory">
-            <label class="checktext">
-              <input
-                type="checkbox"
-                class="catagory"
-                bind:group={game_state.current_catagory}
-                value={cat}
-                checked={game_state.current_catagory.includes(cat)} />
-              <span>{cat}</span>
-            </label>
-          </div>
-        {/each}
-      </div>
-      <button class="green-button" on:click={() => confirmSelections()}>
-        Continue
-      </button>
-    {:else}
-      {#if current_question.question_content !== undefined}
-        <div class="paper question_container">
-          <p class="small">Catagory: {current_question.question_catagory}</p>
-          <p class="question">{current_question.question_content}</p>
-        </div>
-      {:else}
-        <h2>Choose a question</h2>
-      {/if}
-      <hr />
-      <button class="red-button" on:click={() => conf_reset()}>
-        Reset Game
-      </button>
-      <button style="width: auto;" on:click={() => selectCatagories()}>
-        Return to catagory selection
-      </button>
-
-      <button class="green-button" on:click={() => selectQuestion()}>
-        Next Question
-      </button>
-    {/if}
-  {:else}
-    <p class="nomore">There are no more questions...</p>
-    <button on:click={() => reset()}>Reset Game</button>
-  {/if}
-  {#if conf_reset_display}
-    <hr />
-    <button class="red-button" on:click={() => reset()}>Confirm Reset</button>
-  {/if}
-</div>
