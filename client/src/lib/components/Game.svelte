@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { v4 } from 'uuid';
 	export let id: string;
+	let player_id: string | null = null;
 	let data: {
 		[key: (typeof available_catagories)[number]]: string[];
 	} = {};
@@ -48,6 +50,8 @@
 	// }
 
 	onMount(() => {
+		setupplayer();
+		setupsock();
 		load();
 	});
 	async function load() {
@@ -130,18 +134,39 @@
 		conf_reset_display = false;
 	}
 
+	function emitSelectCatagory(catagory: string) {
+		socket?.send(`select_catagory;${JSON.stringify({ catagory })}`);
+	}
+
 	/// WEBSOCKET STUFF
-	const sock_url = 'ws://localhost:3000';
-	let socket: WebSocket | null = new WebSocket(sock_url);
+	let socket: WebSocket | null = null;
 	function setupsock() {
+		const sock_url = 'ws://localhost:3000/';
+		const sock_params = `?game=${id}&player=${player_id}`;
+		if (socket === null) socket = new WebSocket(sock_url + sock_params);
+
 		// message is received
 		socket?.addEventListener('message', (event) => {
-			console.log(event.data);
+			const context = event.data.split(';')[0];
+			const data_raw = event.data.split(';')[1];
+			try {
+				const data = JSON.parse(data_raw);
+				console.log(data);
+				switch (data.op) {
+					case 'select_catagory':
+						toggleSelection(data.catagory);
+						break;
+					default:
+						console.log(data);
+				}
+			} catch (e) {
+				console.log(e);
+			}
 		});
 
 		// socket opened
 		socket?.addEventListener('open', (event) => {
-			socket?.send(`open_game,${JSON.stringify({ id })}`);
+			socket?.send(`join_game;${JSON.stringify({ create: true })}`);
 		});
 
 		// socket closed
@@ -156,13 +181,24 @@
 			setTimeout(() => {
 				socket?.close();
 				socket = null;
-				socket = new WebSocket(sock_url);
+				socket = new WebSocket(sock_url + sock_params);
 				setupsock();
 			}, 200);
 		});
 	}
+	/// ----------------
 
-	setupsock();
+	/// PLAYER STUFF
+
+	function setupplayer() {
+		if (localStorage.getItem('player_id') === null) {
+			player_id = v4();
+			localStorage.setItem('player_id', player_id);
+		} else {
+			player_id = localStorage.getItem('player_id');
+		}
+	}
+
 	/// ----------------
 </script>
 
@@ -177,6 +213,7 @@
 								type="checkbox"
 								class="catagory"
 								bind:group={game_state.current_catagory}
+								on:change={() => emitSelectCatagory(cat)}
 								value={cat}
 								checked={game_state.current_catagory.includes(cat)}
 							/>
