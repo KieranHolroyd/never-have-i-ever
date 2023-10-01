@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	export let id: string;
 	let data: {
 		[key: (typeof available_catagories)[number]]: string[];
 	} = {};
@@ -52,7 +53,6 @@
 	async function load() {
 		const res = await fetch('/data.json');
 		let json_res = JSON.stringify(await res.json());
-		console.log(json_res);
 		data_base = JSON.parse(json_res);
 		data = JSON.parse(json_res);
 	}
@@ -94,7 +94,6 @@
 
 		const sel_question = chooseQuestionFromCatagory(sel_cat);
 
-		console.log(sel_question, game_state.current_catagory.length);
 		if (sel_question === undefined && game_state.current_catagory.length === 1) {
 			let newState = game_state;
 			newState.game_completed = true;
@@ -107,14 +106,12 @@
 			return null;
 		}
 
-		console.log(`Catagory: ${sel_cat}; question: ${sel_question}`);
 		return (current_question = {
 			content: sel_question,
 			catagory: sel_cat
 		});
 	}
 	function chooseQuestionFromCatagory(catagory: string) {
-		console.log(data);
 		const rand_number = getRandomInt(0, data[catagory].length);
 		let q = data[catagory][rand_number];
 		data[catagory].splice(rand_number, 1);
@@ -132,6 +129,41 @@
 		// set conf display to false
 		conf_reset_display = false;
 	}
+
+	/// WEBSOCKET STUFF
+	const sock_url = 'ws://localhost:3000';
+	let socket: WebSocket | null = new WebSocket(sock_url);
+	function setupsock() {
+		// message is received
+		socket?.addEventListener('message', (event) => {
+			console.log(event.data);
+		});
+
+		// socket opened
+		socket?.addEventListener('open', (event) => {
+			socket?.send(`open_game,${JSON.stringify({ id })}`);
+		});
+
+		// socket closed
+		socket?.addEventListener('close', (event) => {
+			console.log('Close');
+		});
+
+		// error handler
+		socket?.addEventListener('error', (event) => {
+			console.log('Error, attempting to reconnect');
+			// attempt to reconnect
+			setTimeout(() => {
+				socket?.close();
+				socket = null;
+				socket = new WebSocket(sock_url);
+				setupsock();
+			}, 200);
+		});
+	}
+
+	setupsock();
+	/// ----------------
 </script>
 
 <div class="board text-center">
