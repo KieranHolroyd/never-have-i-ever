@@ -3,6 +3,12 @@
 	import { v4 } from 'uuid';
 	import { env } from '$env/dynamic/public';
 	export let id: string;
+	enum Status {
+		CONNECTING,
+		CONNECTED,
+		DISCONNECTED
+	}
+	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
 	let data: {
 		[key: (typeof available_catagories)[number]]: string[];
@@ -79,59 +85,30 @@
 	}
 	function confirmSelections() {
 		if (game_state.current_catagory.length > 0) {
-			let newState = game_state;
-			newState.catagory_select = false;
-			game_state = { ...newState };
-			selectQuestion();
+			socket?.send(`confirm_selections;${JSON.stringify({})}`);
+			socket?.send(`next_question;${JSON.stringify({})}`);
 		}
 	}
 	function selectCatagories() {
-		let newState = game_state;
-		newState.catagory_select = true;
-		game_state = { ...newState };
-	}
-	function getRandomInt(min: number, max: number) {
-		return Math.floor(Math.random() * (max - min)) + min;
+		// let newState = game_state;
+		// newState.catagory_select = true;
+		// game_state = { ...newState };
+		socket?.send(`select_catagories;${JSON.stringify({})}`);
 	}
 	function selectQuestion() {
-		const sel_cat =
-			game_state.current_catagory[getRandomInt(0, game_state.current_catagory.length)];
-
-		const sel_question = chooseQuestionFromCatagory(sel_cat);
-
-		if (sel_question === undefined && game_state.current_catagory.length === 1) {
-			let newState = game_state;
-			newState.game_completed = true;
-			game_state = { ...newState };
-		} else if (sel_question === undefined && game_state.current_catagory.length >= 1) {
-			let newStateX = game_state;
-			newStateX.current_catagory.splice(newStateX.current_catagory.indexOf(sel_cat), 1);
-			game_state = { ...newStateX };
-			current_question = selectQuestion();
-			return null;
-		}
-
-		return (current_question = {
-			content: sel_question,
-			catagory: sel_cat
-		});
-	}
-	function chooseQuestionFromCatagory(catagory: string) {
-		const rand_number = getRandomInt(0, data[catagory].length);
-		let q = data[catagory][rand_number];
-		data[catagory].splice(rand_number, 1);
-		return q;
+		socket?.send(`next_question;${JSON.stringify({})}`);
 	}
 	function reset() {
 		//update game state to clear the game
-		let newState = game_state;
-		newState.game_completed = false;
-		newState.catagory_select = true;
-		newState.current_catagory = [];
-		game_state = { ...newState };
-		//reset to api data
-		data = data_base;
+		// let newState = game_state;
+		// newState.game_completed = false;
+		// newState.catagory_select = true;
+		// newState.current_catagory = [];
+		// game_state = { ...newState };
+		// //reset to api data
+		// data = data_base;
 		// set conf display to false
+		socket?.send(`reset_game;${JSON.stringify({})}`);
 		conf_reset_display = false;
 	}
 
@@ -141,6 +118,7 @@
 
 	/// WEBSOCKET STUFF
 	let socket: WebSocket | null = null;
+	let retry_count = 0;
 	function setupsock() {
 		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
 		const sock_params = `?game=${id}&player=${player_id}`;
@@ -152,13 +130,23 @@
 			const data_raw = event.data.split(';')[1];
 			try {
 				const data = JSON.parse(data_raw);
-				console.log(data);
+				console.log(context, data.op, data);
 				switch (data.op) {
+					case 'open':
+						connection = Status.CONNECTED;
+						break;
 					case 'select_catagory':
 						toggleSelection(data.catagory);
 						break;
+					case 'game_state':
+						game_state.current_catagory = data.game.catagories;
+						game_state.catagory_select = data.game.catagory_select;
+						game_state.game_completed = data.game.game_completed;
+						current_question = data.game.current_question;
+						break;
 					default:
-						console.log(data);
+						console.log('unhandled');
+					// console.log(data);
 				}
 			} catch (e) {
 				console.log(e);
@@ -168,24 +156,27 @@
 		// socket opened
 		socket?.addEventListener('open', (event) => {
 			socket?.send(`join_game;${JSON.stringify({ create: true })}`);
+			retry_count = 0;
 		});
 
 		// socket closed
 		socket?.addEventListener('close', (event) => {
-			console.log('Close');
+			connection = Status.DISCONNECTED;
+			setTimeout(reconnect, 200 * Math.max(1, retry_count));
 		});
 
 		// error handler
 		socket?.addEventListener('error', (event) => {
-			console.log('Error, attempting to reconnect');
-			// attempt to reconnect
-			setTimeout(() => {
-				socket?.close();
-				socket = null;
-				socket = new WebSocket(sock_url + sock_params);
-				setupsock();
-			}, 200);
+			connection = Status.DISCONNECTED;
 		});
+		function reconnect() {
+			retry_count = retry_count + 1;
+			console.log(retry_count, 200 * Math.max(1, retry_count));
+			socket?.close();
+			socket = null;
+			socket = new WebSocket(sock_url + sock_params);
+			setupsock();
+		}
 	}
 	/// ----------------
 
@@ -249,6 +240,13 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
+	{#if connection === Status.CONNECTING}
+		<div class="connection_info">Connecting...</div>
+	{:else if connection === Status.CONNECTED}
+		<div class="connection_info">Connected</div>
+	{:else if connection === Status.DISCONNECTED}
+		<div class="connection_info">Disconnected</div>
+	{/if}
 </div>
 
 <style>
@@ -298,5 +296,9 @@
 		font-size: 15px;
 		letter-spacing: 0.5px;
 		font-weight: bolder;
+	}
+
+	.connection_info {
+		@apply fixed border-2 border-black bottom-2 right-2 p-2 bg-gray-200 rounded-md;
 	}
 </style>
