@@ -1,5 +1,8 @@
 FROM oven/bun:1.0
 
+# Copy package.json
+COPY package.json .
+
 # Install dependencies
 RUN bun install
 
