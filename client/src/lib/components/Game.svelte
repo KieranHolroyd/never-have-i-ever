@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { v4 } from 'uuid';
+	import { env } from '$env/dynamic/public';
 	export let id: string;
 	let player_id: string | null = null;
 	let data: {
@@ -141,7 +142,7 @@
 	/// WEBSOCKET STUFF
 	let socket: WebSocket | null = null;
 	function setupsock() {
-		const sock_url = 'ws://localhost:3000/';
+		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
 		const sock_params = `?game=${id}&player=${player_id}`;
 		if (socket === null) socket = new WebSocket(sock_url + sock_params);
 
