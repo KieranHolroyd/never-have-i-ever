@@ -10,6 +10,7 @@
 	}
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
+	let players: string[] = [];
 	let data: {
 		[key: (typeof available_catagories)[number]]: string[];
 	} = {};
@@ -143,6 +144,7 @@
 						game_state.catagory_select = data.game.catagory_select;
 						game_state.game_completed = data.game.game_completed;
 						current_question = data.game.current_question;
+						players = data.game.players;
 						break;
 					default:
 						console.log('unhandled');
@@ -240,13 +242,16 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
-	{#if connection === Status.CONNECTING}
-		<div class="connection_info">Connecting...</div>
-	{:else if connection === Status.CONNECTED}
-		<div class="connection_info">Connected</div>
-	{:else if connection === Status.DISCONNECTED}
-		<div class="connection_info">Disconnected</div>
-	{/if}
+	<div class="connection_info">
+		{#if connection === Status.CONNECTING}
+			Connecting...
+		{:else if connection === Status.CONNECTED}
+			Connected
+		{:else if connection === Status.DISCONNECTED}
+			Disconnected
+		{/if}
+		({players.length} players)
+	</div>
 </div>
 
 <style>
