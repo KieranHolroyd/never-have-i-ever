@@ -59,7 +59,7 @@ function get_game(id: string) {
 
 function select_question(game: GameData) {
   const sel_cat =
-    game.catagories[Math.floor(Math.random() * game.catagories.length - 1)];
+    game.catagories[Math.floor(Math.random() * (game.catagories.length - 1))];
 
   const sel_question = chooseQuestionFromCatagory(sel_cat, game);
 
@@ -75,7 +75,7 @@ function select_question(game: GameData) {
 
 function chooseQuestionFromCatagory(catagory: string, game: GameData) {
   const rand_number = Math.floor(
-    Math.random() * game.data[catagory].length - 1
+    Math.random() * (game.data[catagory].length - 1)
   );
   let q = game.data[catagory][rand_number];
   game.data[catagory].splice(rand_number, 1);
