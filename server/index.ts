@@ -175,15 +175,17 @@ const server = Bun.serve({
               (player) => player.id === ws.data.player
             );
             if (!current_player) {
-              const playeridx = game.players.push({
+              game.players.push({
                 id: ws.data.player,
                 name: data.playername,
                 score: 0,
                 connected: true,
                 voted_this_round: false,
               });
-              current_player = game.players[playeridx];
             }
+            current_player = game.players.find(
+              (player) => player.id === ws.data.player
+            );
 
             if (current_player.connected === false) {
               current_player.connected = true;
