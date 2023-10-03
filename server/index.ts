@@ -273,7 +273,7 @@ const server = Bun.serve({
             game.catagory_select = true;
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };
-            game.data = game_data;
+            game.data = Object.assign({}, game_data);
 
             emit(ws, ws.data.game, "game_state", { game });
             break;
