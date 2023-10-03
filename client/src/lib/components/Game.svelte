@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { v4 } from 'uuid';
 	import { env } from '$env/dynamic/public';
+	import { LocalPlayer } from '$lib/player';
+
 	export let id: string;
 	enum Status {
 		CONNECTING,
@@ -10,7 +11,14 @@
 	}
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
-	let players: string[] = [];
+	let players: {
+		id: string;
+		name: string;
+		score: number;
+	}[] = [];
+
+	let my_name = LocalPlayer.name;
+
 	let data: {
 		[key: (typeof available_catagories)[number]]: string[];
 	} = {};
@@ -58,7 +66,7 @@
 	// }
 
 	onMount(() => {
-		setupplayer();
+		player_id = LocalPlayer.id;
 		setupsock();
 		load();
 	});
@@ -157,7 +165,7 @@
 
 		// socket opened
 		socket?.addEventListener('open', (event) => {
-			socket?.send(`join_game;${JSON.stringify({ create: true })}`);
+			socket?.send(`join_game;${JSON.stringify({ create: true, playername: my_name })}`);
 			retry_count = 0;
 		});
 
@@ -180,19 +188,6 @@
 			setupsock();
 		}
 	}
-	/// ----------------
-
-	/// PLAYER STUFF
-
-	function setupplayer() {
-		if (localStorage.getItem('player_id') === null) {
-			player_id = v4();
-			localStorage.setItem('player_id', player_id);
-		} else {
-			player_id = localStorage.getItem('player_id');
-		}
-	}
-
 	/// ----------------
 </script>
 
@@ -250,7 +245,17 @@
 		{:else if connection === Status.DISCONNECTED}
 			Disconnected
 		{/if}
-		({players.length} players)
+		<br />
+		<details>
+			<summary>({players.length} player{players.length > 1 ? 's' : ''})</summary>
+			<ul>
+				{#each players as player}
+					<li>
+						{player.name} ({player.score})
+					</li>
+				{/each}
+			</ul>
+		</details>
 	</div>
 </div>
 

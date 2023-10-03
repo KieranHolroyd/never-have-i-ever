@@ -63,7 +63,11 @@ function chooseQuestionFromCatagory(catagory: string, game: GameData) {
 
 type GameData = {
   id: string;
-  players: string[];
+  players: {
+    id: string;
+    name: string;
+    score: number;
+  }[];
 
   catagories: string[];
 
@@ -127,7 +131,7 @@ const server = Bun.serve({
               if (!games.find((game) => game.id === ws.data.game)) {
                 games.push({
                   id: ws.data.game,
-                  players: [ws.data.player],
+                  players: [],
                   catagories: [],
                   catagory_select: true,
                   game_completed: false,
@@ -145,8 +149,12 @@ const server = Bun.serve({
               break;
             }
 
-            if (!game.players.find((player) => player === ws.data.player)) {
-              game.players.push(ws.data.player);
+            if (!game.players.find((player) => player.id === ws.data.player)) {
+              game.players.push({
+                id: ws.data.player,
+                name: data.playername,
+                score: 0,
+              });
             }
 
             ws.subscribe(ws.data.game);
@@ -269,7 +277,10 @@ const server = Bun.serve({
       const game = get_game(ws.data.game);
       if (!game) return;
 
-      game.players.splice(game.players.indexOf(ws.data.player), 1);
+      game.players.splice(
+        game.players.findIndex((p) => p.id === ws.data.player),
+        1
+      );
 
       publish(ws, ws.data.game, "", {
         op: "game_state",
