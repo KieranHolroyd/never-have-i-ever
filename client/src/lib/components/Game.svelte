@@ -62,7 +62,7 @@
 				score: number;
 				voted_this_round: boolean;
 			};
-			voted: VoteOptions;
+			voted: string;
 		}[];
 	} = {
 		votes: []
@@ -180,7 +180,10 @@
 						current_round.votes = [];
 						break;
 					case 'vote_cast':
-						current_round.votes.push({ player: data.player, voted: data.vote });
+						current_round.votes = [
+							...current_round.votes,
+							{ player: data.player, voted: data.vote }
+						];
 						break;
 					default:
 						console.log('unhandled');
@@ -251,7 +254,7 @@
 						<p class="small">Votes</p>
 						{#each current_round.votes as vote}
 							<p class="question">
-								{vote.player.name}: {vote.voted === VoteOptions.Have ? 'have' : 'have not'}
+								{vote.player.name}: {vote.voted}
 							</p>
 						{/each}
 					</div>

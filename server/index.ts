@@ -244,6 +244,10 @@ const server = Bun.serve({
               op: "game_state",
               game,
             });
+            publish(ws, ws.data.game, "", {
+              op: "new_round",
+            });
+            send(ws, "new_round", {});
             send(ws, "game_state", { game });
             break;
           }
@@ -279,13 +283,16 @@ const server = Bun.serve({
               break;
             }
 
+            console.log(data.option, ws.data.player);
             const plyr = game.players.find(
               (player) => player.id === ws.data.player
             );
-            if (data.option === 1) {
-              if (!plyr.voted_this_round) {
-                plyr.score++;
-              }
+            if (!plyr) {
+              send(ws, "error", { message: "Player not found" });
+              break;
+            }
+            if (data.option === 1 && !plyr.voted_this_round) {
+              plyr.score++;
               publish(ws, ws.data.game, "", {
                 op: "vote_cast",
                 player: plyr,
@@ -294,7 +301,7 @@ const server = Bun.serve({
               send(ws, "vote_cast", { player: plyr, vote: "Have" });
               plyr.voted_this_round = true;
             }
-            if (data.option === 2) {
+            if (data.option === 2 && !plyr.voted_this_round) {
               publish(ws, ws.data.game, "", {
                 op: "vote_cast",
                 player: plyr,
