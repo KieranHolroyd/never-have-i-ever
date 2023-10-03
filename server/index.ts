@@ -158,7 +158,7 @@ const server = Bun.serve({
                   catagory_select: true,
                   game_completed: false,
                   current_question: { catagory: "", content: "" },
-                  data: { ...game_data }, // This is a copy of the data
+                  data: Object.assign({}, game_data), // This is a copy of the data
                   // so that we can remove questions from it
                   // a better way to do this would be to have a
                   // mask on the data that is removed as questions
