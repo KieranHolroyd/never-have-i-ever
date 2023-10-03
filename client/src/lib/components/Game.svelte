@@ -9,6 +9,10 @@
 		CONNECTED,
 		DISCONNECTED
 	}
+	enum VoteOptions {
+		Have = 1,
+		HaveNot = 2
+	}
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
 	let players: {
@@ -49,6 +53,19 @@
 		catagory_select: true,
 		game_completed: false,
 		current_catagory: []
+	};
+	const current_round: {
+		votes: {
+			player: {
+				id: string;
+				name: string;
+				score: number;
+				voted_this_round: boolean;
+			};
+			voted: VoteOptions;
+		}[];
+	} = {
+		votes: []
 	};
 	// onMount(() => {
 	//   const onShake = new Shake({
@@ -126,6 +143,10 @@
 		socket?.send(`select_catagory;${JSON.stringify({ catagory })}`);
 	}
 
+	function vote(option: VoteOptions) {
+		socket?.send(`vote;${JSON.stringify({ option })}`);
+	}
+
 	/// WEBSOCKET STUFF
 	let socket: WebSocket | null = null;
 	let retry_count = 0;
@@ -154,6 +175,12 @@
 						game_state.game_completed = data.game.game_completed;
 						current_question = data.game.current_question;
 						players = data.game.players;
+						break;
+					case 'new_round':
+						current_round.votes = [];
+						break;
+					case 'vote_cast':
+						current_round.votes.push({ player: data.player, voted: data.vote });
 						break;
 					default:
 						console.log('unhandled');
@@ -219,6 +246,16 @@
 					<p class="small">Catagory: {current_question?.catagory}</p>
 					<p class="question">{current_question?.content}</p>
 				</div>
+				{#if current_round.votes.length > 0}
+					<div class="paper question_container">
+						<p class="small">Votes</p>
+						{#each current_round.votes as vote}
+							<p class="question">
+								{vote.player.name}: {vote.voted === VoteOptions.Have ? 'have' : 'have not'}
+							</p>
+						{/each}
+					</div>
+				{/if}
 			{:else}
 				<h2>Choose a question</h2>
 			{/if}
@@ -232,12 +269,22 @@
 		{/if}
 	{:else}
 		<p class="nomore">There are no more questions...</p>
+		{#each players as player}
+			<p class="question">
+				{player.name} scored {player.score}
+			</p>
+		{/each}
 		<button on:click={() => reset()}>Reset Game</button>
 	{/if}
 	{#if conf_reset_display}
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
+	<div class="have_not">
+		<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
+		<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>have not</button
+		>
+	</div>
 	<div class="connection_info">
 		{#if connection === Status.CONNECTING}
 			Connecting...
@@ -311,5 +358,8 @@
 
 	.connection_info {
 		@apply fixed border-2 border-black bottom-2 right-2 p-2 bg-gray-200 rounded-md;
+	}
+	.have_not {
+		@apply fixed border-2 border-blue-400 bottom-2 left-2 p-2 bg-gray-200 rounded-md;
 	}
 </style>

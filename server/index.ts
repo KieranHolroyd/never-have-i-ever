@@ -67,6 +67,8 @@ type GameData = {
     id: string;
     name: string;
     score: number;
+
+    voted_this_round: boolean;
   }[];
 
   catagories: string[];
@@ -154,6 +156,7 @@ const server = Bun.serve({
                 id: ws.data.player,
                 name: data.playername,
                 score: 0,
+                voted_this_round: false,
               });
             }
 
@@ -233,6 +236,9 @@ const server = Bun.serve({
             }
 
             game.current_question = select_question(game);
+            game.players.forEach((player) => {
+              player.voted_this_round = false;
+            });
 
             publish(ws, ws.data.game, "", {
               op: "game_state",
@@ -253,6 +259,50 @@ const server = Bun.serve({
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };
             game.data = { ...game_data };
+
+            publish(ws, ws.data.game, "", {
+              op: "game_state",
+              game,
+            });
+            send(ws, "game_state", { game });
+            break;
+          }
+          case "vote": {
+            const game = get_game(ws.data.game);
+            if (!game) {
+              send(ws, "error", { message: "Game not found" });
+              break;
+            }
+
+            if (!data.option) {
+              send(ws, "error", { message: "No vote provided" });
+              break;
+            }
+
+            const plyr = game.players.find(
+              (player) => player.id === ws.data.player
+            );
+            if (data.option === 1) {
+              if (!plyr.voted_this_round) {
+                plyr.score++;
+              }
+              publish(ws, ws.data.game, "", {
+                op: "vote_cast",
+                player: plyr,
+                vote: "Have",
+              });
+              send(ws, "vote_cast", { player: plyr, vote: "Have" });
+              plyr.voted_this_round = true;
+            }
+            if (data.option === 2) {
+              publish(ws, ws.data.game, "", {
+                op: "vote_cast",
+                player: plyr,
+                vote: "Have Not",
+              });
+              send(ws, "vote_cast", { player: plyr, vote: "Have Not" });
+              plyr.voted_this_round = true;
+            }
 
             publish(ws, ws.data.game, "", {
               op: "game_state",
