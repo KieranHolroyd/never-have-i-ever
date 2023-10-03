@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { LocalPlayer } from '$lib/player';
 
 	let nickname: string = '';
@@ -10,7 +12,12 @@
 		}
 		LocalPlayer.name = nickname;
 
-		window.location.href = `/`;
+		const redirect_url = $page.url.searchParams.get('redirect');
+		if (redirect_url !== null) {
+			return goto(redirect_url);
+		} else {
+			return goto(`/`);
+		}
 	}
 </script>
 

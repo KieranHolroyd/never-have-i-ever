@@ -1,6 +1,7 @@
 import { ServerWebSocket } from "bun";
 import figlet from "figlet";
 import { v4 } from "uuid";
+import { pickRandom } from "mathjs";
 
 function emit(
   ws: ServerWebSocket<any>,
@@ -58,8 +59,7 @@ function get_game(id: string) {
 }
 
 function select_question(game: GameData) {
-  const sel_cat =
-    game.catagories[Math.floor(Math.random() * (game.catagories.length - 1))];
+  const sel_cat = pickRandom(game.catagories);
 
   const sel_question = chooseQuestionFromCatagory(sel_cat, game);
 
@@ -74,11 +74,8 @@ function select_question(game: GameData) {
 }
 
 function chooseQuestionFromCatagory(catagory: string, game: GameData) {
-  const rand_number = Math.floor(
-    Math.random() * (game.data[catagory].length - 1)
-  );
-  let q = game.data[catagory][rand_number];
-  game.data[catagory].splice(rand_number, 1);
+  let q = pickRandom(game.data[catagory]);
+  game.data[catagory].splice(game.data[catagory].indexOf(q), 1);
   return q;
 }
 

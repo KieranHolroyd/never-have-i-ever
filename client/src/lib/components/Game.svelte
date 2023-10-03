@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { env } from '$env/dynamic/public';
 	import { LocalPlayer } from '$lib/player';
+	import { goto } from '$app/navigation';
 
 	export let id: string;
 	enum Status {
@@ -87,7 +88,7 @@
 	// }
 
 	onMount(() => {
-		if (LocalPlayer.name === null) window.location.href = `/play/name`;
+		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
 		player_id = LocalPlayer.id;
 		setupsock();
 		load();

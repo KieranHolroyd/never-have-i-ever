@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { LocalPlayer } from '$lib/player';
 	import type { PageData } from './$types';
 
@@ -7,9 +8,9 @@
 
 	function startGame() {
 		if (LocalPlayer.name === null) {
-			return (window.location.href = `/play/name`);
+			return goto(`/play/name?redirect=/play/${data.newgame_id}`);
 		}
-		window.location.href = `/play/${data.newgame_id}`;
+		goto(`/play/${data.newgame_id}`);
 	}
 </script>
 
