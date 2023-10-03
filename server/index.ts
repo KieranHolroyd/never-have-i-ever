@@ -265,12 +265,13 @@ const server = Bun.serve({
             break;
           }
           case "reset_game": {
-            const game = get_game(ws.data.game);
+            let game = get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
             }
 
+            game.data = null;
             game.catagories = [];
             game.catagory_select = true;
             game.game_completed = false;
