@@ -67,6 +67,7 @@ function select_question(game: GameData) {
     game.game_completed = true;
   } else if (sel_question === undefined && game.catagories.length >= 1) {
     game.catagories.splice(game.catagories.indexOf(sel_cat), 1);
+    return select_question(game);
   }
 
   return { catagory: sel_cat, content: sel_question };
