@@ -217,7 +217,7 @@
 		});
 		function reconnect() {
 			retry_count = retry_count + 1;
-			console.log(retry_count, 500 * Math.max(1, retry_count));
+			console.log(retry_count, 100 * Math.max(1, retry_count));
 			socket?.close();
 			socket = null;
 			socket = new WebSocket(sock_url + sock_params);
