@@ -66,6 +66,7 @@
 	// }
 
 	onMount(() => {
+		if (LocalPlayer.name === null) window.location.href = `/play/name`;
 		player_id = LocalPlayer.id;
 		setupsock();
 		load();
