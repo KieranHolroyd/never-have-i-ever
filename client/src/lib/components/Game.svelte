@@ -19,6 +19,9 @@
 		id: string;
 		name: string;
 		score: number;
+
+		connected: boolean;
+		voted_this_round: boolean;
 	}[] = [];
 
 	let my_name = LocalPlayer.name;
@@ -300,7 +303,7 @@
 		<details>
 			<summary>({players.length} player{players.length > 1 ? 's' : ''})</summary>
 			<ul>
-				{#each players as player}
+				{#each players.filter((p) => p.connected === true) as player}
 					<li>
 						{player.name} ({player.score})
 					</li>

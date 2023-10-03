@@ -68,6 +68,7 @@ type GameData = {
     name: string;
     score: number;
 
+    connected: boolean;
     voted_this_round: boolean;
   }[];
 
@@ -151,13 +152,21 @@ const server = Bun.serve({
               break;
             }
 
-            if (!game.players.find((player) => player.id === ws.data.player)) {
+            const current_player = game.players.find(
+              (player) => player.id === ws.data.player
+            );
+            if (!current_player) {
               game.players.push({
                 id: ws.data.player,
                 name: data.playername,
                 score: 0,
+                connected: true,
                 voted_this_round: false,
               });
+            }
+
+            if (current_player.connected === false) {
+              current_player.connected = true;
             }
 
             ws.subscribe(ws.data.game);
@@ -334,10 +343,8 @@ const server = Bun.serve({
       const game = get_game(ws.data.game);
       if (!game) return;
 
-      game.players.splice(
-        game.players.findIndex((p) => p.id === ws.data.player),
-        1
-      );
+      const plyr = game.players.find((p) => p.id === ws.data.player);
+      plyr.connected = false;
 
       publish(ws, ws.data.game, "", {
         op: "game_state",
