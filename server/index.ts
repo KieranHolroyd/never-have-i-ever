@@ -3,29 +3,49 @@ import figlet from "figlet";
 import { v4 } from "uuid";
 import * as game_data from "./data.json";
 
-function send(ws: ServerWebSocket<any>, prefix: string, data_raw: object) {
+function emit(
+  ws: ServerWebSocket<any>,
+  topic: string,
+  op: string,
+  data_raw: object
+) {
   try {
-    data_raw["op"] = prefix;
-    const data = JSON.stringify(data_raw);
-    ws.send(`${prefix};${data}`);
+    const data = JSON.stringify({ ...data_raw, op });
+    ws.publish(topic, data);
+    ws.send(data);
   } catch (err) {
-    ws.send(`error;${JSON.stringify(err)}}`);
-    return;
+    ws.send(
+      JSON.stringify({ err, message: "Error sending message", op: "error" })
+    );
+  }
+}
+
+function send(ws: ServerWebSocket<any>, op: string, data_raw: object) {
+  try {
+    const data = JSON.stringify({ ...data_raw, op });
+
+    ws.send(data);
+  } catch (err) {
+    ws.send(
+      JSON.stringify({ err, message: "Error sending message", op: "error" })
+    );
   }
 }
 
 function publish(
   ws: ServerWebSocket<any>,
   topic: string,
-  prefix: string,
+  op: string,
   data_raw: object
 ) {
   try {
-    const data = JSON.stringify(data_raw);
-    const to_send = prefix !== "" ? `${prefix};${data}` : `game;${data}`;
-    ws.publish(topic, to_send);
+    const data = JSON.stringify({ ...data_raw, op });
+
+    ws.publish(topic, data);
   } catch (err) {
-    ws.send(`error;${JSON.stringify(err)}}`);
+    ws.send(
+      JSON.stringify({ err, message: "Error sending message", op: "error" })
+    );
     return;
   }
 }
@@ -123,10 +143,8 @@ const server = Bun.serve({
         return;
       }
       try {
-        const op = message.split(";")[0];
-        console.log(op);
-        const data_raw = message.split(";")[1];
-        const data = JSON.parse(data_raw);
+        const data = JSON.parse(message);
+        const op = data.op;
 
         switch (op) {
           case "join_game": {
@@ -171,13 +189,10 @@ const server = Bun.serve({
 
             ws.subscribe(ws.data.game);
 
-            publish(ws, ws.data.game, "", {
-              op: "join_game",
+            emit(ws, ws.data.game, "game_state", {
               id: ws.data.game,
-              player: ws.data.player,
+              game,
             });
-            send(ws, "game_state", { game });
-            send(ws, "join_game", { id: ws.data.game, game });
             break;
           }
           case "select_catagories": {
@@ -188,11 +203,7 @@ const server = Bun.serve({
             }
 
             game.catagory_select = true;
-            publish(ws, ws.data.game, "", {
-              op: "game_state",
-              game,
-            });
-            send(ws, "game_state", { game });
+            emit(ws, ws.data.game, "game_state", { game });
             break;
           }
           case "select_catagory": {
@@ -230,11 +241,7 @@ const server = Bun.serve({
 
             game.catagory_select = false;
 
-            publish(ws, ws.data.game, "", {
-              op: "game_state",
-              game,
-            });
-            send(ws, "game_state", { game });
+            emit(ws, ws.data.game, "game_state", { game });
             break;
           }
           case "next_question": {
@@ -249,15 +256,8 @@ const server = Bun.serve({
               player.voted_this_round = false;
             });
 
-            publish(ws, ws.data.game, "", {
-              op: "game_state",
-              game,
-            });
-            publish(ws, ws.data.game, "", {
-              op: "new_round",
-            });
-            send(ws, "new_round", {});
-            send(ws, "game_state", { game });
+            emit(ws, ws.data.game, "game_state", { game });
+            emit(ws, ws.data.game, "new_round", {});
             break;
           }
           case "reset_game": {
@@ -273,11 +273,7 @@ const server = Bun.serve({
             game.current_question = { catagory: "", content: "" };
             game.data = { ...game_data };
 
-            publish(ws, ws.data.game, "", {
-              op: "game_state",
-              game,
-            });
-            send(ws, "game_state", { game });
+            emit(ws, ws.data.game, "game_state", { game });
             break;
           }
           case "vote": {
@@ -293,38 +289,30 @@ const server = Bun.serve({
             }
 
             console.log(data.option, ws.data.player);
-            const plyr = game.players.find(
+            const player = game.players.find(
               (player) => player.id === ws.data.player
             );
-            if (!plyr) {
+            if (!player) {
               send(ws, "error", { message: "Player not found" });
               break;
             }
-            if (data.option === 1 && !plyr.voted_this_round) {
-              plyr.score++;
-              publish(ws, ws.data.game, "", {
-                op: "vote_cast",
-                player: plyr,
+            if (data.option === 1 && !player.voted_this_round) {
+              player.score++;
+              emit(ws, ws.data.game, "vote_cast", {
+                player,
                 vote: "Have",
               });
-              send(ws, "vote_cast", { player: plyr, vote: "Have" });
-              plyr.voted_this_round = true;
+              player.voted_this_round = true;
             }
-            if (data.option === 2 && !plyr.voted_this_round) {
-              publish(ws, ws.data.game, "", {
-                op: "vote_cast",
-                player: plyr,
+            if (data.option === 2 && !player.voted_this_round) {
+              emit(ws, ws.data.game, "vote_cast", {
+                player,
                 vote: "Have Not",
               });
-              send(ws, "vote_cast", { player: plyr, vote: "Have Not" });
-              plyr.voted_this_round = true;
+              player.voted_this_round = true;
             }
 
-            publish(ws, ws.data.game, "", {
-              op: "game_state",
-              game,
-            });
-            send(ws, "game_state", { game });
+            emit(ws, ws.data.game, "game_state", { game });
             break;
           }
           default: {
@@ -333,7 +321,7 @@ const server = Bun.serve({
           }
         }
       } catch (err) {
-        send(ws, "error", { error: err.message, err });
+        send(ws, "error", { message: err.message, err });
       }
     },
     open: (ws) => {

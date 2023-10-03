@@ -15,6 +15,7 @@
 	}
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
+	let errors: any[] = [];
 	let players: {
 		id: string;
 		name: string;
@@ -115,18 +116,18 @@
 	}
 	function confirmSelections() {
 		if (game_state.current_catagory.length > 0) {
-			socket?.send(`confirm_selections;${JSON.stringify({})}`);
-			socket?.send(`next_question;${JSON.stringify({})}`);
+			socket?.send(JSON.stringify({ op: 'confirm_selections' }));
+			socket?.send(JSON.stringify({ op: 'next_question' }));
 		}
 	}
 	function selectCatagories() {
 		// let newState = game_state;
 		// newState.catagory_select = true;
 		// game_state = { ...newState };
-		socket?.send(`select_catagories;${JSON.stringify({})}`);
+		socket?.send(JSON.stringify({ op: 'select_catagories' }));
 	}
 	function selectQuestion() {
-		socket?.send(`next_question;${JSON.stringify({})}`);
+		socket?.send(JSON.stringify({ op: 'next_question' }));
 	}
 	function reset() {
 		//update game state to clear the game
@@ -138,16 +139,16 @@
 		// //reset to api data
 		// data = data_base;
 		// set conf display to false
-		socket?.send(`reset_game;${JSON.stringify({})}`);
+		socket?.send(JSON.stringify({ op: 'reset_game' }));
 		conf_reset_display = false;
 	}
 
 	function emitSelectCatagory(catagory: string) {
-		socket?.send(`select_catagory;${JSON.stringify({ catagory })}`);
+		socket?.send(JSON.stringify({ op: 'select_catagory', catagory }));
 	}
 
 	function vote(option: VoteOptions) {
-		socket?.send(`vote;${JSON.stringify({ option })}`);
+		socket?.send(JSON.stringify({ op: 'vote', option }));
 	}
 
 	/// WEBSOCKET STUFF
@@ -160,11 +161,9 @@
 
 		// message is received
 		socket?.addEventListener('message', (event) => {
-			const context = event.data.split(';')[0];
-			const data_raw = event.data.split(';')[1];
 			try {
-				const data = JSON.parse(data_raw);
-				console.log(context, data.op, data);
+				const data = JSON.parse(event.data);
+				console.log(data.op, data);
 				switch (data.op) {
 					case 'open':
 						connection = Status.CONNECTED;
@@ -188,6 +187,9 @@
 							{ player: data.player, voted: data.vote }
 						];
 						break;
+					case 'error':
+						errors = [...errors, data];
+						break;
 					default:
 						console.log('unhandled');
 					// console.log(data);
@@ -199,7 +201,7 @@
 
 		// socket opened
 		socket?.addEventListener('open', (event) => {
-			socket?.send(`join_game;${JSON.stringify({ create: true, playername: my_name })}`);
+			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
 			retry_count = 0;
 		});
 
@@ -307,6 +309,14 @@
 					<li>
 						{player.name} ({player.score})
 					</li>
+				{/each}
+			</ul>
+		</details>
+		<details>
+			<summary>Debug</summary>
+			<ul>
+				{#each errors as error}
+					<li>{error.message}</li>
 				{/each}
 			</ul>
 		</details>
