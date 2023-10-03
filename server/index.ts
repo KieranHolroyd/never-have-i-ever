@@ -263,8 +263,18 @@ const server = Bun.serve({
       }
     },
     open: (ws) => {
-      console.log("Websocket connection opened");
       send(ws, "open", { message: "Websocket connection opened" });
+    },
+    close: (ws) => {
+      const game = get_game(ws.data.game);
+      if (!game) return;
+
+      game.players.splice(game.players.indexOf(ws.data.player), 1);
+
+      publish(ws, ws.data.game, "", {
+        op: "game_state",
+        game,
+      });
     },
   },
   port: 3000,
