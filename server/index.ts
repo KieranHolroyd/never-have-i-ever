@@ -105,7 +105,7 @@ type GameData = {
   game_completed: boolean;
 
   // Local game state
-  data: any;
+  data: typeof game_data;
 };
 const games: GameData[] = [];
 
@@ -265,18 +265,20 @@ const server = Bun.serve({
             break;
           }
           case "reset_game": {
-            let game = get_game(ws.data.game);
+            const game = get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
             }
 
-            game.data = null;
             game.catagories = [];
             game.catagory_select = true;
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };
-            game.data = Object.assign({}, game_data);
+
+            for (const cat in game.data) {
+              game.data[cat] = game_data[cat];
+            }
 
             emit(ws, ws.data.game, "game_state", { game });
             break;
