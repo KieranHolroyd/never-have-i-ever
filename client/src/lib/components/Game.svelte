@@ -272,15 +272,15 @@
 			<button style="width: auto;" on:click={() => selectCatagories()}>
 				Return to catagory selection
 			</button>
-
 			<button class="green-button" on:click={() => selectQuestion()}> Next Question </button>
+
+			<div class="have_not">
+				<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
+				<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>
+					have not
+				</button>
+			</div>
 		{/if}
-		<div class="have_not">
-			<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
-			<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>
-				have not
-			</button>
-		</div>
 	{:else}
 		<p class="nomore">There are no more questions...</p>
 		{#each players as player}
