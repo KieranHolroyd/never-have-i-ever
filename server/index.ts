@@ -270,15 +270,14 @@ const server = Bun.serve({
               send(ws, "error", { message: "Game not found" });
               break;
             }
+            const game_index = games.indexOf(game);
 
             game.catagories = [];
             game.catagory_select = true;
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };
 
-            for (const cat in game.data) {
-              game.data[cat] = game_data[cat];
-            }
+            games[game_index].data = { ...game_data };
 
             emit(ws, ws.data.game, "game_state", { game });
             break;
