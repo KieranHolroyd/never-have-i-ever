@@ -1,7 +1,6 @@
 import { ServerWebSocket } from "bun";
 import figlet from "figlet";
 import { v4 } from "uuid";
-import * as game_data from "./data.json";
 
 function emit(
   ws: ServerWebSocket<any>,
@@ -105,7 +104,9 @@ type GameData = {
   game_completed: boolean;
 
   // Local game state
-  data: typeof game_data;
+  data: {
+    [key: string]: string[];
+  };
 };
 const games: GameData[] = [];
 
@@ -135,7 +136,7 @@ const server = Bun.serve({
     return new Response(figlet.textSync("Never Have I Ever"));
   },
   websocket: {
-    message: (
+    message: async (
       ws: ServerWebSocket<{ game: string; player: string }>,
       message
     ) => {
@@ -151,6 +152,7 @@ const server = Bun.serve({
           case "join_game": {
             if (data.create) {
               if (!games.find((game) => game.id === ws.data.game)) {
+                const game_data = await Bun.file("data.json").json();
                 games.push({
                   id: ws.data.game,
                   players: [],
@@ -275,6 +277,8 @@ const server = Bun.serve({
             game.catagory_select = true;
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };
+            const game_data = await Bun.file("data.json").json();
+
             game.data = { ...game_data };
 
             emit(ws, ws.data.game, "game_state", { game });
