@@ -217,7 +217,7 @@
 		});
 		function reconnect() {
 			retry_count = retry_count + 1;
-			console.log(retry_count, 200 * Math.max(1, retry_count));
+			console.log(retry_count, 500 * Math.max(1, retry_count));
 			socket?.close();
 			socket = null;
 			socket = new WebSocket(sock_url + sock_params);
@@ -275,11 +275,17 @@
 
 			<button class="green-button" on:click={() => selectQuestion()}> Next Question </button>
 		{/if}
+		<div class="have_not">
+			<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
+			<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>
+				have not
+			</button>
+		</div>
 	{:else}
 		<p class="nomore">There are no more questions...</p>
 		{#each players as player}
 			<p class="question">
-				{player.name} scored {player.score}
+				{player.name} has {player.score} Have's
 			</p>
 		{/each}
 		<button on:click={() => reset()}>Reset Game</button>
@@ -288,11 +294,6 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
-	<div class="have_not">
-		<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
-		<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>have not</button
-		>
-	</div>
 	<div class="connection_info">
 		{#if connection === Status.CONNECTING}
 			Connecting...
