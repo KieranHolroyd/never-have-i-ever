@@ -3,6 +3,7 @@
 	import { env } from '$env/dynamic/public';
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 
 	export let id: string;
 	enum Status {
@@ -182,6 +183,9 @@
 						break;
 					case 'new_round':
 						current_round.votes = [];
+						if (browser) {
+							window.navigator.vibrate([100, 50, 100]);
+						}
 						break;
 					case 'vote_cast':
 						current_round.votes = [
