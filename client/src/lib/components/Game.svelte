@@ -9,6 +9,11 @@
 
 	export let id: string;
 
+	const colour_map: Record<string, string> = {
+		Have: 'bg-green-400 text-white rounded-md shadow-md',
+		Kinda: 'bg-blue-400 text-white rounded-md shadow-md',
+		'Have Not': 'bg-red-400 text-white rounded-md shadow-md'
+	};
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
 	let errors: any[] = [];
@@ -250,7 +255,7 @@
 					<div class="paper question_container">
 						<p class="small">Votes</p>
 						{#each current_round.votes as vote}
-							<p class="question">
+							<p class={`question ${colour_map[vote.voted]}`}>
 								{vote.player.name}: {vote.voted}
 							</p>
 						{/each}
