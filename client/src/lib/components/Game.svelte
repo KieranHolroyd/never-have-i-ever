@@ -283,13 +283,13 @@
 				</div>
 				<div class="row">
 					<button class="text-white bg-red-500 hover:bg-red-400" on:click={() => conf_reset()}>
-						Reset Game
+						Reset
 					</button>
 					<button
 						class="text-white bg-green-500 hover:bg-green-400 text-xl md:text-4xl p-4"
 						on:click={() => selectQuestion()}
 					>
-						Next Question
+						Next
 					</button>
 					<button
 						class="text-white bg-blue-500 hover:bg-blue-400"
