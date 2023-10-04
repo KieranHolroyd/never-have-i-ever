@@ -305,7 +305,11 @@
 		{/if}
 		<br />
 		<details>
-			<summary>({players.length} player{players.length > 1 ? 's' : ''})</summary>
+			<summary
+				>({players.filter((p) => p.connected).length} player{players.length > 1
+					? 's'
+					: ''})</summary
+			>
 			<ul>
 				{#each players.filter((p) => p.connected === true) as player}
 					<li>
