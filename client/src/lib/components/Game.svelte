@@ -266,38 +266,41 @@
 			{/if}
 			<hr />
 			<div class="action-bar">
-				<div class="row mb-10">
+				<div class="row bg-white pb-2">
 					<button
-						class="text-xl md:text-2xl font-light px-4 hover:bg-green-400"
+						class="text-xl md:text-2xl font-light px-4 bg-white hover:bg-green-400 col-span-3"
 						on:click={() => vote(VoteOptions.Have)}
 					>
 						Have
 					</button>
 					<button
-						class="text-xl md:text-2xl font-light px-4 hover:bg-blue-400"
+						class="border-x border-gray-200 text-xl md:text-2xl font-light px-4 bg-white hover:bg-blue-400 col-span-3"
 						on:click={() => vote(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
 					<button
-						class="text-xl md:text-2xl font-light px-4 hover:bg-red-400"
+						class="text-xl md:text-2xl font-light px-4 bg-white hover:bg-red-400 col-span-3"
 						on:click={() => vote(VoteOptions.HaveNot)}
 					>
 						Have not
 					</button>
 				</div>
 				<div class="row">
-					<button class="text-white bg-red-500 hover:bg-red-400" on:click={() => conf_reset()}>
+					<button
+						class="text-white bg-gray-600 hover:bg-red-400 col-span-2"
+						on:click={() => conf_reset()}
+					>
 						Reset
 					</button>
 					<button
-						class="text-white bg-green-500 hover:bg-green-400 text-xl md:text-4xl p-4"
+						class="text-white bg-green-500 hover:bg-green-400 text-xl md:text-4xl p-4 col-span-5"
 						on:click={() => selectQuestion()}
 					>
-						Next
+						Next Question
 					</button>
 					<button
-						class="text-white bg-blue-500 hover:bg-blue-400"
+						class="text-white bg-gray-600 hover:bg-gray-400 col-span-2"
 						on:click={() => selectCatagories()}
 					>
 						Catagories
@@ -369,11 +372,11 @@
 	} */
 
 	.action-bar {
-		@apply fixed bottom-0 left-0 w-full space-y-2 pb-8;
+		@apply fixed bottom-0 left-0 w-full pb-8 bg-black;
 		.row {
-			@apply flex flex-row justify-center items-center space-x-4;
+			@apply w-full grid grid-cols-9;
 			button {
-				@apply rounded-md duration-150;
+				@apply rounded-none duration-150;
 			}
 		}
 	}
