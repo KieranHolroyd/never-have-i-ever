@@ -286,7 +286,7 @@
 						Reset Game
 					</button>
 					<button
-						class="text-white bg-green-500 hover:bg-green-400 text-2xl md:text-4xl p-4"
+						class="text-white bg-green-500 hover:bg-green-400 text-xl md:text-4xl p-4"
 						on:click={() => selectQuestion()}
 					>
 						Next Question
@@ -364,7 +364,7 @@
 	} */
 
 	.action-bar {
-		@apply fixed bottom-0 w-full space-y-2 pb-8;
+		@apply fixed bottom-0 left-0 w-full space-y-2 pb-8;
 		.row {
 			@apply flex flex-row justify-center items-center space-x-4;
 			button {
