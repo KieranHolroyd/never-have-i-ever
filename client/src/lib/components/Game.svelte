@@ -4,29 +4,15 @@
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import { Status, VoteOptions, type Player } from '$lib/types';
+	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 
 	export let id: string;
-	enum Status {
-		CONNECTING,
-		CONNECTED,
-		DISCONNECTED
-	}
-	enum VoteOptions {
-		Have = 1,
-		HaveNot = 2,
-		Kinda = 3
-	}
+
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
 	let errors: any[] = [];
-	let players: {
-		id: string;
-		name: string;
-		score: number;
-
-		connected: boolean;
-		voted_this_round: boolean;
-	}[] = [];
+	let players: Player[] = [];
 
 	let my_name = LocalPlayer.name;
 
@@ -274,19 +260,44 @@
 				<h2>Choose a question</h2>
 			{/if}
 			<hr />
-			<button class="red-button" on:click={() => conf_reset()}> Reset Game </button>
-			<button style="width: auto;" on:click={() => selectCatagories()}>
-				Return to catagory selection
-			</button>
-			<button class="green-button" on:click={() => selectQuestion()}> Next Question </button>
-
-			<div class="have_not">
-				<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
-				<button class="p-1 hover:bg-blue-400" on:click={() => vote(VoteOptions.Kinda)}>Kinda</button
-				>
-				<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>
-					have not
-				</button>
+			<div class="action-bar">
+				<div class="row mb-10">
+					<button
+						class="text-xl md:text-2xl font-light px-4 hover:bg-green-400"
+						on:click={() => vote(VoteOptions.Have)}
+					>
+						Have
+					</button>
+					<button
+						class="text-xl md:text-2xl font-light px-4 hover:bg-blue-400"
+						on:click={() => vote(VoteOptions.Kinda)}
+					>
+						Kinda
+					</button>
+					<button
+						class="text-xl md:text-2xl font-light px-4 hover:bg-red-400"
+						on:click={() => vote(VoteOptions.HaveNot)}
+					>
+						Have not
+					</button>
+				</div>
+				<div class="row">
+					<button class="text-white bg-red-500 hover:bg-red-400" on:click={() => conf_reset()}>
+						Reset Game
+					</button>
+					<button
+						class="text-white bg-green-500 hover:bg-green-400 text-2xl md:text-4xl p-4"
+						on:click={() => selectQuestion()}
+					>
+						Next Question
+					</button>
+					<button
+						class="text-white bg-blue-500 hover:bg-blue-400"
+						on:click={() => selectCatagories()}
+					>
+						Catagories
+					</button>
+				</div>
 			</div>
 		{/if}
 	{:else}
@@ -302,47 +313,10 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
-	<div class="connection_info">
-		{#if connection === Status.CONNECTING}
-			Connecting...
-		{:else if connection === Status.CONNECTED}
-			Connected
-		{:else if connection === Status.DISCONNECTED}
-			Disconnected
-		{/if}
-		<br />
-		<details>
-			<summary
-				>({players.filter((p) => p.connected).length} player{players.length > 1
-					? 's'
-					: ''})</summary
-			>
-			<ul>
-				{#each players.filter((p) => p.connected === true) as player}
-					<li>
-						{player.name} ({player.score})
-					</li>
-				{/each}
-			</ul>
-		</details>
-		<details>
-			<summary>Debug</summary>
-			<ul>
-				{#each errors as error}
-					<li>{error.message}</li>
-				{/each}
-			</ul>
-		</details>
-	</div>
+	<ConnectionInfoPanel {connection} {players} {errors} />
 </div>
 
-<style>
-	button {
-		margin: 12px 6px;
-		width: auto;
-		padding-right: 8px;
-		padding-left: 8px;
-	}
+<style lang="scss">
 	.catagories {
 		width: 100%;
 		display: flex;
@@ -385,10 +359,17 @@
 		font-weight: bolder;
 	}
 
-	.connection_info {
-		@apply fixed border-2 border-black bottom-2 right-2 p-2 bg-gray-200 rounded-md;
-	}
-	.have_not {
+	/* .have_not {
 		@apply fixed border-2 border-blue-400 bottom-2 left-2 p-2 bg-gray-200 rounded-md;
+	} */
+
+	.action-bar {
+		@apply fixed bottom-0 w-full space-y-2 pb-8;
+		.row {
+			@apply flex flex-row justify-center items-center space-x-4;
+			button {
+				@apply rounded-md duration-150;
+			}
+		}
 	}
 </style>
