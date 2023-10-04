@@ -317,6 +317,14 @@ const server = Bun.serve({
               });
               player.voted_this_round = true;
             }
+            if (data.option === 3 && !player.voted_this_round) {
+              player.score += 0.5;
+              emit(ws, ws.data.game, "vote_cast", {
+                player,
+                vote: "Kinda",
+              });
+              player.voted_this_round = true;
+            }
 
             emit(ws, ws.data.game, "game_state", { game });
             break;

@@ -12,7 +12,8 @@
 	}
 	enum VoteOptions {
 		Have = 1,
-		HaveNot = 2
+		HaveNot = 2,
+		Kinda = 3
 	}
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
@@ -277,6 +278,8 @@
 
 			<div class="have_not">
 				<button class="p-1 hover:bg-green-400" on:click={() => vote(VoteOptions.Have)}>have</button>
+				<button class="p-1 hover:bg-blue-400" on:click={() => vote(VoteOptions.Kinda)}>Kinda</button
+				>
 				<button class="p-1 hover:bg-red-400" on:click={() => vote(VoteOptions.HaveNot)}>
 					have not
 				</button>
