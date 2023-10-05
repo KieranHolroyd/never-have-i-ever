@@ -306,6 +306,11 @@ const server = Bun.serve({
             game.catagory_select = true;
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };
+            game.players.forEach((player) => {
+              player.score = 0;
+              player.this_round.vote = null;
+              player.this_round.voted = false;
+            });
             const game_data = await Bun.file("data.json").json();
 
             game.data = { ...game_data };
