@@ -397,8 +397,13 @@ setInterval(() => {
   games.map(async (game) => {
     if (game.players.filter((p) => p.connected).length === 0) return;
 
+    let to_save = { ...game };
+    to_save.players = game.players.map((p) => {
+      p.connected = false;
+      return p;
+    });
     const filename = `${game.id}.json`;
-    await Bun.write(Bun.env.GAME_DATA_DIR + filename, JSON.stringify(game));
+    await Bun.write(Bun.env.GAME_DATA_DIR + filename, JSON.stringify(to_save));
   });
 }, 10000);
 
