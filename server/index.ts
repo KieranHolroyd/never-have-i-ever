@@ -1,7 +1,26 @@
 import { ServerWebSocket } from "bun";
 import figlet from "figlet";
-import { v4 } from "uuid";
 import { pickRandom } from "mathjs";
+
+// TAKEN FROM ../client/src/lib/types.ts
+export enum VoteOptions {
+  Have = 1,
+  HaveNot = 2,
+  Kinda = 3,
+}
+
+export type Player = {
+  id: string;
+  name: string;
+  score: number;
+
+  this_round: {
+    vote: string;
+    voted: boolean;
+  };
+  connected: boolean;
+};
+//--------
 
 function emit(
   ws: ServerWebSocket<any>,
@@ -81,14 +100,7 @@ function chooseQuestionFromCatagory(catagory: string, game: GameData) {
 
 type GameData = {
   id: string;
-  players: {
-    id: string;
-    name: string;
-    score: number;
-
-    connected: boolean;
-    voted_this_round: boolean;
-  }[];
+  players: Player[];
 
   catagories: string[];
 
@@ -180,7 +192,10 @@ const server = Bun.serve({
                 name: data.playername,
                 score: 0,
                 connected: true,
-                voted_this_round: false,
+                this_round: {
+                  vote: null,
+                  voted: false,
+                },
               });
             }
             current_player = game.players.find(
@@ -257,7 +272,8 @@ const server = Bun.serve({
 
             game.current_question = select_question(game);
             game.players.forEach((player) => {
-              player.voted_this_round = false;
+              player.this_round.vote = null;
+              player.this_round.voted = false;
             });
 
             emit(ws, ws.data.game, "game_state", { game });
@@ -302,28 +318,28 @@ const server = Bun.serve({
               send(ws, "error", { message: "Player not found" });
               break;
             }
-            if (data.option === 1 && !player.voted_this_round) {
+            if (data.option === 1 && !player.this_round.voted) {
               player.score++;
               emit(ws, ws.data.game, "vote_cast", {
                 player,
                 vote: "Have",
               });
-              player.voted_this_round = true;
+              player.this_round = { vote: "Have", voted: true };
             }
-            if (data.option === 2 && !player.voted_this_round) {
+            if (data.option === 2 && !player.this_round.voted) {
               emit(ws, ws.data.game, "vote_cast", {
                 player,
                 vote: "Have Not",
               });
-              player.voted_this_round = true;
+              player.this_round = { vote: "Have Not", voted: true };
             }
-            if (data.option === 3 && !player.voted_this_round) {
+            if (data.option === 3 && !player.this_round.voted) {
               player.score += 0.5;
               emit(ws, ws.data.game, "vote_cast", {
                 player,
                 vote: "Kinda",
               });
-              player.voted_this_round = true;
+              player.this_round = { vote: "Kinda", voted: true };
             }
 
             emit(ws, ws.data.game, "game_state", { game });

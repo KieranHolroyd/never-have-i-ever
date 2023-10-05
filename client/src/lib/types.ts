@@ -14,6 +14,9 @@ export type Player = {
 	name: string;
 	score: number;
 
+	this_round: {
+		vote: string;
+		voted: boolean;
+	};
 	connected: boolean;
-	voted_this_round: boolean;
 };

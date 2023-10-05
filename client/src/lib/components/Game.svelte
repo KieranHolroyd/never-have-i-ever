@@ -123,7 +123,7 @@
 		socket?.send(JSON.stringify({ op: 'select_catagories' }));
 	}
 	function selectQuestion() {
-		if (current_round.votes.length > 0) {
+		if (players?.filter((p) => p.this_round.voted).length > 0) {
 			socket?.send(JSON.stringify({ op: 'next_question' }));
 		} else {
 			error = 'You must vote before moving on';
@@ -178,6 +178,7 @@
 						game_state.current_catagory = data.game.catagories;
 						game_state.catagory_select = data.game.catagory_select;
 						game_state.game_completed = data.game.game_completed;
+
 						current_question = data.game.current_question;
 						players = data.game.players;
 						break;
@@ -263,13 +264,15 @@
 				{#if error}
 					<p class="text-red-700">{error}</p>
 				{/if}
-				{#if current_round.votes.length > 0}
+				{#if players.filter((e) => e.this_round.voted)?.length > 0}
 					<div class="paper question_container">
 						<p class="small">Votes</p>
-						{#each current_round.votes as vote}
-							<p class={`question ${colour_map[vote.voted]}`}>
-								{vote.player.name}: {vote.voted}
-							</p>
+						{#each players as player}
+							{#if player.this_round.voted}
+								<p class={`question ${colour_map[player.this_round.vote]}`}>
+									{player.name}: {player.this_round.vote}
+								</p>
+							{/if}
 						{/each}
 					</div>
 				{/if}
@@ -313,7 +316,7 @@
 					</button>
 					<button
 						class="text-white bg-gray-600 hover:bg-gray-400 col-span-2"
-						on:click={() => selectCatagories()}
+						on:dblclick={() => selectCatagories()}
 					>
 						Catagories
 					</button>
