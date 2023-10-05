@@ -1,5 +1,6 @@
 import { ServerWebSocket } from "bun";
 import figlet from "figlet";
+import * as fs from "node:fs";
 import { pickRandom } from "mathjs";
 console.log(Bun.env.GAME_DATA_DIR);
 // TAKEN FROM ../client/src/lib/types.ts
@@ -393,7 +394,7 @@ setInterval(() => {
     if (game.players.filter((p) => p.connected).length === 0) return;
 
     const filename = `${game.id}.json`;
-    await Bun.write(Bun.env.GAME_DATA_DIR + filename, JSON.stringify(game));
+    fs.writeFileSync(Bun.env.GAME_DATA_DIR + filename, JSON.stringify(game));
   });
 }, 10000);
 
