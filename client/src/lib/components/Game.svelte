@@ -9,6 +9,8 @@
 
 	export let id: string;
 
+	let error: string | null = null;
+
 	const colour_map: Record<string, string> = {
 		Have: 'bg-green-400 text-white rounded-md shadow-md',
 		Kinda: 'bg-blue-400 text-white rounded-md shadow-md',
@@ -121,7 +123,14 @@
 		socket?.send(JSON.stringify({ op: 'select_catagories' }));
 	}
 	function selectQuestion() {
-		socket?.send(JSON.stringify({ op: 'next_question' }));
+		if (current_round.votes.length > 0) {
+			socket?.send(JSON.stringify({ op: 'next_question' }));
+		} else {
+			error = 'You must vote before moving on';
+			setTimeout(() => {
+				error = null;
+			}, 2500);
+		}
 	}
 	function reset() {
 		//update game state to clear the game
@@ -251,6 +260,9 @@
 					<p class="small">Catagory: {current_question?.catagory}</p>
 					<p class="question">{current_question?.content}</p>
 				</div>
+				{#if error}
+					<p class="text-red-700">{error}</p>
+				{/if}
 				{#if current_round.votes.length > 0}
 					<div class="paper question_container">
 						<p class="small">Votes</p>
