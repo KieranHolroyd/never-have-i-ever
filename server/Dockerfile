@@ -9,7 +9,5 @@ RUN bun install
 # Copy source code
 COPY . .
 
-RUN mkdir /gamedata
-
 # Run the project
 CMD ["bun", "run", "start"]

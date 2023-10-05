@@ -1,7 +1,7 @@
 import { ServerWebSocket } from "bun";
 import figlet from "figlet";
 import { pickRandom } from "mathjs";
-
+console.log(Bun.env.GAME_DATA_DIR);
 // TAKEN FROM ../client/src/lib/types.ts
 export enum VoteOptions {
   Have = 1,

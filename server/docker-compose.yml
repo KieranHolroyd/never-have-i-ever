@@ -5,7 +5,7 @@ services:
     build: .
     ports:
       - "3000:3000"
-    env:
-      GAME_DATA_DIR="/gamedata/"
+    environment:
+      - GAME_DATA_DIR="/home/bun/app/games/"
     volumes:
-      /var/gamedata:/gamedata
+      - /var/gamedata:/home/bun/app/games/
