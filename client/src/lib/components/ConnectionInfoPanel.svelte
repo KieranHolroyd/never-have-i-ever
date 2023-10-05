@@ -21,7 +21,7 @@
 		</summary>
 		<ul>
 			{#each players as player}
-				<li class={`${!player.connected ? 'line-through text-gray-600' : ''}`}>
+				<li class={`${!player.connected ? 'line-through text-gray-400' : ''}`}>
 					{player.name}
 					{#if player.connected}({player.score}){/if}
 				</li>
