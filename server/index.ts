@@ -162,19 +162,34 @@ const server = Bun.serve({
           case "join_game": {
             if (data.create) {
               if (!games.find((game) => game.id === ws.data.game)) {
-                const game_data = await Bun.file("data.json").json();
-                games.push({
-                  id: ws.data.game,
-                  players: [],
-                  catagories: [],
-                  catagory_select: true,
-                  game_completed: false,
-                  current_question: { catagory: "", content: "" },
-                  data: { ...game_data }, // This is a copy of the data
-                  // so that we can remove questions from it
-                  // a better way to do this would be to have a
-                  // mask on the data that is removed as questions
-                });
+                const game_filehandler = Bun.file(
+                  `${Bun.env.GAME_DATA_DIR}${ws.data.game}.json`
+                );
+
+                if (await game_filehandler.exists()) {
+                  // Load game data from file
+                  try {
+                    const game_data = await game_filehandler.json();
+                    games.push(game_data);
+                  } catch {
+                    send(ws, "error", { message: "Game data is invalid" });
+                  }
+                } else {
+                  // Create a new game
+                  const questions_list = await Bun.file("data.json").json();
+                  games.push({
+                    id: ws.data.game,
+                    players: [],
+                    catagories: [],
+                    catagory_select: true,
+                    game_completed: false,
+                    current_question: { catagory: "", content: "" },
+                    data: { ...questions_list }, // This is a copy of the data
+                    // so that we can remove questions from it
+                    // a better way to do this would be to have a
+                    // mask on the data that is removed as questions
+                  });
+                }
               }
             }
             const game = get_game(ws.data.game);
@@ -372,5 +387,14 @@ const server = Bun.serve({
   },
   port: 3000,
 });
+
+setInterval(() => {
+  games.map(async (game) => {
+    if (game.players.filter((p) => p.connected).length === 0) return;
+
+    const filename = `${game.id}.json`;
+    await Bun.write(Bun.env.GAME_DATA_DIR + filename, JSON.stringify(game));
+  });
+}, 10000);
 
 console.log(`Server running at http://${server.hostname}:${server.port}/`);
