@@ -20,9 +20,10 @@
 			({players.filter((p) => p.connected).length} player{players.length > 1 ? 's' : ''})
 		</summary>
 		<ul>
-			{#each players.filter((p) => p.connected === true) as player}
-				<li>
-					{player.name} ({player.score})
+			{#each players as player}
+				<li class={`${!player.connected ? 'line-through' : ''}`}>
+					{player.name}
+					{#if player.connected}({player.score}){/if}
 				</li>
 			{/each}
 		</ul>
