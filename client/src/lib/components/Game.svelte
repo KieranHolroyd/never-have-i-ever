@@ -90,7 +90,7 @@
 		load();
 
 		return () => {
-			socket?.close();
+			socket?.close(4000);
 			socket = null;
 		};
 	});
@@ -221,6 +221,7 @@
 		// socket closed
 		socket?.addEventListener('close', (event) => {
 			connection = Status.DISCONNECTED;
+			if (event.code === 4000) return;
 			setTimeout(reconnect, 200 * Math.max(1, retry_count));
 		});
 
