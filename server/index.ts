@@ -1,7 +1,11 @@
 import { ServerWebSocket } from "bun";
+import Database from "bun:sqlite";
 import figlet from "figlet";
 import { pickRandom } from "mathjs";
-console.log(Bun.env.GAME_DATA_DIR);
+import { migrate } from "./migrate";
+
+const db = new Database(Bun.env.GAME_DATA_DIR + "db.sqlite");
+
 // TAKEN FROM ../client/src/lib/types.ts
 export enum VoteOptions {
   Have = 1,
@@ -119,6 +123,8 @@ type GameData = {
   };
 };
 const games: GameData[] = [];
+
+// console.log(db.query("SELECT * FROM catagories").all());
 
 const server = Bun.serve({
   async fetch(req, server) {
@@ -392,6 +398,8 @@ const server = Bun.serve({
   },
   port: 3000,
 });
+
+migrate(db);
 
 setInterval(() => {
   games.map(async (game) => {

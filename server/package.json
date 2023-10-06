@@ -13,6 +13,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@stricjs/utils": "^1.5.5",
     "bunrest": "^1.3.6",
     "figlet": "^1.6.0",
     "mathjs": "^11.11.1",
