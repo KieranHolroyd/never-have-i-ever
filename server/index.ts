@@ -128,28 +128,41 @@ const games: GameData[] = [];
 
 const server = Bun.serve({
   async fetch(req, server) {
-    const params = new URLSearchParams(req.url.split("?")[1]);
-    console.log(params);
-    if (!params.has("game") || !params.has("player")) {
-      return new Response(figlet.textSync("Never Have I Ever"));
-    }
-    const success = server.upgrade(req, {
-      headers: {
-        "X-Gameid": params.get("game"),
-      },
-      data: {
-        game: params.get("game"),
-        player: params.get("player"),
-      },
-    });
-    if (success) {
-      // Bun automatically returns a 101 Switching Protocols
-      // if the upgrade succeeds
-      return undefined;
-    }
+    const url = new URL(req.url);
 
-    // handle HTTP request normally
-    return new Response(figlet.textSync("Never Have I Ever"));
+    switch (url.pathname) {
+      case "/": {
+        const params = new URLSearchParams(req.url.split("?")[1]);
+        console.log(params);
+        if (!params.has("game") || !params.has("player")) {
+          return new Response(figlet.textSync("Never Have I Ever"));
+        }
+        const success = server.upgrade(req, {
+          headers: {
+            "X-Gameid": params.get("game"),
+          },
+          data: {
+            game: params.get("game"),
+            player: params.get("player"),
+          },
+        });
+        if (success) {
+          // Bun automatically returns a 101 Switching Protocols
+          // if the upgrade succeeds
+          return undefined;
+        }
+
+        // handle HTTP request normally
+        return new Response(figlet.textSync("Never Have I Ever"));
+      }
+      case "/api/catagories": {
+        const catagories = db.query("SELECT * FROM catagories").all();
+        return Response.json(catagories);
+      }
+      default: {
+        return new Response("Not found", { status: 404 });
+      }
+    }
   },
   websocket: {
     message: async (
@@ -419,7 +432,9 @@ const server = Bun.serve({
   port: 3000,
 });
 
-migrate(db);
+if (Bun.env.MIGRATE) {
+  migrate(db);
+}
 
 setInterval(() => {
   games.map(async (game) => {
