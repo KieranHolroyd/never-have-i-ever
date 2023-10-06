@@ -88,6 +88,11 @@
 		player_id = LocalPlayer.id;
 		setupsock();
 		load();
+
+		return () => {
+			socket?.close();
+			socket = null;
+		};
 	});
 	async function load() {
 		const res = await fetch('/data.json');
