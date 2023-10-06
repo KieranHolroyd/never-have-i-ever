@@ -344,6 +344,26 @@ const server = Bun.serve({
               send(ws, "error", { message: "Player not found" });
               break;
             }
+            // Change vote logic
+            if (player.this_round.voted) {
+              switch (player.this_round.vote) {
+                case "Have": {
+                  player.score -= 1;
+                  break;
+                }
+                case "Have Not": {
+                  break;
+                }
+                case "Kinda": {
+                  player.score -= 0.5;
+                  break;
+                }
+                default:
+                  break;
+              }
+              player.this_round.voted = false;
+            }
+            // ---
             if (data.option === 1 && !player.this_round.voted) {
               player.score++;
               emit(ws, ws.data.game, "vote_cast", {
