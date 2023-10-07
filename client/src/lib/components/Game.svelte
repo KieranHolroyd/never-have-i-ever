@@ -12,9 +12,10 @@
 	let error: string | null = null;
 
 	const colour_map: Record<string, string> = {
-		Have: 'bg-green-400 text-white rounded-md shadow-md',
-		Kinda: 'bg-blue-400 text-white rounded-md shadow-md',
-		'Have Not': 'bg-red-400 text-white rounded-md shadow-md'
+		null: 'dark:bg-gray-800 bg-gray-400 text-white rounded-md shadow-md',
+		Have: 'bg-green-400 dark:bg-opacity-50 text-white rounded-md shadow-md',
+		Kinda: 'bg-blue-400 dark:bg-opacity-50 text-white rounded-md shadow-md',
+		'Have Not': 'bg-red-400 dark:bg-opacity-50 text-white rounded-md shadow-md'
 	};
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
@@ -241,68 +242,75 @@
 	/// ----------------
 </script>
 
-<div class="board text-center">
+<div class="dark:text-white text-black text-center">
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
-			<div class="catagories">
+			<div
+				class="w-64 mx-auto my-6 columns-1 dark:text-white dark:bg-gray-800 bg-white border-2 dark:border-gray-600 border-gray-200 shadow rounded-md"
+			>
+				<p class="text-xl font-semibold py-2 dark:bg-black bg-gray-200 rounded-t-md">
+					Select Catagories
+				</p>
 				{#each available_catagories as cat}
-					<div class="catagory">
-						<label class="checktext">
+					<label class="my-[2px]">
+						<div
+							class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75"
+						>
 							<input
 								type="checkbox"
-								class="catagory"
+								class=""
 								bind:group={game_state.current_catagory}
 								on:change={() => emitSelectCatagory(cat)}
 								value={cat}
 								checked={game_state.current_catagory.includes(cat)}
 							/>
-							<span>{cat}</span>
-						</label>
-					</div>
+							<span class="float-right">{cat}</span>
+						</div>
+					</label>
 				{/each}
 			</div>
 			<button class="green-button" on:click={() => confirmSelections()}> Continue </button>
 		{:else}
 			{#if current_question?.content !== undefined}
-				<div class="paper question_container">
-					<p class="small">Catagory: {current_question?.catagory}</p>
-					<p class="question">{current_question?.content}</p>
+				<div class="mx-auto my-6 max-w-lg p-3">
+					<p class="m-0 text-xs uppercase font-bold">Catagory: {current_question?.catagory}</p>
+					<p class="relative text-lg my-1 p-1">{current_question?.content}</p>
 				</div>
 				{#if error}
 					<p class="text-red-700">{error}</p>
 				{/if}
-				{#if players.filter((e) => e.this_round.voted)?.length > 0}
-					<div class="paper question_container">
-						<p class="small">Votes</p>
-						{#each players as player}
-							{#if player.this_round.voted}
-								<p class={`question ${colour_map[player.this_round.vote]}`}>
-									{player.name}: {player.this_round.vote}
-								</p>
-							{/if}
-						{/each}
-					</div>
-				{/if}
+				<div class="mx-auto my-6 max-w-lg p-3">
+					<p class="m-0 text-xs uppercase font-bold">Players</p>
+					{#each players.filter((p) => p.connected) as player}
+						<div class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`}>
+							{player.name}: {player.this_round.vote ?? 'Not Voted'}
+							<div
+								class="absolute text-xs leading-[1.825] top-1 right-1 bg-red-600 border border-white rounded-full text-white min-w-[1.5rem] h-6 px-1"
+							>
+								{player.score}
+							</div>
+						</div>
+					{/each}
+				</div>
 			{:else}
 				<h2>Choose a question</h2>
 			{/if}
-			<hr />
 			<div class="action-bar">
-				<div class="row bg-white pb-2">
+				<div class="row dark:bg-gray-700 bg-white pb-2">
 					<button
-						class="text-xl md:text-2xl font-light px-4 bg-white hover:bg-green-400 col-span-3"
+						class="text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-green-400 hover:dark:bg-opacity-50 col-span-3"
 						on:click={() => vote(VoteOptions.Have)}
 					>
 						Have
 					</button>
 					<button
-						class="border-x border-gray-200 text-xl md:text-2xl font-light px-4 bg-white hover:bg-blue-400 col-span-3"
+						class="border-x dark:border-gray-500 border-gray-200 text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-blue-400 hover:dark:bg-opacity-50 col-span-3"
 						on:click={() => vote(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
 					<button
-						class="text-xl md:text-2xl font-light px-4 bg-white hover:bg-red-400 col-span-3"
+						class="text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-red-400 hover:dark:bg-opacity-50 col-span-3"
 						on:click={() => vote(VoteOptions.HaveNot)}
 					>
 						Have not
@@ -347,51 +355,47 @@
 </div>
 
 <style lang="scss">
-	.catagories {
-		width: 100%;
-		display: flex;
-		align-content: space-between;
-		flex-direction: row;
-		flex-wrap: wrap;
-	}
-	.catagory {
-		max-width: 200px;
-		margin: 12px auto;
-		padding: 2px 10px;
-		text-align: center;
-	}
-	.checktext {
-		margin: 10px 0;
-	}
-	.question_container {
-		margin: 10px auto;
-		max-width: 500px;
-		padding: 12px;
-	}
-	.question_container .small {
-		margin: 0;
-		text-transform: uppercase;
-		font-size: 12px;
-		font-weight: bold;
-	}
-	.question_container .question {
-		font-size: 18px;
-		margin: 4px 0;
-	}
-	.paper {
-		margin: 24px auto;
-	}
-	p.nomore {
-		text-align: center;
-		color: #afafaf;
-		font-size: 15px;
-		letter-spacing: 0.5px;
-		font-weight: bolder;
-	}
-
-	/* .have_not {
-		@apply fixed border-2 border-blue-400 bottom-2 left-2 p-2 bg-gray-200 rounded-md;
-	} */
+	// .catagories {
+	// 	width: 100%;
+	// 	display: flex;
+	// 	align-content: space-between;
+	// 	flex-direction: row;
+	// 	flex-wrap: wrap;
+	// }
+	// .catagory {
+	// 	max-width: 200px;
+	// 	margin: 12px auto;
+	// 	padding: 2px 10px;
+	// 	text-align: center;
+	// }
+	// .checktext {
+	// 	margin: 10px 0;
+	// }
+	// .question_container {
+	// 	margin: 10px auto;
+	// 	max-width: 500px;
+	// 	padding: 12px;
+	// }
+	// .question_container .small {
+	// 	margin: 0;
+	// 	text-transform: uppercase;
+	// 	font-size: 12px;
+	// 	font-weight: bold;
+	// }
+	// .question_container .question {
+	// 	font-size: 18px;
+	// 	margin: 4px 0;
+	// }
+	// .paper {
+	// 	margin: 24px auto;
+	// }
+	// p.nomore {
+	// 	text-align: center;
+	// 	color: #afafaf;
+	// 	font-size: 15px;
+	// 	letter-spacing: 0.5px;
+	// 	font-weight: bolder;
+	// }
 
 	.action-bar {
 		@apply fixed bottom-0 left-0 w-full pb-8 bg-black;

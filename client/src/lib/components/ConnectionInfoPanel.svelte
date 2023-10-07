@@ -7,17 +7,15 @@
 </script>
 
 <div class="connection_info">
-	{#if connection === Status.CONNECTING}
-		Connecting...
-	{:else if connection === Status.CONNECTED}
-		Connected
-	{:else if connection === Status.DISCONNECTED}
-		Disconnected
-	{/if}
-	<br />
 	<details>
-		<summary>
-			({players.filter((p) => p.connected).length} player{players.length > 1 ? 's' : ''})
+		<summary class="cursor-pointer">
+			{#if connection === Status.CONNECTING}
+				Connecting...
+			{:else if connection === Status.CONNECTED}
+				Connected
+			{:else if connection === Status.DISCONNECTED}
+				Disconnected
+			{/if}
 		</summary>
 		<ul>
 			{#each players as player}
@@ -27,19 +25,19 @@
 				</li>
 			{/each}
 		</ul>
-	</details>
-	<details>
-		<summary>Debug</summary>
-		<ul>
-			{#each errors as error}
-				<li>{error.message}</li>
-			{/each}
-		</ul>
+		<details>
+			<summary class="cursor-pointer">Debug</summary>
+			<ul>
+				{#each errors as error}
+					<li>{error.message}</li>
+				{/each}
+			</ul>
+		</details>
 	</details>
 </div>
 
-<style>
+<style lang="scss">
 	.connection_info {
-		@apply fixed border-2 border-black bottom-56 right-2 p-2 bg-gray-200 rounded-md;
+		@apply fixed border-2 dark:border-white border-black top-2 right-2 p-2 dark:bg-gray-600 bg-gray-200 rounded-md;
 	}
 </style>
