@@ -16,11 +16,11 @@
 
 <div>
 	<div class="menu-container">
-		<h1 class="text-3xl font-bold mb-4">{name}</h1>
+		<h1 class="text-3xl dark:text-white font-bold mb-4">{name}</h1>
 		<button class="menu-button" on:click={startGame}> Start New Game </button>
 	</div>
 
-	<p class="text-gray-300 text-sm font-bold tracking-wider">
+	<p class="text-center text-gray-300 text-sm font-bold tracking-wider">
 		Made by Kieran.
 		<a href="/suggest">Suggest Changes.</a>
 	</p>
