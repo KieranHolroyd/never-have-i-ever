@@ -337,6 +337,7 @@
 					</button>
 				</div>
 			</div>
+			<ConnectionInfoPanel {connection} {players} {errors} />
 		{/if}
 	{:else}
 		<p class="nomore">There are no more questions...</p>
@@ -351,7 +352,6 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
-	<ConnectionInfoPanel {connection} {players} {errors} />
 </div>
 
 <style lang="scss">
