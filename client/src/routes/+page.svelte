@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import InfoIcon from '$lib/components/icon/InfoIcon.svelte';
 	import { LocalPlayer } from '$lib/player';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
-	const name = 'Never have I ever';
 
 	function startGame() {
 		if (LocalPlayer.name === null) {
@@ -16,7 +16,19 @@
 
 <div>
 	<div class="menu-container">
-		<h1 class="text-3xl dark:text-white font-bold mb-4">{name}</h1>
+		<h1 class="text-3xl dark:text-white font-bold mb-4">Never Have I Ever</h1>
+		<div class="relative px-2 py-4 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200">
+			<span class="absolute top-4 left-2">
+				<InfoIcon />
+			</span>
+			<p class="text-justify pl-14 pr-4">
+				Dive into a virtual realm of cheeky confessions with our real-time online game of Never Have
+				I Ever. Discover amusing truths in a laughter-filled atmosphere, whether with close friends
+				or new acquaintances. Experience a seamless gaming journey as you venture through rounds of
+				startling revelations and playful exchanges. Unmask amusing secrets and forge unforgettable
+				memories in this classic party game gone virtual!
+			</p>
+		</div>
 		<button class="menu-button" on:click={startGame}> Start New Game </button>
 	</div>
 
