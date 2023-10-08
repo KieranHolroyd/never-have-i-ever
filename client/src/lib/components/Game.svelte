@@ -7,10 +7,13 @@
 	import { Status, VoteOptions, type Player } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
+	import Notification from './Notification.svelte';
 
 	export let id: string;
 
 	let error: string | null = null;
+	let show_notification = false;
+	let notification_content = '';
 
 	const colour_map: Record<string, string> = {
 		null: 'dark:bg-gray-800 bg-gray-400 text-white rounded-md shadow-md',
@@ -168,6 +171,12 @@
 					case 'error':
 						errors = [...errors, data];
 						break;
+					case 'github_push':
+						setTimeout(() => {
+							show_notification = true;
+							notification_content = data.notification;
+						}, data.delay);
+						break;
 					default:
 						console.log('unhandled');
 					// console.log(data);
@@ -317,6 +326,14 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
+	<Notification
+		{show_notification}
+		{notification_content}
+		on:closeNotification={() => {
+			show_notification = false;
+			notification_content = '';
+		}}
+	/>
 </div>
 
 <style lang="scss">

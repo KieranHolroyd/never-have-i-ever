@@ -3,9 +3,13 @@ import Database from "bun:sqlite";
 import figlet from "figlet";
 import { pickRandom } from "mathjs";
 import { migrate } from "./migrate";
+import { PushEvent, WebhookEvent } from "@octokit/webhooks-types";
+import { WebSocket } from "ws";
 
-if(!Bun.env.GAME_DATA_DIR) {
-  console.error("[FATAL ERROR] Environment Variable GAME_DATA_DIR isn't defined")
+if (!Bun.env.GAME_DATA_DIR) {
+  console.error(
+    "[FATAL ERROR] Environment Variable GAME_DATA_DIR isn't defined"
+  );
   process.exit(1);
 }
 
@@ -164,6 +168,24 @@ const server = Bun.serve({
         const catagories = db.query("SELECT * FROM catagories").all();
         return Response.json(catagories);
       }
+      case "/hook/github": {
+        const CLIENT_UPDATE_DELAY = 30000; // ms
+        const body = await req.json<PushEvent>();
+
+        if (body.ref !== "refs/heads/main") {
+          return new Response("Not main branch, ignoring", { status: 200 });
+        }
+
+        server.publish(
+          "notifications",
+          JSON.stringify({
+            delay: CLIENT_UPDATE_DELAY,
+            notification: "An update has been pushed, please reload the page.",
+            op: "github_push",
+          })
+        );
+        return new Response("OK", { status: 200 });
+      }
       default: {
         return new Response("Not found", { status: 404 });
       }
@@ -246,6 +268,7 @@ const server = Bun.serve({
             }
 
             ws.subscribe(ws.data.game);
+            ws.subscribe("notifications");
 
             emit(ws, ws.data.game, "game_state", {
               id: ws.data.game,
