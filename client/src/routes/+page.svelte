@@ -33,7 +33,7 @@
 	</div>
 
 	<p class="text-center text-gray-300 text-sm font-bold tracking-wider">
-		Made by Kieran.
+		Made by <a href="https://kieran.dev">Kieran</a>.
 		<a href="/suggest">Suggest Changes.</a>
 	</p>
 </div>
