@@ -180,7 +180,7 @@ const server = Bun.serve({
           "notifications",
           JSON.stringify({
             delay: CLIENT_UPDATE_DELAY,
-            notification: "An update has been pushed, please reload the page.",
+            notification: "An update is available, please reload the page.",
             op: "github_push",
           })
         );
