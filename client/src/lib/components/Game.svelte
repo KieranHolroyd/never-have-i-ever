@@ -69,20 +69,6 @@
 	} = {
 		votes: []
 	};
-	// onMount(() => {
-	//   const onShake = new Shake({
-	//     threshold: 15,
-	//     timeout: 2500
-	//   });
-	//   onShake.start();
-
-	//   window.addEventListener("shake", onShakeHandler, false);
-	// });
-
-	// function onShakeHandler() {
-	//   if (!game_state.catagory_select && !game_state.game_completed)
-	//     selectQuestion();
-	// }
 
 	onMount(() => {
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
@@ -124,9 +110,6 @@
 		}
 	}
 	function selectCatagories() {
-		// let newState = game_state;
-		// newState.catagory_select = true;
-		// game_state = { ...newState };
 		socket?.send(JSON.stringify({ op: 'select_catagories' }));
 	}
 	function selectQuestion() {
@@ -140,15 +123,6 @@
 		}
 	}
 	function reset() {
-		//update game state to clear the game
-		// let newState = game_state;
-		// newState.game_completed = false;
-		// newState.catagory_select = true;
-		// newState.current_catagory = [];
-		// game_state = { ...newState };
-		// //reset to api data
-		// data = data_base;
-		// set conf display to false
 		socket?.send(JSON.stringify({ op: 'reset_game' }));
 		conf_reset_display = false;
 	}
@@ -355,48 +329,6 @@
 </div>
 
 <style lang="scss">
-	// .catagories {
-	// 	width: 100%;
-	// 	display: flex;
-	// 	align-content: space-between;
-	// 	flex-direction: row;
-	// 	flex-wrap: wrap;
-	// }
-	// .catagory {
-	// 	max-width: 200px;
-	// 	margin: 12px auto;
-	// 	padding: 2px 10px;
-	// 	text-align: center;
-	// }
-	// .checktext {
-	// 	margin: 10px 0;
-	// }
-	// .question_container {
-	// 	margin: 10px auto;
-	// 	max-width: 500px;
-	// 	padding: 12px;
-	// }
-	// .question_container .small {
-	// 	margin: 0;
-	// 	text-transform: uppercase;
-	// 	font-size: 12px;
-	// 	font-weight: bold;
-	// }
-	// .question_container .question {
-	// 	font-size: 18px;
-	// 	margin: 4px 0;
-	// }
-	// .paper {
-	// 	margin: 24px auto;
-	// }
-	// p.nomore {
-	// 	text-align: center;
-	// 	color: #afafaf;
-	// 	font-size: 15px;
-	// 	letter-spacing: 0.5px;
-	// 	font-weight: bolder;
-	// }
-
 	.action-bar {
 		@apply fixed bottom-0 left-0 w-full pb-8 bg-black;
 		.row {
