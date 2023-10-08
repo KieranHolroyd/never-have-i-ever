@@ -172,7 +172,7 @@ const server = Bun.serve({
         const CLIENT_UPDATE_DELAY = 30000; // ms
         const body = await req.json<PushEvent>();
 
-        if (body.ref !== "refs/heads/main") {
+        if (body.ref !== "refs/heads/master") {
           return new Response("Not main branch, ignoring", { status: 200 });
         }
 
