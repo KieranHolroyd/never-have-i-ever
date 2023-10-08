@@ -21,12 +21,14 @@
 	}
 </script>
 
-<div class="w-96 mt-10 mx-auto p-8 bg-gray-100 shadow-md">
+<div
+	class="w-96 mt-10 mx-auto p-8 dark:bg-gray-800 dark:text-white bg-gray-100 shadow-md rounded-lg"
+>
 	<h1 class="text-4xl font-bold">Hang on!</h1>
 	<h2 class="text-xl font-light tracking-tight">You need to choose a nickname first!</h2>
 	<label class="block w-full text-left" for="name">Nickname:</label>
 	<input
-		class="block w-full text-left rounded bg-gray-200 p-2 mb-2"
+		class="block w-full text-left rounded text-black bg-gray-200 p-2 mb-2"
 		type="text"
 		id="name"
 		name="name"
