@@ -4,6 +4,11 @@ import figlet from "figlet";
 import { pickRandom } from "mathjs";
 import { migrate } from "./migrate";
 
+if(!Bun.env.GAME_DATA_DIR) {
+  console.error("[FATAL ERROR] Environment Variable GAME_DATA_DIR isn't defined")
+  process.exit(1);
+}
+
 const db = new Database(Bun.env.GAME_DATA_DIR + "db.sqlite");
 
 // TAKEN FROM ../client/src/lib/types.ts
