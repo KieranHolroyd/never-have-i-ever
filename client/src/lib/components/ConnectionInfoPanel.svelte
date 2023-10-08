@@ -6,7 +6,9 @@
 	export let errors: any[] = [];
 </script>
 
-<div class="connection_info">
+<div
+	class="fixed border-2 dark:border-white border-black top-2 right-2 p-2 dark:bg-gray-600 bg-gray-200 rounded-md"
+>
 	<details>
 		<summary class="cursor-pointer">
 			{#if connection === Status.CONNECTING}
@@ -35,9 +37,3 @@
 		</details>
 	</details>
 </div>
-
-<style lang="scss">
-	.connection_info {
-		@apply fixed border-2 dark:border-white border-black top-2 right-2 p-2 dark:bg-gray-600 bg-gray-200 rounded-md;
-	}
-</style>
