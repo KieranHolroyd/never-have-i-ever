@@ -24,10 +24,6 @@
 
 	let my_name = LocalPlayer.name;
 
-	let data: {
-		[key: (typeof available_catagories)[number]]: string[];
-	} = {};
-	let data_base = {};
 	let current_question: {
 		content: string;
 		catagory: string;
@@ -74,19 +70,12 @@
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
 		player_id = LocalPlayer.id;
 		setupsock();
-		load();
 
 		return () => {
 			socket?.close(4000);
 			socket = null;
 		};
 	});
-	async function load() {
-		const res = await fetch('/data.json');
-		let json_res = JSON.stringify(await res.json());
-		data_base = JSON.parse(json_res);
-		data = JSON.parse(json_res);
-	}
 
 	function conf_reset() {
 		conf_reset_display = true;
