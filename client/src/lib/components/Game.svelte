@@ -6,6 +6,7 @@
 	import { browser } from '$app/environment';
 	import { Status, VoteOptions, type Player } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
+	import PreGameConnection from './PreGameConnection.svelte';
 
 	export let id: string;
 
@@ -208,6 +209,7 @@
 <div class="dark:text-white text-black text-center">
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
+			<PreGameConnection {connection} {players} />
 			<div
 				class="w-64 mx-auto my-6 columns-1 dark:text-white dark:bg-gray-800 bg-white border-2 dark:border-gray-600 border-gray-200 shadow rounded-md"
 			>
