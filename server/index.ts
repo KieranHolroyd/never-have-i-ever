@@ -3,12 +3,20 @@ import Database from "bun:sqlite";
 import figlet from "figlet";
 import { pickRandom } from "mathjs";
 import { migrate } from "./migrate";
-import { PushEvent, WebhookEvent } from "@octokit/webhooks-types";
-import { WebSocket } from "ws";
+import { PushEvent } from "@octokit/webhooks-types";
+import axiom, { ingestEvent } from "./axiom";
 
-if (!Bun.env.GAME_DATA_DIR) {
+const required_env_vars = ["GAME_DATA_DIR", "AXIOM_TOKEN", "AXIOM_ORG_ID"];
+
+const missing_env_vars = required_env_vars.filter(
+  (env_var) => !Object.keys(Bun.env).includes(env_var)
+);
+
+if (missing_env_vars.length > 0) {
   console.error(
-    "[FATAL ERROR] Environment Variable GAME_DATA_DIR isn't defined"
+    `[FATAL ERROR] Missing required environment variables: ${missing_env_vars.join(
+      ", "
+    )}`
   );
   process.exit(1);
 }
@@ -142,7 +150,7 @@ const server = Bun.serve({
     switch (url.pathname) {
       case "/": {
         const params = new URLSearchParams(req.url.split("?")[1]);
-        console.log(params);
+
         if (!params.has("game") || !params.has("player")) {
           return new Response(figlet.textSync("Never Have I Ever"));
         }
@@ -170,7 +178,7 @@ const server = Bun.serve({
       }
       case "/hook/github": {
         const CLIENT_UPDATE_DELAY = 30000; // ms
-        const body = await req.json<PushEvent>();
+        const body = (await req.json()) as PushEvent;
 
         if (body.ref !== "refs/heads/master") {
           return new Response("Not main branch, ignoring", { status: 200 });
@@ -204,6 +212,14 @@ const server = Bun.serve({
         const data = JSON.parse(message);
         const op = data.op;
 
+        ingestEvent({
+          event: "websocket_message_received",
+          op,
+          gameID: ws.data.game,
+          player: ws.data.player,
+          data,
+        });
+
         switch (op) {
           case "join_game": {
             if (data.create) {
@@ -217,8 +233,20 @@ const server = Bun.serve({
                   try {
                     const game_data = await game_filehandler.json();
                     games.push(game_data);
-                  } catch {
+                    ingestEvent({
+                      event: "game_created",
+                      gameID: ws.data.game,
+                      loaded_from_filesystem: true,
+                    });
+                  } catch (e) {
                     send(ws, "error", { message: "Game data is invalid" });
+                    ingestEvent({
+                      event: "game_created_failed",
+                      gameID: ws.data.game,
+                      loaded_from_filesystem: true,
+                      message: "Game data is invalid",
+                      error: e,
+                    });
                   }
                 } else {
                   // Create a new game
@@ -234,6 +262,11 @@ const server = Bun.serve({
                     // so that we can remove questions from it
                     // a better way to do this would be to have a
                     // mask on the data that is removed as questions
+                  });
+                  ingestEvent({
+                    gameID: ws.data.game,
+                    event: "game_created",
+                    loaded_from_filesystem: false,
                   });
                 }
               }
@@ -256,6 +289,14 @@ const server = Bun.serve({
                 this_round: {
                   vote: null,
                   voted: false,
+                },
+              });
+              ingestEvent({
+                gameID: ws.data.game,
+                event: "player_joined",
+                playerID: ws.data.player,
+                details: {
+                  name: data.playername,
                 },
               });
             }
@@ -282,6 +323,11 @@ const server = Bun.serve({
               send(ws, "error", { message: "Game not found" });
               break;
             }
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "catagory_selection_started",
+              playerID: ws.data.player,
+            });
 
             game.catagory_select = true;
             emit(ws, ws.data.game, "game_state", { game });
@@ -305,6 +351,14 @@ const server = Bun.serve({
             } else {
               game.catagories.splice(game.catagories.indexOf(data.catagory), 1);
             }
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "catagory_selected",
+              playerID: ws.data.player,
+              details: {
+                catagory: data.catagory,
+              },
+            });
 
             publish(ws, ws.data.game, "", {
               op: "select_catagory",
@@ -320,6 +374,20 @@ const server = Bun.serve({
               break;
             }
 
+            if (game.catagories.length === 0) {
+              send(ws, "error", { message: "No catagories selected" });
+              break;
+            }
+
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "catagory_selection_completed",
+              playerID: ws.data.player,
+              details: {
+                selected_catagories: game.catagories,
+              },
+            });
+
             game.catagory_select = false;
 
             emit(ws, ws.data.game, "game_state", { game });
@@ -332,10 +400,25 @@ const server = Bun.serve({
               break;
             }
 
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "vote_completed",
+              details: {
+                question: game.current_question,
+              },
+            });
             game.current_question = select_question(game);
             game.players.forEach((player) => {
               player.this_round.vote = null;
               player.this_round.voted = false;
+            });
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "next_question",
+              playerID: ws.data.player,
+              details: {
+                question: game.current_question,
+              },
             });
 
             emit(ws, ws.data.game, "game_state", { game });
@@ -349,6 +432,14 @@ const server = Bun.serve({
               break;
             }
 
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "game_reset",
+              playerID: ws.data.player,
+              details: {
+                final_state: game,
+              },
+            });
             game.catagories = [];
             game.catagory_select = true;
             game.game_completed = false;
@@ -377,7 +468,6 @@ const server = Bun.serve({
               break;
             }
 
-            console.log(data.option, ws.data.player);
             const player = game.players.find(
               (player) => player.id === ws.data.player
             );
@@ -428,20 +518,46 @@ const server = Bun.serve({
               });
               player.this_round = { vote: "Kinda", voted: true };
             }
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "vote_cast",
+              playerID: ws.data.player,
+              details: {
+                vote: data.option,
+                vote_str: player.this_round.vote,
+              },
+            });
 
             emit(ws, ws.data.game, "game_state", { game });
             break;
           }
           default: {
+            ingestEvent({
+              gameID: ws.data.game,
+              event: "invalid_operation",
+            });
             send(ws, "error", { message: "Invalid operation" });
             break;
           }
         }
       } catch (err) {
+        ingestEvent({
+          gameID: ws.data.game,
+          event: "websocket_message_error",
+          playerID: ws.data.player,
+          details: {
+            message: message,
+          },
+          errors: err,
+        });
         send(ws, "error", { message: err.message, err });
       }
     },
     open: (ws) => {
+      ingestEvent({
+        event: "websocket_connection_opened",
+        playerID: ws.data.player,
+      });
       send(ws, "open", { message: "Websocket connection opened" });
     },
     close: (ws) => {
@@ -450,6 +566,11 @@ const server = Bun.serve({
 
       const plyr = game.players.find((p) => p.id === ws.data.player);
       plyr.connected = false;
+
+      ingestEvent({
+        event: "websocket_connection_closed",
+        playerID: ws.data.player,
+      });
 
       publish(ws, ws.data.game, "", {
         op: "game_state",
@@ -470,6 +591,11 @@ setInterval(() => {
 
     const filename = `${game.id}.json`;
     await Bun.write(Bun.env.GAME_DATA_DIR + filename, JSON.stringify(game));
+
+    ingestEvent({
+      event: "game_state_saved",
+      gameID: game.id,
+    });
   });
 }, 10000);
 
