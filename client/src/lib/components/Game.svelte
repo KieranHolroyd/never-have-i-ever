@@ -48,6 +48,23 @@
 		'more',
 		'writers'
 	];
+	const nsfw_flag: {
+		[key: string]: number;
+	} = {
+		food: 0,
+		guys: 1,
+		dirty: 1,
+		funny: 0,
+		games: 0,
+		girls: 1,
+		gross: 0,
+		rules: 0,
+		random: 1,
+		couples: 1,
+		embarassing: 0,
+		more: 1,
+		writers: 1
+	};
 	let game_state: {
 		catagory_select: boolean;
 		game_completed: boolean;
@@ -239,7 +256,12 @@
 								value={cat}
 								checked={game_state.current_catagory.includes(cat)}
 							/>
-							<span class="float-right">{cat}</span>
+							<span class="float-right">
+								{#if nsfw_flag[cat.toString()]}
+									<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
+								{/if}
+								{cat}
+							</span>
 						</div>
 					</label>
 				{/each}
