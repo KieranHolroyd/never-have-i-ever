@@ -45,7 +45,8 @@
 		'random',
 		'couples',
 		'embarassing',
-		'more'
+		'more',
+		'writing'
 	];
 	let game_state: {
 		catagory_select: boolean;
