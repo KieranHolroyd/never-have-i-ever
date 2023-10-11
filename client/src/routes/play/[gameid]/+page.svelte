@@ -29,7 +29,6 @@
 			?.join(', ')} playing never have i ever online!"
 	/>
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content={window.location.href} />
 	<meta property="og:site_name" content="Never Have I Ever ~ games.kieran.dev" />
 {/if}
 <NeverHaveIEver id={$page.params.gameid} />
