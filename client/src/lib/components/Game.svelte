@@ -8,6 +8,7 @@
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
 	import Notification from './Notification.svelte';
+	import Tutorial from './Tutorial.svelte';
 
 	export let id: string;
 
@@ -334,6 +335,26 @@
 					</button>
 				</div>
 			</div>
+			<Tutorial id="ingame" title="How to play">
+				<p>
+					This is an <b>online & multiplayer</b> version of the classic party game
+					<i><b>Never Have I Ever</b></i>. Your votes will be tallied up and you will be given
+					points based on your answers. The points are as follows:
+				</p>
+				<ul>
+					<li>Have: <span class="text-green-400">+1 Point</span></li>
+					<li>Kinda: <span class="text-green-400">+1/2 Point</span></li>
+					<li>Have Not: <span class="text-blue-400">No Point</span></li>
+				</ul>
+				<p>
+					<b>Remember!</b> This is a multiplayer experience, so selecting the next question,
+					resetting the game, & showing the catagory selector again can be initiated by anyone.
+					<i>so don't add the annoying group member</i>
+				</p>
+				<p>
+					<b>One last thing!</b> The goal of the game is to have fun, so don't take it too seriously.
+				</p>
+			</Tutorial>
 			<ConnectionInfoPanel {connection} {players} {errors} />
 		{/if}
 	{:else}
@@ -350,13 +371,24 @@
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
 	<Notification
-		{show_notification}
-		{notification_content}
+		show={show_notification}
+		content={notification_content}
 		on:closeNotification={() => {
 			show_notification = false;
 			notification_content = '';
 		}}
 	/>
+	<Tutorial id="welcome" title="Welcome">
+		<p>
+			Welcome to the game! This is where the fun begins. You will be presented with a question, and
+			you will have to vote on whether you have done it or not. You can also vote "Kinda" if you
+			aren't sure.
+		</p>
+		<p>
+			<b>First though</b>, you'll need to select the catagories you want to play with. You can
+			select as many as you'd like.
+		</p>
+	</Tutorial>
 </div>
 
 <style lang="scss">

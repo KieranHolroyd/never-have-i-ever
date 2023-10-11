@@ -14,6 +14,7 @@
   "devDependencies": {
     "@sveltejs/adapter-auto": "^2.0.0",
     "@sveltejs/kit": "^1.20.4",
+    "@tailwindcss/typography": "^0.5.10",
     "@types/uuid": "^9.0.4",
     "autoprefixer": "^10.4.16",
     "bun-types": "^1.0.3",

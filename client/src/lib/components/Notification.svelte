@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 
-	export let show_notification = false;
-	export let notification_content = '';
+	export let show = false;
+	export let content = '';
 
 	const dispatch = createEventDispatcher();
 </script>
 
-{#if show_notification}
+{#if show}
 	<div class="fixed top-2 left-2 right-2 z-50">
 		<div
 			class="rounded-lg border border-black dark:border-white bg-gray-200 dark:bg-gray-800 dark:text-white text-center py-4 px-8"
 		>
-			{notification_content}
+			<slot />
 			<br />
 			<button
 				class="uppercase text-xs bg-gray-400 hover:bg-gray-500"
