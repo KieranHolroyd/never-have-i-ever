@@ -268,6 +268,17 @@
 				{/each}
 			</div>
 			<button class="green-button" on:click={() => confirmSelections()}> Continue </button>
+			<Tutorial id="welcome" title="Welcome">
+				<p>
+					Welcome to the game! This is where the fun begins. You will be presented with a question,
+					and you will have to vote on whether you have done it or not. You can also vote "Kinda" if
+					you aren't sure.
+				</p>
+				<p>
+					<b>First though</b>, you'll need to select the catagories you want to play with. You can
+					select as many as you'd like.
+				</p>
+			</Tutorial>
 		{:else}
 			{#if current_question?.content !== undefined}
 				<div class="mx-auto my-6 max-w-lg p-3">
@@ -378,17 +389,6 @@
 			notification_content = '';
 		}}
 	/>
-	<Tutorial id="welcome" title="Welcome">
-		<p>
-			Welcome to the game! This is where the fun begins. You will be presented with a question, and
-			you will have to vote on whether you have done it or not. You can also vote "Kinda" if you
-			aren't sure.
-		</p>
-		<p>
-			<b>First though</b>, you'll need to select the catagories you want to play with. You can
-			select as many as you'd like.
-		</p>
-	</Tutorial>
 </div>
 
 <style lang="scss">

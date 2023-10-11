@@ -176,6 +176,31 @@ const server = Bun.serve({
         const catagories = db.query("SELECT * FROM catagories").all();
         return Response.json(catagories);
       }
+      case "/api/game": {
+        const gameid = url.searchParams.get("id");
+
+        if (gameid === null) {
+          return new Response(JSON.stringify({ error: "no_gameid" }), {
+            status: 400,
+          });
+        }
+
+        const game = get_game(gameid);
+        if (!game) {
+          return new Response(JSON.stringify({ error: "game_not_found" }), {
+            status: 404,
+          });
+        }
+        let { data: _, ...wo_data } = game;
+
+        return new Response(
+          JSON.stringify({
+            ...wo_data,
+            active: game.players.filter((p) => p.connected).length > 0,
+          }),
+          { status: 200 }
+        );
+      }
       case "/hook/github": {
         const CLIENT_UPDATE_DELAY = 30000; // ms
         const body = (await req.json()) as PushEvent;
