@@ -4,14 +4,17 @@
 	export let id: string;
 	export let title: string;
 
+	let hidden = false;
+
 	$: isShown = !Tutorial.isSeen(id);
 
 	function markAsSeen() {
 		Tutorial.markAsSeen(id);
+		hidden = true;
 	}
 </script>
 
-{#if isShown}
+{#if isShown && !hidden}
 	<div class="fixed top-2 left-2 right-2 z-50">
 		<div
 			class="text-left rounded-lg border border-black dark:border-white bg-gray-200 dark:bg-gray-800 py-4 px-8"
