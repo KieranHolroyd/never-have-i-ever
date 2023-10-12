@@ -119,16 +119,31 @@ function chooseQuestionFromCatagory(catagory: string, game: GameData) {
   return q;
 }
 
+function deepCopy(obj: any) {
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+type Question = {
+  catagory: string;
+  content: string;
+};
+
 type GameData = {
   id: string;
   players: Player[];
 
   catagories: string[];
 
-  current_question: {
-    catagory: string;
-    content: string;
-  };
+  current_question: Question;
+
+  history: {
+    question: Question;
+    players: Player[];
+  }[];
 
   // Control States
   catagory_select: boolean;
@@ -283,6 +298,7 @@ const server = Bun.serve({
                     catagory_select: true,
                     game_completed: false,
                     current_question: { catagory: "", content: "" },
+                    history: [],
                     data: { ...questions_list }, // This is a copy of the data
                     // so that we can remove questions from it
                     // a better way to do this would be to have a
@@ -432,6 +448,15 @@ const server = Bun.serve({
                 question: game.current_question,
               },
             });
+
+            // Add round to history
+            if (game.history === undefined) game.history = [];
+            if (game.current_question.catagory !== "")
+              game.history.push({
+                question: game.current_question,
+                players: deepCopy(game.players),
+              });
+
             game.current_question = select_question(game);
             game.players.forEach((player) => {
               player.this_round.vote = null;
@@ -466,6 +491,7 @@ const server = Bun.serve({
               },
             });
             game.catagories = [];
+            game.history = [];
             game.catagory_select = true;
             game.game_completed = false;
             game.current_question = { catagory: "", content: "" };

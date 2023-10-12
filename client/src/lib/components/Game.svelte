@@ -9,6 +9,8 @@
 	import PreGameConnection from './PreGameConnection.svelte';
 	import Notification from './Notification.svelte';
 	import Tutorial from './Tutorial.svelte';
+	import { colour_map } from '$lib/colour';
+	import History from './History.svelte';
 
 	export let id: string;
 
@@ -16,12 +18,6 @@
 	let show_notification = false;
 	let notification_content = '';
 
-	const colour_map: Record<string, string> = {
-		null: 'dark:bg-gray-800 bg-gray-400 text-white rounded-md shadow-md',
-		Have: 'bg-green-400 dark:bg-opacity-50 text-white rounded-md shadow-md',
-		Kinda: 'bg-blue-400 dark:bg-opacity-50 text-white rounded-md shadow-md',
-		'Have Not': 'bg-red-400 dark:bg-opacity-50 text-white rounded-md shadow-md'
-	};
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
 	let errors: any[] = [];
@@ -70,10 +66,12 @@
 		catagory_select: boolean;
 		game_completed: boolean;
 		current_catagory: string[];
+		history: any[];
 	} = {
 		catagory_select: true,
 		game_completed: false,
-		current_catagory: []
+		current_catagory: [],
+		history: []
 	};
 	const current_round: {
 		votes: {
@@ -171,6 +169,7 @@
 						game_state.current_catagory = data.game.catagories;
 						game_state.catagory_select = data.game.catagory_select;
 						game_state.game_completed = data.game.game_completed;
+						game_state.history = data.game.history;
 
 						current_question = data.game.current_question;
 						players = data.game.players;
@@ -369,12 +368,14 @@
 			<ConnectionInfoPanel {connection} {players} {errors} />
 		{/if}
 	{:else}
-		<p class="nomore">There are no more questions...</p>
+		<h1 class="text-2xl font-semibold dark:text-white">There are no more questions</h1>
 		{#each players as player}
-			<p class="question">
-				{player.name} has {player.score} Have's
+			<p class="mx-auto max-w-lg p-3">
+				<b>{player.name}</b> has {player.score} points
 			</p>
 		{/each}
+
+		<History history={game_state.history} />
 		<button on:click={() => reset()}>Reset Game</button>
 	{/if}
 	{#if conf_reset_display}

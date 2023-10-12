@@ -20,3 +20,11 @@ export type Player = {
 	};
 	connected: boolean;
 };
+
+export type GameRound = {
+	question: {
+		catagory: string;
+		content: string;
+	};
+	players: Player[];
+};
