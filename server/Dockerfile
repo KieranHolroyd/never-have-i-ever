@@ -9,7 +9,7 @@ RUN bun install
 # Copy source code
 COPY . .
 
-RUN mkdir -p /home/bun/app/games
+RUN mkdir -p /home/bun/app/assets/games
 
 # Run the project
 CMD ["bun", "run", "start"]

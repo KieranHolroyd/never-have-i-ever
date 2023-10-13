@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
+    "baseUrl": "./src",
     "types": ["bun-types"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "lib": ["ESNext"],
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "Bundler"
   }
 }

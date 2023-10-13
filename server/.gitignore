@@ -174,5 +174,5 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 
-games/*.json
-games/*.sqlite
+assets/games/*.json
+assets/games/*.sqlite
