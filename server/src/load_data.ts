@@ -1,8 +1,10 @@
 import Database from "bun:sqlite";
 
-const db = new Database(`${import.meta.dir}../games/db.sqlite`);
+const db = new Database(`${import.meta.dir}../assets/db.sqlite`);
 (async () => {
-  const catagories = await Bun.file("./data.json").json<{
+  const catagories = await Bun.file(
+    `${import.meta.dir}/../assets/data.json`
+  ).json<{
     [key: string]: string[];
   }>();
   for (let c in catagories) {

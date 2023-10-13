@@ -21,7 +21,7 @@ if (missing_env_vars.length > 0) {
   process.exit(1);
 }
 
-const db = new Database(`${import.meta.dir}/${Bun.env.GAME_DATA_DIR}db.sqlite`);
+const db = new Database(`${Bun.env.GAME_DATA_DIR}db.sqlite`);
 
 // TAKEN FROM ../client/src/lib/types.ts
 export enum VoteOptions {
@@ -265,9 +265,7 @@ const server = Bun.serve({
             if (data.create) {
               if (!games.find((game) => game.id === ws.data.game)) {
                 const game_filehandler = Bun.file(
-                  `${import.meta.dir}/${Bun.env.GAME_DATA_DIR}${
-                    ws.data.game
-                  }.json`
+                  `${Bun.env.GAME_DATA_DIR}${ws.data.game}.json`
                 );
 
                 if (await game_filehandler.exists()) {
@@ -648,7 +646,7 @@ setInterval(() => {
 
     const filename = `${game.id}.json`;
     await Bun.write(
-      `${import.meta.dir}/${Bun.env.GAME_DATA_DIR}${filename}`,
+      `${Bun.env.GAME_DATA_DIR}${filename}`,
       JSON.stringify(game)
     );
 
