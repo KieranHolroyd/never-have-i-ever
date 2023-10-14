@@ -1,18 +1,54 @@
-<div>
-	<h1 style="display: inline-block;line-height: 1;">Suggest Changes</h1>
-	<a href="/" style="margin-bottom:-12px;margin-left:12px;">
-		<button class="green-button">Home</button>
-	</a>
+<script lang="ts">
+	import MdiEmailMultiple from 'virtual:icons/mdi/email';
+</script>
+
+<div class="prose prose-invert lg:prose-lg xl:prose-xl">
+	<h1>Contact us</h1>
+	<p>
+		We are always looking for ways to improve our service. If you have any suggestions, bug reports,
+		or general questions, please reach out to us.
+	</p>
+	<p>
+		You can also reach us at <a href="mailto:games@kieran.dev">
+			<MdiEmailMultiple class="inline ml-2 mr-1" />games@kieran.dev
+		</a>
+	</p>
+	<form method="POST" action="?/suggest">
+		<h1>The form doesn't work yet!</h1>
+		<div class="grid grid-cols-1 gap-6">
+			<label class="block">
+				<span class="dark:text-gray-200 text-gray-700">Full name</span>
+				<input
+					type="text"
+					class="mt-1 block w-full rounded-md dark:bg-gray-800 dark:text-white dark:border-gray-500 border-gray-300 shadow-sm dark:focus:border-indigo-600 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+					placeholder="Peter B. Parker"
+					required
+				/>
+			</label>
+			<label class="block">
+				<span class="dark:text-gray-200 text-gray-700">Email Address</span>
+				<input
+					type="text"
+					class="mt-1 block w-full rounded-md dark:bg-gray-800 dark:text-white dark:border-gray-500 border-gray-300 shadow-sm dark:focus:border-indigo-600 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+					placeholder="games@kieran.dev, myemail@gmail.com"
+					required
+				/>
+			</label>
+			<label class="block">
+				<span class="dark:text-gray-200 text-gray-700">Message</span>
+				<textarea
+					rows="4"
+					class="mt-1 block w-full rounded-md dark:bg-gray-800 dark:text-white dark:border-gray-500 border-gray-300 shadow-sm dark:focus:border-indigo-600 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+					placeholder="Is this thing on?"
+					required
+				/>
+			</label>
+		</div>
+		<button
+			type="submit"
+			class="dark:text-white bg-gray-400 dark:bg-gray-800 hover:bg-gray-200 hover:dark:bg-gray-900 mt-2 px-4"
+		>
+			Send
+		</button>
+	</form>
 </div>
-<hr />
-<iframe
-	src="https://docs.google.com/forms/d/e/1FAIpQLSdBsUGb491N15_E8o33-6xPmidh0BRLRsyK2cZdg6RxOKvXlg/viewform?embedded=true"
-	width="640"
-	height="789"
-	frameborder="0"
-	marginheight="0"
-	marginwidth="0"
-	title="Google form."
->
-	Loading…
-</iframe>
