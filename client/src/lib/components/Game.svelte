@@ -117,6 +117,11 @@
 		if (game_state.current_catagory.length > 0) {
 			socket?.send(JSON.stringify({ op: 'confirm_selections' }));
 			socket?.send(JSON.stringify({ op: 'next_question' }));
+		} else {
+			error = 'You must select at least one catagory';
+			setTimeout(() => {
+				error = null;
+			}, 2500);
 		}
 	}
 	function selectCatagories() {
@@ -236,9 +241,11 @@
 <div class="dark:text-white text-black text-center">
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
-			<PreGameConnection {connection} {players} />
+			<div class="mx-auto mt-4 prose dark:prose-invert lg:prose-lg xl:prose-xl">
+				<h1>New Game</h1>
+			</div>
 			<div
-				class="w-64 mx-auto my-6 columns-1 dark:text-white dark:bg-gray-800 bg-white border-2 dark:border-gray-600 border-gray-200 shadow rounded-md"
+				class="z-10 w-64 mx-auto mt-6 columns-1 dark:text-white dark:bg-gray-800 bg-white border-2 dark:border-gray-600 border-gray-200 shadow rounded-t-md"
 			>
 				<p class="text-xl font-semibold py-2 dark:bg-black bg-gray-200 rounded-t-md">
 					Select Catagories
@@ -266,7 +273,13 @@
 					</label>
 				{/each}
 			</div>
-			<button class="green-button" on:click={() => confirmSelections()}> Continue </button>
+			<button
+				class="rounded-none transition bg-green-500 text-white font-bold py-2 px-4 hover:bg-green-400 w-64 rounded-b-md shadow hover:shadow-lg"
+				on:click={() => confirmSelections()}
+			>
+				Continue
+			</button>
+			<PreGameConnection {connection} {players} />
 			<Tutorial id="welcome" title="Welcome">
 				<p>
 					Welcome to the game! This is where the fun begins. You will be presented with a question,
@@ -382,14 +395,25 @@
 		<hr />
 		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
+	<!-- Global Notifications Panel -->
 	<Notification
 		show={show_notification}
-		content={notification_content}
 		on:closeNotification={() => {
 			show_notification = false;
 			notification_content = '';
 		}}
-	/>
+	>
+		{notification_content}
+	</Notification>
+	<!-- Local Error Popup -->
+	<Notification
+		show={error !== null}
+		on:closeNotification={() => {
+			error = null;
+		}}
+	>
+		{error ?? 'Unknown Error (See Javascript Console)'}
+	</Notification>
 </div>
 
 <style lang="scss">

@@ -2,7 +2,6 @@
 	import { createEventDispatcher } from 'svelte';
 
 	export let show = false;
-	export let content = '';
 
 	const dispatch = createEventDispatcher();
 </script>

@@ -5,7 +5,9 @@
 	export let players: Player[] = [];
 </script>
 
-<div class="text-center uppercase text-xs">
+<div
+	class="w-56 pointer-events-none mx-auto py-1 bg-gray-200 dark:bg-gray-600 text-center uppercase text-xs rounded-b-md"
+>
 	{#if connection === Status.CONNECTED}
 		<p class="dark:text-green-400 text-green-700">
 			Connected <span class="dark:text-white text-black">
