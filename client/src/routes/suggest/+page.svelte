@@ -3,7 +3,7 @@
 	import MdiKeyboardBackspace from '~icons/mdi/keyboard-backspace';
 </script>
 
-<div class="p-2 prose prose-invert lg:prose-lg xl:prose-xl">
+<div class="p-2 prose dark:prose-invert lg:prose-lg xl:prose-xl">
 	<h1>Contact us</h1>
 	<p>
 		We are always looking for ways to improve our service. If you have any suggestions, bug reports,
@@ -46,7 +46,7 @@
 		</div> -->
 	<a href="/">
 		<button
-			class="relative pl-10 dark:text-white bg-gray-400 dark:bg-gray-600 hover:bg-gray-200 hover:dark:bg-gray-900 mt-2 px-4"
+			class="transition relative pl-10 dark:text-white bg-gray-200 dark:bg-gray-600 hover:bg-gray-400 hover:dark:bg-gray-900 mt-2 px-4"
 		>
 			<MdiKeyboardBackspace class="absolute top-2.5 lg:top-3 xl:top-3.5 left-2 h-6 w-6" />Back
 		</button>
