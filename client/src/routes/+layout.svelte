@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import '../app.css';
 	import keywords from '$lib/assets/keywords.json';
 	import { page } from '$app/stores';

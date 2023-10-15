@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { env } from '$env/dynamic/public';
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
@@ -11,7 +11,7 @@
 	import Tutorial from './Tutorial.svelte';
 	import { colour_map } from '$lib/colour';
 	import History from './History.svelte';
-	import { loadSettings } from '$lib/settings';
+	import { settingsStore } from '$lib/settings';
 
 	export let id: string;
 
@@ -19,7 +19,7 @@
 	let show_notification = false;
 	let notification_content = '';
 
-	let settings: Settings;
+	let settings = settingsStore;
 
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
@@ -93,7 +93,6 @@
 	onMount(() => {
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
 		player_id = LocalPlayer.id;
-		settings = loadSettings();
 		setupsock();
 
 		return () => {
@@ -255,7 +254,7 @@
 					Select Catagories
 				</p>
 				{#each available_catagories as cat}
-					{#if nsfw_flag[cat.toString()] && settings?.no_nsfw}
+					{#if nsfw_flag[cat.toString()] && $settings?.no_nsfw}
 						<span />
 					{:else}
 						<label class="my-[2px]">

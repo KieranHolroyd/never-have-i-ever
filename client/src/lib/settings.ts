@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { writable } from 'svelte/store';
 import type { Settings } from './types';
 
 export function loadSettings() {
@@ -13,3 +14,5 @@ export function loadSettings() {
 		return {};
 	}
 }
+
+export const settingsStore = writable<Settings>(loadSettings());

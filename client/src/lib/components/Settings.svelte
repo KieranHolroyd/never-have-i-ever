@@ -3,25 +3,19 @@
 	import MdiClose from '~icons/mdi/close';
 	import MdiSave from '~icons/mdi/content-save';
 
-	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import Notification from './Notification.svelte';
-	import type { Settings } from '$lib/types';
-	import { loadSettings } from '$lib/settings';
+	import { settingsStore } from '$lib/settings';
 
 	let show = false;
 
-	let settings: Settings = {};
+	let settings = settingsStore;
 	let error: string | null = null;
-
-	onMount(() => {
-		settings = loadSettings();
-	});
 
 	function save_settings() {
 		try {
 			if (browser) {
-				localStorage.setItem('settings', JSON.stringify(settings));
+				localStorage.setItem('settings', JSON.stringify($settings));
 			}
 		} catch (e) {
 			error = e as any;
@@ -55,9 +49,9 @@
 				type="checkbox"
 				class=""
 				on:change={(e) => {
-					settings = { ...settings, no_nsfw: e?.currentTarget?.checked };
+					$settings = { ...settings, no_nsfw: e?.currentTarget?.checked };
 				}}
-				checked={settings.no_nsfw ?? false}
+				checked={$settings.no_nsfw ?? false}
 			/>
 			<span class="float-right"> No NSFW Questions </span>
 		</div>
