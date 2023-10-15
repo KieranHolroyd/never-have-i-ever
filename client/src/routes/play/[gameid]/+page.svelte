@@ -10,6 +10,14 @@
 	<title>
 		{data.game?.active ? '[LIVE]' : ''} Play Never Have I Ever Online
 	</title>
+	<meta
+		property="og:title"
+		content="{data.game?.active ? '[LIVE]' : ''} Play Never Have I Ever Online"
+	/>
+	<meta
+		property="twitter:title"
+		content="{data.game?.active ? '[LIVE]' : ''} Play Never Have I Ever Online"
+	/>
 	{#if data.game?.active}
 		<meta
 			name="description"
@@ -19,11 +27,14 @@
 				?.join(', ')} playing never have i ever online!"
 		/>
 		<meta
-			property="og:title"
-			content="{data.game?.active ? '[LIVE]' : ''} Play Never Have I Ever Online"
+			name="og:description"
+			content="Join {data.game?.players
+				?.filter((p) => p.connected)
+				.map((p) => p.name)
+				?.join(', ')} playing never have i ever online!"
 		/>
 		<meta
-			property="og:description"
+			property="twitter:description"
 			content="Join {data.game?.players
 				?.filter((p) => p.connected)
 				.map((p) => p.name)
@@ -31,6 +42,11 @@
 		/>
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content="Never Have I Ever ~ games.kieran.dev" />
+		<meta property="og:url" content="https://games.kieran.dev/play/{$page.params.gameid}" />
+		<meta
+			property="twitter:image"
+			content="https://games.kieran.dev/assets/android-chrome-512x512.png"
+		/>
 	{/if}
 </svelte:head>
 <NeverHaveIEver id={$page.params.gameid} />
