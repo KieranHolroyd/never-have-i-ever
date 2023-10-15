@@ -49,7 +49,7 @@
 				type="checkbox"
 				class=""
 				on:change={(e) => {
-					$settings = { ...settings, no_nsfw: e?.currentTarget?.checked };
+					$settings = { ...$settings, no_nsfw: e?.currentTarget?.checked };
 				}}
 				checked={$settings.no_nsfw ?? false}
 			/>
