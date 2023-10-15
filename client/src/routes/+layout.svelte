@@ -22,14 +22,8 @@
 	/>
 	<meta name="keywords" content={keywords.join(', ')} />
 	<meta property="twitter:card" content="app" />
-	<meta
-		property="twitter:image"
-		content="https://games.kieran.dev/static/android-chrome-512x512-gs.png"
-	/>
-	<meta
-		property="og:image"
-		content="https://games.kieran.dev/static/android-chrome-512x512-gs.png"
-	/>
+	<meta property="twitter:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
+	<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
 	<meta property="og:url" content={$page.url.href} />
 </svelte:head>
 <div class="max-w-4xl mx-auto">
