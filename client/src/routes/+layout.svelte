@@ -2,6 +2,7 @@
 	import '../app.css';
 	import keywords from '$lib/assets/keywords.json';
 	import { page } from '$app/stores';
+	import Settings from '$lib/components/Settings.svelte';
 </script>
 
 <svelte:head>
@@ -28,4 +29,5 @@
 </svelte:head>
 <div class="max-w-4xl mx-auto">
 	<slot />
+	<Settings />
 </div>

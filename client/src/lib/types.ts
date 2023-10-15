@@ -28,3 +28,7 @@ export type GameRound = {
 	};
 	players: Player[];
 };
+
+export type Settings = {
+	no_nsfw?: boolean;
+};

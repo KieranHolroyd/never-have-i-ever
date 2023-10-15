@@ -4,19 +4,22 @@
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { Status, VoteOptions, type Player } from '$lib/types';
+	import { Status, VoteOptions, type Player, type Settings } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
 	import Notification from './Notification.svelte';
 	import Tutorial from './Tutorial.svelte';
 	import { colour_map } from '$lib/colour';
 	import History from './History.svelte';
+	import { loadSettings } from '$lib/settings';
 
 	export let id: string;
 
 	let error: string | null = null;
 	let show_notification = false;
 	let notification_content = '';
+
+	let settings: Settings;
 
 	let connection: Status = Status.CONNECTING;
 	let player_id: string | null = null;
@@ -90,6 +93,7 @@
 	onMount(() => {
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
 		player_id = LocalPlayer.id;
+		settings = loadSettings();
 		setupsock();
 
 		return () => {
@@ -251,26 +255,30 @@
 					Select Catagories
 				</p>
 				{#each available_catagories as cat}
-					<label class="my-[2px]">
-						<div
-							class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75"
-						>
-							<input
-								type="checkbox"
-								class=""
-								bind:group={game_state.current_catagory}
-								on:change={() => emitSelectCatagory(cat)}
-								value={cat}
-								checked={game_state.current_catagory.includes(cat)}
-							/>
-							<span class="float-right">
-								{#if nsfw_flag[cat.toString()]}
-									<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
-								{/if}
-								{cat}
-							</span>
-						</div>
-					</label>
+					{#if nsfw_flag[cat.toString()] && settings?.no_nsfw}
+						<span />
+					{:else}
+						<label class="my-[2px]">
+							<div
+								class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75"
+							>
+								<input
+									type="checkbox"
+									class=""
+									bind:group={game_state.current_catagory}
+									on:change={() => emitSelectCatagory(cat)}
+									value={cat}
+									checked={game_state.current_catagory.includes(cat)}
+								/>
+								<span class="float-right">
+									{#if nsfw_flag[cat.toString()]}
+										<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
+									{/if}
+									{cat}
+								</span>
+							</div>
+						</label>
+					{/if}
 				{/each}
 			</div>
 			<button
