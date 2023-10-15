@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import keywords from '$lib/assets/keywords.json';
+	import { page } from '$app/stores';
 </script>
 
 <svelte:head>
@@ -29,6 +30,7 @@
 		property="og:image"
 		content="https://games.kieran.dev/assets/android-chrome-512x512-gs.png"
 	/>
+	<meta property="og:url" content={$page.url.href} />
 </svelte:head>
 <div class="max-w-4xl mx-auto">
 	<slot />
