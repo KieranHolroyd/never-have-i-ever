@@ -15,6 +15,10 @@
 		name="og:description"
 		content="A collection* of games to play with friends (*not actually a collection yet)"
 	/>
+	<meta
+		name="twitter:description"
+		content="A collection* of games to play with friends (*not actually a collection yet)"
+	/>
 	<meta name="keywords" content={keywords.join(', ')} />
 	<meta property="twitter:card" content="app" />
 	<meta
