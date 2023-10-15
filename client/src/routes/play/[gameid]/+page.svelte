@@ -18,7 +18,6 @@
 				.map((p) => p.name)
 				?.join(', ')} playing never have i ever online!"
 		/>
-		<meta property="twitter:card" content="app" />
 		<meta
 			property="og:title"
 			content="{data.game?.active ? '[LIVE]' : ''} Play Never Have I Ever Online"

@@ -10,6 +10,7 @@
 		content="A collection* of games to play with friends (*not actually a collection yet)"
 	/>
 	<meta name="keywords" content={keywords.join(', ')} />
+	<meta property="twitter:card" content="app" />
 </svelte:head>
 <div class="max-w-4xl mx-auto">
 	<slot />
