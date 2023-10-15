@@ -38,7 +38,7 @@
 <div
 	class="{show
 		? ''
-		: 'hidden'} fixed top-10 left-10 prose prose-invert py-2 px-4 min-w-[24rem] bg-gray-200 dark:bg-gray-500 backdrop-blur-sm bg-opacity-75 border-2 rounded-lg"
+		: 'hidden'} fixed top-10 left-10 prose dark:prose-invert py-2 px-4 min-w-[24rem] bg-gray-200 dark:bg-gray-500 backdrop-blur-sm bg-opacity-75 border-2 rounded-lg"
 >
 	<h2>Settings</h2>
 	<label class="my-[2px]">
