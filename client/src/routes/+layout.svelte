@@ -21,6 +21,10 @@
 		property="twitter:image"
 		content="https://games.kieran.dev/assets/android-chrome-512x512-gs.png"
 	/>
+	<meta
+		property="og:image"
+		content="https://games.kieran.dev/assets/android-chrome-512x512-gs.png"
+	/>
 </svelte:head>
 <div class="max-w-4xl mx-auto">
 	<slot />

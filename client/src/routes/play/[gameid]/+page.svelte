@@ -47,6 +47,10 @@
 			property="twitter:image"
 			content="https://games.kieran.dev/assets/android-chrome-512x512.png"
 		/>
+		<meta
+			property="og:image"
+			content="https://games.kieran.dev/assets/android-chrome-512x512.png"
+		/>
 	{/if}
 </svelte:head>
 <NeverHaveIEver id={$page.params.gameid} />
