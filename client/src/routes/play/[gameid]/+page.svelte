@@ -42,14 +42,13 @@
 		/>
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content="Never Have I Ever ~ games.kieran.dev" />
-		<meta property="og:url" content="https://games.kieran.dev/play/{$page.params.gameid}" />
 		<meta
 			property="twitter:image"
-			content="https://games.kieran.dev/assets/android-chrome-512x512.png"
+			content="https://games.kieran.dev/static/android-chrome-512x512.png"
 		/>
 		<meta
 			property="og:image"
-			content="https://games.kieran.dev/assets/android-chrome-512x512.png"
+			content="https://games.kieran.dev/static/android-chrome-512x512.png"
 		/>
 	{/if}
 </svelte:head>
