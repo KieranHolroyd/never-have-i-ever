@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { settingsStore } from '$lib/settings';
 	import { Tutorial } from '$lib/tutorial';
 
 	export let id: string;
@@ -6,7 +7,7 @@
 
 	let hidden = false;
 
-	$: isShown = !Tutorial.isSeen(id);
+	$: isShown = !Tutorial.isSeen(id) && $settingsStore.no_tutorials !== true;
 
 	function markAsSeen() {
 		Tutorial.markAsSeen(id);

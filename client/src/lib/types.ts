@@ -31,4 +31,5 @@ export type GameRound = {
 
 export type Settings = {
 	no_nsfw?: boolean;
+	no_tutorials?: boolean;
 };
