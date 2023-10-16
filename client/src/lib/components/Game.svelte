@@ -301,6 +301,15 @@
 					select as many as you'd like.
 				</p>
 			</Tutorial>
+			<!-- Local Error Popup -->
+			<Notification
+				show={error !== null}
+				on:closeNotification={() => {
+					error = null;
+				}}
+			>
+				{error ?? 'Unknown Error (See Javascript Console)'}
+			</Notification>
 		{:else}
 			{#if current_question?.content !== undefined}
 				<div class="mx-auto my-6 max-w-lg p-3">
@@ -427,15 +436,6 @@
 		}}
 	>
 		{notification_content}
-	</Notification>
-	<!-- Local Error Popup -->
-	<Notification
-		show={error !== null}
-		on:closeNotification={() => {
-			error = null;
-		}}
-	>
-		{error ?? 'Unknown Error (See Javascript Console)'}
 	</Notification>
 </div>
 
