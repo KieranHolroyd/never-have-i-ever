@@ -165,7 +165,6 @@
 		socket?.addEventListener('message', (event) => {
 			try {
 				const data = JSON.parse(event.data);
-				console.log(data.op, data);
 				switch (data.op) {
 					case 'open':
 						connection = Status.CONNECTED;
