@@ -13,6 +13,9 @@
 	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';
 
+	import MdiUndoVariant from '~icons/mdi/undo-variant';
+	import MdiListBox from '~icons/mdi/list-box';
+
 	export let id: string;
 
 	let error: string | null = null;
@@ -33,6 +36,7 @@
 		catagory: string;
 	} | null = null;
 	let conf_reset_display = false;
+	let categories_click = false;
 	const available_catagories = [
 		'food',
 		'guys',
@@ -348,10 +352,10 @@
 						class="text-white bg-gray-600 hover:bg-red-400 col-span-2"
 						on:click={() => conf_reset()}
 					>
-						Reset
+						<MdiUndoVariant class="w-6 h-6 mx-auto" />
 					</button>
 					<button
-						class="text-white bg-green-500 hover:bg-green-400 text-xl md:text-4xl p-4 col-span-5"
+						class="text-white bg-green-500 hover:bg-green-400 text-2xl md:text-4xl py-4 col-span-5"
 						on:click={() => selectQuestion()}
 					>
 						Next Question
@@ -359,11 +363,24 @@
 					<button
 						class="text-white bg-gray-600 hover:bg-gray-400 col-span-2"
 						on:dblclick={() => selectCatagories()}
+						on:click={() => {
+							categories_click = true;
+							setTimeout(() => (categories_click = false), 1000);
+						}}
 					>
-						Catagories
+						<MdiListBox class="w-6 h-6 mx-auto" />
 					</button>
 				</div>
 			</div>
+			{#if !$settings.no_tutorials}
+				<div
+					class={`fixed bottom-4 right-4 z-50 py-2 px-4 rounded-md bg-gray-200 dark:bg-gray-800 border-t-2 dark:border-gray-600 border-gray-200 shadow pointer-events-none ${
+						categories_click ? 'opacity-40' : 'opacity-0'
+					} overflow-hidden transition-all duration-200`}
+				>
+					<p>Double Click</p>
+				</div>
+			{/if}
 			<Tutorial id="ingame" title="How to play">
 				<p>
 					This is an <b>online & multiplayer</b> version of the classic party game
@@ -424,7 +441,7 @@
 
 <style lang="scss">
 	.action-bar {
-		@apply fixed bottom-0 left-0 w-full pb-8 bg-black;
+		@apply fixed bottom-0 left-0 w-full;
 		.row {
 			@apply w-full grid grid-cols-9;
 			button {
