@@ -5,6 +5,7 @@ import { pickRandom } from "mathjs";
 import { migrate } from "./migrate";
 import { PushEvent } from "@octokit/webhooks-types";
 import axiom, { ingestEvent } from "./axiom";
+import { GameData } from "types";
 
 const required_env_vars = ["GAME_DATA_DIR", "AXIOM_TOKEN", "AXIOM_ORG_ID"];
 
@@ -22,26 +23,6 @@ if (missing_env_vars.length > 0) {
 }
 
 const db = new Database(`${Bun.env.GAME_DATA_DIR}db.sqlite`);
-
-// TAKEN FROM ../client/src/lib/types.ts
-export enum VoteOptions {
-  Have = 1,
-  HaveNot = 2,
-  Kinda = 3,
-}
-
-export type Player = {
-  id: string;
-  name: string;
-  score: number;
-
-  this_round: {
-    vote: string;
-    voted: boolean;
-  };
-  connected: boolean;
-};
-//--------
 
 function emit(
   ws: ServerWebSocket<any>,
@@ -114,8 +95,11 @@ function select_question(game: GameData) {
 }
 
 function chooseQuestionFromCatagory(catagory: string, game: GameData) {
-  let q = pickRandom(game.data[catagory]);
-  game.data[catagory].splice(game.data[catagory].indexOf(q), 1);
+  let q = pickRandom(game.data[catagory].questions);
+  game.data[catagory].questions.splice(
+    game.data[catagory].questions.indexOf(q),
+    1
+  );
   return q;
 }
 
@@ -127,33 +111,6 @@ function deepCopy(obj: any) {
   }
 }
 
-type Question = {
-  catagory: string;
-  content: string;
-};
-
-type GameData = {
-  id: string;
-  players: Player[];
-
-  catagories: string[];
-
-  current_question: Question;
-
-  history: {
-    question: Question;
-    players: Player[];
-  }[];
-
-  // Control States
-  catagory_select: boolean;
-  game_completed: boolean;
-
-  // Local game state
-  data: {
-    [key: string]: string[];
-  };
-};
 const games: GameData[] = [];
 
 // console.log(db.query("SELECT * FROM catagories").all());
@@ -188,6 +145,12 @@ const server = Bun.serve({
         return new Response(figlet.textSync("Never Have I Ever"));
       }
       case "/api/catagories": {
+        const catagories = await Bun.file(
+          `${import.meta.dir}/../assets/data.json`
+        ).json();
+        return Response.json(catagories);
+      }
+      case "/api/catagories/db": {
         const catagories = db.query("SELECT * FROM catagories").all();
         return Response.json(catagories);
       }

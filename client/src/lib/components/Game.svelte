@@ -4,7 +4,7 @@
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { Status, VoteOptions, type Player, type Settings } from '$lib/types';
+	import { Status, VoteOptions, type Player, type Settings, type Catagories } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
 	import Notification from './Notification.svelte';
@@ -17,6 +17,7 @@
 	import MdiListBox from '~icons/mdi/list-box';
 
 	export let id: string;
+	export let catagories: Catagories;
 
 	let error: string | null = null;
 	let show_notification = false;
@@ -37,38 +38,7 @@
 	} | null = null;
 	let conf_reset_display = false;
 	let categories_click = false;
-	const available_catagories = [
-		'food',
-		'guys',
-		'dirty',
-		'funny',
-		'games',
-		'girls',
-		'gross',
-		'rules',
-		'random',
-		'couples',
-		'embarassing',
-		'more',
-		'writers'
-	];
-	const nsfw_flag: {
-		[key: string]: number;
-	} = {
-		food: 0,
-		guys: 1,
-		dirty: 1,
-		funny: 0,
-		games: 0,
-		girls: 1,
-		gross: 0,
-		rules: 0,
-		random: 1,
-		couples: 1,
-		embarassing: 0,
-		more: 1,
-		writers: 1
-	};
+
 	let game_state: {
 		catagory_select: boolean;
 		game_completed: boolean;
@@ -256,8 +226,8 @@
 				<p class="text-xl font-semibold py-2 dark:bg-black bg-gray-200 rounded-t-md">
 					Select Catagories
 				</p>
-				{#each available_catagories as cat}
-					{#if nsfw_flag[cat.toString()] && $settings?.no_nsfw}
+				{#each Object.entries(catagories) as [catagory_name, catagory]}
+					{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
 						<span />
 					{:else}
 						<label class="my-[2px]">
@@ -268,15 +238,15 @@
 									type="checkbox"
 									class=""
 									bind:group={game_state.current_catagory}
-									on:change={() => emitSelectCatagory(cat)}
-									value={cat}
-									checked={game_state.current_catagory.includes(cat)}
+									on:change={() => emitSelectCatagory(catagory_name)}
+									value={catagory_name}
+									checked={game_state.current_catagory.includes(catagory_name)}
 								/>
 								<span class="float-right">
-									{#if nsfw_flag[cat.toString()]}
+									{#if catagory.flags.is_nsfw}
 										<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
 									{/if}
-									{cat}
+									{catagory_name}
 								</span>
 							</div>
 						</label>
