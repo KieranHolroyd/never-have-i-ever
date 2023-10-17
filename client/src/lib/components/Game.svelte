@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { env } from '$env/dynamic/public';
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { Status, VoteOptions, type Player, type Settings, type Catagories } from '$lib/types';
+	import { Status, VoteOptions, type Player, type Catagories } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
 	import Notification from './Notification.svelte';

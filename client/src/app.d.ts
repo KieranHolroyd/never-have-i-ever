@@ -9,5 +9,6 @@ declare global {
 		// interface Platform {}
 	}
 }
+declare module 'svelte-outside-click';
 
 export {};
