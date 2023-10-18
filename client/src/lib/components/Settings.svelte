@@ -41,7 +41,7 @@
 	<div
 		class="{show
 			? 'pointer-events-auto opacity-100'
-			: 'pointer-events-none opacity-0 -translate-x-4'} duration-200 prose prose-invert z-10 fixed top-0 left-0 py-2 pl-[4.5rem] pr-4 min-w-full md:min-w-[24rem] bg-slate-200/75 dark:bg-slate-800/75 backdrop-blur-sm border-2 rounded-lg"
+			: 'pointer-events-none opacity-0 -translate-x-4'} duration-200 prose dark:prose-invert z-10 fixed top-0 left-0 py-2 pl-[4.5rem] pr-4 min-w-full md:min-w-[24rem] bg-slate-200/75 dark:bg-slate-800/75 backdrop-blur-sm border-2 rounded-lg"
 	>
 		<h1>Settings</h1>
 		<label class="my-[2px]">
