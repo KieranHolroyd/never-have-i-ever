@@ -28,7 +28,7 @@
 	<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
 	<meta property="og:url" content={$page.url.href} />
 </svelte:head>
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto transition-all pl-16 lg:pl-0">
 	<slot />
 	<Settings />
 	<Navbar />
