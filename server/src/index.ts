@@ -612,6 +612,13 @@ setInterval(() => {
     if (game.players.filter((p) => p.connected).length === 0) return;
 
     const filename = `${game.id}.json`;
+
+    const current_file = Bun.file(`${Bun.env.GAME_DATA_DIR}${filename}`);
+    if (await current_file.exists()) {
+      const current_game = await current_file.text();
+      if (current_game === JSON.stringify(game)) return;
+    }
+
     await Bun.write(
       `${Bun.env.GAME_DATA_DIR}${filename}`,
       JSON.stringify(game)
@@ -622,6 +629,6 @@ setInterval(() => {
       gameID: game.id,
     });
   });
-}, 10000);
+}, 5000);
 
 console.log(`Server running at http://${server.hostname}:${server.port}/`);

@@ -3,6 +3,7 @@
 	import MdiKeyboardBackspace from '~icons/mdi/keyboard-backspace';
 </script>
 
+<!-- BUG: the contact us page is partially occluded by the menu -->
 <div class="p-2 prose dark:prose-invert lg:prose-lg xl:prose-xl">
 	<h1>Contact us</h1>
 	<p>
