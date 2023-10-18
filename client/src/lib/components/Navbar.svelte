@@ -17,7 +17,7 @@
 >
 	<div class="fixed z-40 top-2 left-2">
 		<button
-			class="relative rounded-full p-2 bg-slate-200 dark:bg-slate-500 backdrop-blur-sm bg-opacity-25 border-2 duration-200 {show
+			class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200 {show
 				? 'transform rotate-90'
 				: 'transform'}"
 			on:click={() => (show = !show)}
