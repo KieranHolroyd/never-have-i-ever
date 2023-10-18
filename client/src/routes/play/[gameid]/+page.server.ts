@@ -19,7 +19,7 @@ export async function load({ params }) {
 		return {};
 	}
 	if (req2.status !== 200) {
-		return redirect(307, '/');
+		return {};
 	}
 
 	return {

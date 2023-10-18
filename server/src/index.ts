@@ -148,7 +148,11 @@ const server = Bun.serve({
         const catagories = await Bun.file(
           `${import.meta.dir}/../assets/data.json`
         ).json();
-        return Response.json(catagories);
+
+        const response = Response.json(catagories);
+        response.headers.set("Access-Control-Allow-Origin", "*");
+        response.headers.set("Cache-Control", "max-age=86400");
+        return response;
       }
       case "/api/catagories/db": {
         const catagories = db.query("SELECT * FROM catagories").all();

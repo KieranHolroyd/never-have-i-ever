@@ -17,7 +17,7 @@
 	import MdiListBox from '~icons/mdi/list-box';
 
 	export let id: string;
-	export let catagories: Catagories;
+	export let catagories: Catagories | undefined;
 
 	let error: string | null = null;
 	let show_notification = false;
@@ -68,6 +68,18 @@
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
 		player_id = LocalPlayer.id;
 		setupsock();
+
+		if (catagories === undefined) {
+			fetch(`${env.PUBLIC_API_URL}api/catagories`)
+				.then((res) => res.json() as Promise<Catagories>)
+				.then((data) => {
+					catagories = data;
+				})
+				.catch((err) => {
+					console.error(err);
+					error = 'Failed to fetch catagories';
+				});
+		}
 
 		return () => {
 			socket?.close(4000);
@@ -226,32 +238,36 @@
 				<p class="text-xl font-semibold py-2 dark:bg-black bg-gray-200 rounded-t-md">
 					Select Catagories
 				</p>
-				{#each Object.entries(catagories) as [catagory_name, catagory]}
-					{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
-						<span />
-					{:else}
-						<label class="my-[2px]">
-							<div
-								class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75"
-							>
-								<input
-									type="checkbox"
-									class=""
-									bind:group={game_state.current_catagory}
-									on:change={() => emitSelectCatagory(catagory_name)}
-									value={catagory_name}
-									checked={game_state.current_catagory.includes(catagory_name)}
-								/>
-								<span class="float-right">
-									{#if catagory.flags.is_nsfw}
-										<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
-									{/if}
-									{catagory_name}
-								</span>
-							</div>
-						</label>
-					{/if}
-				{/each}
+				{#if catagories !== undefined}
+					{#each Object.entries(catagories) as [catagory_name, catagory]}
+						{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
+							<span />
+						{:else}
+							<label class="my-[2px]">
+								<div
+									class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75"
+								>
+									<input
+										type="checkbox"
+										class=""
+										bind:group={game_state.current_catagory}
+										on:change={() => emitSelectCatagory(catagory_name)}
+										value={catagory_name}
+										checked={game_state.current_catagory.includes(catagory_name)}
+									/>
+									<span class="float-right">
+										{#if catagory.flags.is_nsfw}
+											<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
+										{/if}
+										{catagory_name}
+									</span>
+								</div>
+							</label>
+						{/if}
+					{/each}
+				{:else}
+					<p>Loading...</p>
+				{/if}
 			</div>
 			<button
 				class="rounded-none transition bg-green-500 text-white font-bold py-2 px-4 hover:bg-green-400 w-64 rounded-b-md shadow hover:shadow-lg"
