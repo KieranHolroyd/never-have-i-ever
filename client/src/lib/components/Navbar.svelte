@@ -5,25 +5,9 @@
 	import IcBaselineContactEmail from '~icons/ic/baseline-contact-mail';
 	import IcRoundAccountCircle from '~icons/ic/round-account-circle';
 
-	import { browser } from '$app/environment';
-	import Notification from './Notification.svelte';
-	import { settingsStore } from '$lib/settings';
 	import clickOutside from '$lib/clickOutside';
 
 	let show = false;
-
-	let settings = settingsStore;
-	let error: string | null = null;
-
-	function save_settings() {
-		try {
-			if (browser) {
-				localStorage.setItem('settings', JSON.stringify($settings));
-			}
-		} catch (e) {
-			error = e as any;
-		}
-	}
 </script>
 
 <div
@@ -69,11 +53,3 @@
 		</a>
 	</div>
 </div>
-<Notification
-	show={error !== null}
-	on:closeNotification={() => {
-		error = null;
-	}}
->
-	{error ?? 'Unknown Error (See Javascript Console)'}
-</Notification>
