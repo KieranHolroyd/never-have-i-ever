@@ -20,7 +20,7 @@
 	<div class="menu-container">
 		<h1 class="text-3xl dark:text-white font-bold mb-4">Never Have I Ever</h1>
 		<div
-			class="relative px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
+			class="relative border-2 border-gray-200 dark:border-gray-400 px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
 		>
 			<span class="absolute top-4 left-3">
 				<MdiInformation class="w-8 h-8" />
