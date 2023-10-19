@@ -158,6 +158,7 @@
 				switch (data.op) {
 					case 'open':
 						connection = Status.CONNECTED;
+						measure_ping(true);
 						break;
 					case 'select_catagory':
 						toggleSelection(data.catagory);
@@ -210,7 +211,6 @@
 		socket?.addEventListener('open', (event) => {
 			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
 			retry_count = 0;
-			measure_ping(true);
 		});
 
 		// socket closed
