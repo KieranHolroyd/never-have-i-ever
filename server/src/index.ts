@@ -219,13 +219,15 @@ const server = Bun.serve({
         const data = JSON.parse(message);
         const op = data.op;
 
-        ingestEvent({
-          event: "websocket_message_received",
-          op,
-          gameID: ws.data.game,
-          player: ws.data.player,
-          data,
-        });
+        if (op !== "ping") {
+          ingestEvent({
+            event: "websocket_message_received",
+            op,
+            gameID: ws.data.game,
+            player: ws.data.player,
+            data,
+          });
+        }
 
         switch (op) {
           case "join_game": {
