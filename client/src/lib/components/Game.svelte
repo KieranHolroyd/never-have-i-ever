@@ -246,6 +246,16 @@
 	}
 
 	function measure_ping(first = false) {
+		prev_ping_ts = performance.now();
+		for (let i = 0; i < (first ? 5 : 1); i++) {
+			socket?.send(JSON.stringify({ op: 'ping' }));
+		}
+		if (!ping_timeout) {
+			ping_timeout = setInterval(measure_ping, 1000);
+		}
+	}
+
+	function check_connection() {
 		const time_since_last_pong = performance.now() - last_pong;
 		if (time_since_last_pong > 3_000) {
 			connection = Status.CONNECTING;
@@ -260,15 +270,8 @@
 			socket = null;
 			setupsock();
 		}
-
-		prev_ping_ts = performance.now();
-		for (let i = 0; i < (first ? 5 : 1); i++) {
-			socket?.send(JSON.stringify({ op: 'ping' }));
-		}
-		if (!ping_timeout) {
-			ping_timeout = setInterval(measure_ping, 1000);
-		}
 	}
+	setInterval(check_connection, 250);
 	/// ----------------
 </script>
 
