@@ -257,7 +257,7 @@
 
 	function check_connection() {
 		const time_since_last_pong = performance.now() - last_pong;
-		if (time_since_last_pong > 3_000) {
+		if (time_since_last_pong > 2_000) {
 			connection = Status.CONNECTING;
 		} else {
 			if (connection !== Status.CONNECTED) {
@@ -265,7 +265,7 @@
 			}
 		}
 		// Kill connections after 10 sec inactivity
-		if (time_since_last_pong > 10_000) {
+		if (time_since_last_pong > 4_000) {
 			socket?.close();
 			socket = null;
 			setupsock();
