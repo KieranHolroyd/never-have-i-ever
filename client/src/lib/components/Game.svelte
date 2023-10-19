@@ -30,6 +30,10 @@
 	let errors: any[] = [];
 	let players: Player[] = [];
 
+	// ping stuff
+	let prev_ping_ts = 0; //ms (epoch)
+	let client_ping = 0; //ms
+
 	let my_name = LocalPlayer.name;
 
 	let current_question: {
@@ -188,6 +192,11 @@
 							notification_content = data.notification;
 						}, data.delay);
 						break;
+					case 'pong':
+						const multi_diff = performance.now() - prev_ping_ts;
+
+						client_ping = client_ping * 0.8 + multi_diff * 0.2; // 5 frame average
+						break;
 					default:
 						console.log('unhandled');
 					// console.log(data);
@@ -201,11 +210,13 @@
 		socket?.addEventListener('open', (event) => {
 			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
 			retry_count = 0;
+			measure_ping(true);
 		});
 
 		// socket closed
 		socket?.addEventListener('close', (event) => {
 			connection = Status.DISCONNECTED;
+			clearInterval(ping_timeout);
 			if (event.code === 4000) return;
 			setTimeout(reconnect, 200 * Math.max(1, retry_count));
 		});
@@ -213,6 +224,7 @@
 		// error handler
 		socket?.addEventListener('error', (event) => {
 			connection = Status.DISCONNECTED;
+			clearInterval(ping_timeout);
 		});
 		function reconnect() {
 			retry_count = retry_count + 1;
@@ -221,6 +233,17 @@
 			socket = null;
 			socket = new WebSocket(sock_url + sock_params);
 			setupsock();
+		}
+	}
+
+	let ping_timeout: ReturnType<typeof setInterval>;
+	function measure_ping(first = false) {
+		prev_ping_ts = performance.now();
+		for (let i = 0; i < (first ? 5 : 1); i++) {
+			socket?.send(JSON.stringify({ op: 'ping' }));
+		}
+		if (!ping_timeout) {
+			ping_timeout = setInterval(measure_ping, 5000);
 		}
 	}
 	/// ----------------
@@ -423,6 +446,13 @@
 	>
 		{notification_content}
 	</Notification>
+	{#if connection === Status.CONNECTED}
+		<div
+			class="fixed text-xs w-[3.25rem] pointer-events-none top-32 left-2.5 rounded-full py-0.5 px-1 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
+		>
+			<span class="dark:text-white text-black">{client_ping.toFixed(0)}ms</span>
+		</div>
+	{/if}
 </div>
 
 <style lang="scss">

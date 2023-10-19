@@ -41,7 +41,7 @@ function emit(
   }
 }
 
-function send(ws: ServerWebSocket<any>, op: string, data_raw: object) {
+function send(ws: ServerWebSocket<any>, op: string, data_raw: object = {}) {
   try {
     const data = JSON.stringify({ ...data_raw, op });
 
@@ -551,6 +551,10 @@ const server = Bun.serve({
             });
 
             emit(ws, ws.data.game, "game_state", { game });
+            break;
+          }
+          case "ping": {
+            send(ws, "pong");
             break;
           }
           default: {
