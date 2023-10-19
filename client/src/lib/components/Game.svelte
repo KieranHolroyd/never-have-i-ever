@@ -246,8 +246,16 @@
 	}
 
 	function measure_ping(first = false) {
+		const time_since_last_pong = performance.now() - last_pong;
+		if (time_since_last_pong > 3_000) {
+			connection = Status.CONNECTING;
+		} else {
+			if (connection !== Status.CONNECTED) {
+				connection = Status.CONNECTED;
+			}
+		}
 		// Kill connections after 10 sec inactivity
-		if (performance.now() - last_pong > 10_000) {
+		if (time_since_last_pong > 10_000) {
 			socket?.close();
 			socket = null;
 			setupsock();
@@ -258,7 +266,7 @@
 			socket?.send(JSON.stringify({ op: 'ping' }));
 		}
 		if (!ping_timeout) {
-			ping_timeout = setInterval(measure_ping, 5000);
+			ping_timeout = setInterval(measure_ping, 1000);
 		}
 	}
 	/// ----------------
