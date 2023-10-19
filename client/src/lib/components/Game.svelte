@@ -269,6 +269,7 @@
 			socket?.close();
 			socket = null;
 			setupsock();
+			last_pong = performance.now();
 		}
 	}
 	setInterval(check_connection, 250);
