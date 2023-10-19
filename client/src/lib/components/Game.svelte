@@ -34,6 +34,7 @@
 	let prev_ping_ts = 0; //ms (epoch)
 	let client_ping = 0; //ms
 	let ping_timeout: ReturnType<typeof setInterval> | null;
+	let last_pong = 0; //ms
 
 	let my_name = LocalPlayer.name;
 
@@ -198,6 +199,7 @@
 						const multi_diff = performance.now() - prev_ping_ts;
 
 						client_ping = client_ping * 0.8 + multi_diff * 0.2; // 5 frame average
+						last_pong = performance.now();
 						break;
 					default:
 						console.log('unhandled');
@@ -244,6 +246,13 @@
 	}
 
 	function measure_ping(first = false) {
+		// Kill connections after 10 sec inactivity
+		if (performance.now() - last_pong > 10_000) {
+			socket?.close();
+			socket = null;
+			setupsock();
+		}
+
 		prev_ping_ts = performance.now();
 		for (let i = 0; i < (first ? 5 : 1); i++) {
 			socket?.send(JSON.stringify({ op: 'ping' }));
