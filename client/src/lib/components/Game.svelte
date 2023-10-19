@@ -33,6 +33,7 @@
 	// ping stuff
 	let prev_ping_ts = 0; //ms (epoch)
 	let client_ping = 0; //ms
+	let ping_timeout: ReturnType<typeof setInterval> | null;
 
 	let my_name = LocalPlayer.name;
 
@@ -216,7 +217,10 @@
 		// socket closed
 		socket?.addEventListener('close', (event) => {
 			connection = Status.DISCONNECTED;
-			clearInterval(ping_timeout);
+			if (ping_timeout) {
+				clearInterval(ping_timeout);
+				ping_timeout = null;
+			}
 			if (event.code === 4000) return;
 			setTimeout(reconnect, 200 * Math.max(1, retry_count));
 		});
@@ -224,7 +228,10 @@
 		// error handler
 		socket?.addEventListener('error', (event) => {
 			connection = Status.DISCONNECTED;
-			clearInterval(ping_timeout);
+			if (ping_timeout) {
+				clearInterval(ping_timeout);
+				ping_timeout = null;
+			}
 		});
 		function reconnect() {
 			retry_count = retry_count + 1;
@@ -236,7 +243,6 @@
 		}
 	}
 
-	let ping_timeout: ReturnType<typeof setInterval>;
 	function measure_ping(first = false) {
 		prev_ping_ts = performance.now();
 		for (let i = 0; i < (first ? 5 : 1); i++) {
