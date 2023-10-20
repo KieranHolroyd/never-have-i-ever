@@ -292,6 +292,8 @@
 					{#each Object.entries(catagories) as [catagory_name, catagory]}
 						{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
 							<span />
+						{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
+							<span />
 						{:else}
 							<label class="my-[2px]">
 								<div

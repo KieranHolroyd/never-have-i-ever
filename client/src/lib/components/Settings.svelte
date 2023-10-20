@@ -72,6 +72,21 @@
 					/>
 					<span class="float-right"> No Tutorials </span>
 				</div>
+			</label>
+			<label class="my-[2px]">
+				<div
+					class="bg-gray-300 dark:bg-slate-700 py-2 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75 my-2 rounded-md"
+				>
+					<input
+						type="checkbox"
+						class=""
+						on:change={(e) => {
+							$settings = { ...$settings, show_hidden: e?.currentTarget?.checked };
+						}}
+						checked={$settings.show_hidden ?? false}
+					/>
+					<span class="float-right"> Show Hidden Questions </span>
+				</div>
 				<button
 					class="transition bg-blue-500 text-white font-bold py-2 px-4 hover:bg-blue-400 w-full shadow hover:shadow-lg"
 					on:click={save_settings}

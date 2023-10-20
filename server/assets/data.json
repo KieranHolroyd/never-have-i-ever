@@ -526,7 +526,8 @@
 	},
 	"more": {
 		"flags": {
-			"is_nsfw": true
+			"is_nsfw": true,
+			"is_hidden": true
 		},
 		"questions": [
 			"Never have I ever wished you would try something new in the bedroom.",
@@ -727,7 +728,8 @@
 	},
 	"writers": {
 		"flags": {
-			"is_nsfw": true
+			"is_nsfw": true,
+			"is_hidden": true
 		},
 		"questions": [
 			"Never have I ever gotten matching tattoos with someone.",

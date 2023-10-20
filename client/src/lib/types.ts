@@ -32,6 +32,7 @@ export type GameRound = {
 export type Settings = {
 	no_nsfw?: boolean;
 	no_tutorials?: boolean;
+	show_hidden?: boolean;
 };
 
 export type Catagories = {
@@ -39,7 +40,8 @@ export type Catagories = {
 };
 export type Catagory = {
 	flags: {
-		is_nsfw: boolean;
+		is_nsfw?: boolean;
+		is_hidden?: boolean;
 	};
 	questions: string[];
 };
