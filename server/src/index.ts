@@ -651,3 +651,12 @@ setInterval(() => {
 }, 5000);
 
 console.log(`Server running at http://${server.hostname}:${server.port}/`);
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.info("SIGTERM signal received.");
+  console.log("Closing http server.");
+  server.stop(true);
+  console.log("Http server closed.");
+  process.exit(1);
+});
