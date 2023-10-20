@@ -462,7 +462,7 @@
 		<button on:click={() => reset()}>Reset Game</button>
 	{/if}
 	{#if conf_reset_display}
-		<button class="red-button" on:click={() => reset()}>Confirm Reset</button>
+		<button class="red-button mt-4" on:click={() => reset()}>Confirm Reset</button>
 	{/if}
 	<!-- Global Notifications Panel -->
 	<Notification
