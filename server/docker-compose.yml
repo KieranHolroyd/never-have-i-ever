@@ -11,3 +11,9 @@ services:
       - AXIOM_ORG_ID=${AXIOM_ORG_ID}
     volumes:
       - /var/gamedata:/home/bun/app/assets/games/
+  cache:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - /var/dockerdata:/data
