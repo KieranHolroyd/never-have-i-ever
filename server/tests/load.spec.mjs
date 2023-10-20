@@ -1,118 +1,105 @@
+//@ts-check
 import { v4 } from "uuid";
 import { WebSocket } from "ws";
 
-const env = process.env;
+var runs = [];
+setInterval(() => {
+  const last = received;
+  runs.push(last);
+  received = 0;
+  console.log(last, `rps [${CLIENTS_TO_WAIT_FOR} Clients]`);
 
+  if (sent === toSend) {
+    console.log("DONE");
+    const average = `${
+      runs.reduce((a, b) => a + b) / runs.length
+    }/${total} messages per second`;
+    console.log("avg:", average);
+    process.exit(0);
+  }
+}, 1000);
+
+const env = process.env;
 const SERVER = env.SERVER || "ws://localhost:3000/";
 const LOG_MESSAGES = env.LOG_MESSAGES === "1";
 const CLIENTS_TO_WAIT_FOR = parseInt(env.CLIENTS_COUNT || "", 10) || 32;
-const DELAY = 512;
+
 const MESSAGES_TO_SEND = [
-  '{"op":"join_game","create":true,"playername":"kh"}',
-  '{"op":"select_catagory","catagory":"writers"}',
-  '{"op":"confirm_selections"}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":3}',
   '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
+  '{"op":"vote","option":3}',
   '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
   '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
+  '{"op":"vote","option":1}',
   '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
+  '{"op":"vote","option":1}',
   '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
-  '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
+  '{"op":"vote","option":1}',
   '{"op":"vote","option":2}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":3}',
-  '{"op":"next_question"}',
   '{"op":"vote","option":1}',
-  '{"op":"next_question"}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":2}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":3}',
+  '{"op":"vote","option":1}',
+  '{"op":"vote","option":1}',
 ].flat();
 
 const NAMES = Array.from({ length: 50 }, (a, i) => [
@@ -153,14 +140,14 @@ var remainingClients = CLIENTS_TO_WAIT_FOR;
 var promises = [];
 
 const clients = new Array(CLIENTS_TO_WAIT_FOR);
-const gameID = v4()
+const gameID = v4();
 console.log("GAMEID: ", gameID, `https://games.kieran.dev/play/${gameID}`);
 for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
   clients[i] = new WebSocket(`${SERVER}?game=${gameID}&player=${NAMES[i]}`);
   promises.push(
     new Promise((resolve, reject) => {
       clients[i].onmessage = (event) => {
-        resolve();
+        resolve(0);
       };
     })
   );
@@ -169,21 +156,15 @@ for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
 await Promise.all(promises);
 console.timeEnd(`All ${clients.length} clients connected`);
 
-var received = 0;
-var total = 0;
-var more = false;
-var remaining;
+let received = 0;
+let total = 0;
+let sent = 0;
+let toSend = 0;
 
 for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
   clients[i].onmessage = (event) => {
     if (LOG_MESSAGES) console.log(event.data);
     received++;
-    remaining--;
-
-    if (remaining === 0) {
-      more = true;
-      remaining = total;
-    }
   };
 }
 
@@ -197,40 +178,40 @@ for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
     }
   }
 }
-remaining = total;
 
-function restart() {
-  for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
-    for (let j = 0; j < MESSAGES_TO_SEND.length; j++) {
-      clients[i].send(MESSAGES_TO_SEND[j]);
-    }
+total += (MESSAGES_TO_SEND.length - 3) * CLIENTS_TO_WAIT_FOR;
+
+for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
+  for (let j = 0; j < MESSAGES_TO_SEND.length; j++) {
+    toSend++;
   }
 }
 
-var runs = [];
-setInterval(() => {
-  const last = received;
-  runs.push(last);
-  received = 0;
-  console.log(
-    last,
-    `messages per second (${CLIENTS_TO_WAIT_FOR} clients x ${MESSAGES_TO_SEND.length} msg, min delay: ${DELAY}ms)`
+console.log(`Sending ${toSend} messages...`);
+console.time(`All ${toSend} messages sent`);
+// setup
+console.log("Setup");
+for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
+  clients[i].send(
+    `{ "op": "join_game", "create": true, "playername": "${NAMES[i]}"}`
   );
+  await Bun.sleep(20);
+  if (i === 0) {
+    clients[i].send('{"op":"select_catagory","catagory":"writers"}');
+    clients[i].send('{"op":"confirm_selections"}');
+  }
+}
 
-  if (runs.length >= 5) {
-    console.log("5 runs");
-    console.log(JSON.stringify(runs, null, 2));
-    if ("process" in globalThis) process.exit(0);
-    runs.length = 0;
+console.log("Sending messages");
+for (let j = 0; j < MESSAGES_TO_SEND.length; j++) {
+  if (j > 2) {
+    clients[0].send('{"op":"next_question"}');
+    await Bun.sleep(20);
   }
-}, 1000);
-var isRestarting = false;
-setInterval(() => {
-  if (more && !isRestarting) {
-    more = false;
-    isRestarting = true;
-    restart();
-    isRestarting = false;
+  for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
+    sent++;
+    clients[i].send(MESSAGES_TO_SEND[j]);
   }
-}, DELAY);
-restart();
+  await Bun.sleep(100);
+}
+console.timeEnd(`All ${toSend} messages sent`);

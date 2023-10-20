@@ -454,7 +454,11 @@ const server = Bun.serve({
             });
 
             let { data: _, history: __, ...wo_data } = game;
-            emit(ws, ws.data.game, "game_state", { game: wo_data });
+            emit(ws, ws.data.game, "game_state", {
+              game: game.game_completed
+                ? { ...wo_data, history: game.history }
+                : wo_data,
+            });
             emit(ws, ws.data.game, "new_round", {});
             break;
           }
