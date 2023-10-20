@@ -39,13 +39,6 @@
 			</div>
 		</div>
 	</div>
-
-	<p
-		class="fixed pb-4 bottom-0 right-0 left-0 text-center text-gray-600 dark:text-gray-300 text-sm font-bold tracking-wider"
-	>
-		Made by <a href="https://kieran.dev">Kieran</a>.
-		<a href="/suggest">Suggest Changes.</a>
-	</p>
 </div>
 
 <style>

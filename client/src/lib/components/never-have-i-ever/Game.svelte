@@ -7,8 +7,8 @@
 	import { Status, VoteOptions, type Player, type Catagories } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
-	import Notification from './Notification.svelte';
-	import Tutorial from './Tutorial.svelte';
+	import Notification from '../Notification.svelte';
+	import Tutorial from '../Tutorial.svelte';
 	import { colour_map } from '$lib/colour';
 	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';

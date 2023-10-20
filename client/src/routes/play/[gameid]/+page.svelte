@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import NeverHaveIEver from '$lib/components/Game.svelte';
+	import NeverHaveIEver from '$lib/components/never-have-i-ever/Game.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
