@@ -658,5 +658,5 @@ process.on("SIGTERM", () => {
   console.log("Closing http server.");
   server.stop(true);
   console.log("Http server closed.");
-  process.exit(1);
+  process.exit(0);
 });
