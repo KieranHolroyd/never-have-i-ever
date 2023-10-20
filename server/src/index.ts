@@ -157,7 +157,7 @@ const server = Bun.serve({
         return new Response(figlet.textSync("Never Have I Ever"));
       }
       case "/api/catagories": {
-        const catagories = get_questions_list();
+        const catagories = await get_questions_list();
 
         const response = Response.json(catagories);
         response.headers.set("Access-Control-Allow-Origin", "*");
