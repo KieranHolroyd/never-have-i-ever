@@ -183,7 +183,7 @@ const server = Bun.serve({
             status: 404,
           });
         }
-        let { data: _, ...wo_data } = game;
+        let { data: _, history: __, ...wo_data } = game;
 
         return new Response(
           JSON.stringify({
@@ -331,7 +331,7 @@ const server = Bun.serve({
             ws.subscribe(ws.data.game);
             ws.subscribe("notifications");
 
-            let { data: _, ...wo_data } = game;
+            let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", {
               id: ws.data.game,
               game: wo_data,
@@ -352,7 +352,7 @@ const server = Bun.serve({
 
             game.catagory_select = true;
 
-            let { data: _, ...wo_data } = game;
+            let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
             break;
           }
@@ -453,7 +453,7 @@ const server = Bun.serve({
               },
             });
 
-            let { data: _, ...wo_data } = game;
+            let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
             emit(ws, ws.data.game, "new_round", {});
             break;
@@ -487,7 +487,7 @@ const server = Bun.serve({
 
             game.data = { ...game_data };
 
-            let { data: _, ...wo_data } = game;
+            let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
 
             break;
@@ -564,7 +564,7 @@ const server = Bun.serve({
               },
             });
 
-            let { data: _, ...wo_data } = game;
+            let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
             break;
           }
