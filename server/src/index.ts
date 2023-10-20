@@ -331,9 +331,10 @@ const server = Bun.serve({
             ws.subscribe(ws.data.game);
             ws.subscribe("notifications");
 
+            let { data: _, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", {
               id: ws.data.game,
-              game,
+              game: wo_data,
             });
             break;
           }
@@ -350,7 +351,9 @@ const server = Bun.serve({
             });
 
             game.catagory_select = true;
-            emit(ws, ws.data.game, "game_state", { game });
+
+            let { data: _, ...wo_data } = game;
+            emit(ws, ws.data.game, "game_state", { game: wo_data });
             break;
           }
           case "select_catagory": {
@@ -450,7 +453,8 @@ const server = Bun.serve({
               },
             });
 
-            emit(ws, ws.data.game, "game_state", { game });
+            let { data: _, ...wo_data } = game;
+            emit(ws, ws.data.game, "game_state", { game: wo_data });
             emit(ws, ws.data.game, "new_round", {});
             break;
           }
@@ -483,7 +487,9 @@ const server = Bun.serve({
 
             game.data = { ...game_data };
 
-            emit(ws, ws.data.game, "game_state", { game });
+            let { data: _, ...wo_data } = game;
+            emit(ws, ws.data.game, "game_state", { game: wo_data });
+
             break;
           }
           case "vote": {
@@ -558,7 +564,8 @@ const server = Bun.serve({
               },
             });
 
-            emit(ws, ws.data.game, "game_state", { game });
+            let { data: _, ...wo_data } = game;
+            emit(ws, ws.data.game, "game_state", { game: wo_data });
             break;
           }
           case "ping": {
