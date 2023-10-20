@@ -331,7 +331,7 @@ const server = Bun.serve({
             ws.subscribe(ws.data.game);
             ws.subscribe("notifications");
 
-            let { data: _, history: __, ...wo_data } = game;
+            let { data: _, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", {
               id: ws.data.game,
               game: wo_data,
