@@ -667,3 +667,10 @@ process.on("SIGINT", () => {
   console.log("Http server closed.");
   process.exit(0);
 });
+process.on("SIGKILL", () => {
+  console.info("SIGKILL signal received.");
+  console.log("Closing http server.");
+  server.stop(true);
+  console.log("Http server closed.");
+  process.exit(0);
+});
