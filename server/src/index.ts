@@ -5,7 +5,7 @@ import { pickRandom } from "mathjs";
 import { migrate } from "./migrate";
 import { PushEvent } from "@octokit/webhooks-types";
 import axiom, { ingestEvent } from "./axiom";
-import { GameData } from "types";
+import { Catagories, GameData } from "types";
 
 const required_env_vars = ["GAME_DATA_DIR", "AXIOM_TOKEN", "AXIOM_ORG_ID"];
 
@@ -23,6 +23,18 @@ if (missing_env_vars.length > 0) {
 }
 
 const db = new Database(`${Bun.env.GAME_DATA_DIR}db.sqlite`);
+
+let local_questions_list: string = null;
+async function get_questions_list() {
+  if (!local_questions_list) {
+    const questions_list = await Bun.file(
+      `${import.meta.dir}/../assets/data.json`
+    ).text();
+    local_questions_list = questions_list;
+  }
+
+  return JSON.parse(local_questions_list) as Catagories;
+}
 
 function emit(
   ws: ServerWebSocket<any>,
@@ -145,9 +157,7 @@ const server = Bun.serve({
         return new Response(figlet.textSync("Never Have I Ever"));
       }
       case "/api/catagories": {
-        const catagories = await Bun.file(
-          `${import.meta.dir}/../assets/data.json`
-        ).json();
+        const catagories = get_questions_list();
 
         const response = Response.json(catagories);
         response.headers.set("Access-Control-Allow-Origin", "*");
@@ -259,9 +269,7 @@ const server = Bun.serve({
                   }
                 } else {
                   // Create a new game
-                  const questions_list = await Bun.file(
-                    `${import.meta.dir}/../assets/data.json`
-                  ).json();
+                  const questions_list = await get_questions_list();
                   games.push({
                     id: ws.data.game,
                     players: [],
@@ -471,9 +479,7 @@ const server = Bun.serve({
               player.this_round.vote = null;
               player.this_round.voted = false;
             });
-            const game_data = await Bun.file(
-              `${import.meta.dir}/../assets/data.json`
-            ).json();
+            const game_data = await get_questions_list();
 
             game.data = { ...game_data };
 
