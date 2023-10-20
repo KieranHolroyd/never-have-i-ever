@@ -27,7 +27,9 @@
 <div use:clickOutside={() => (show = false)}>
 	<div class="fixed z-20 top-16 left-2">
 		<button
-			class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2"
+			class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200 {show
+				? 'transform rotate-90'
+				: 'transform'}"
 			on:click={() => (show = !show)}
 		>
 			{#if show}
