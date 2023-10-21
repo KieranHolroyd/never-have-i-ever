@@ -198,7 +198,11 @@
 					case 'pong':
 						const multi_diff = performance.now() - prev_ping_ts;
 
-						client_ping = client_ping * 0.8 + multi_diff * 0.2; // 5 frame average
+						if (client_ping !== 0) {
+							client_ping = client_ping * 0.8 + multi_diff * 0.2; // 5 frame average
+						} else {
+							client_ping = multi_diff;
+						}
 						last_pong = performance.now();
 						break;
 					default:
