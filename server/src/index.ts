@@ -299,11 +299,13 @@ const server = Bun.serve({
 
             if (game.players.length > 12) {
               send(ws, "error", { message: "Game is full" });
+              ws.close(1013, "Game is full");
               break;
             }
             let current_player = game.players.find(
               (player) => player.id === ws.data.player
             );
+
             if (!current_player) {
               game.players.push({
                 id: ws.data.player,
