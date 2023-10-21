@@ -160,7 +160,7 @@
 				switch (data.op) {
 					case 'open':
 						connection = Status.CONNECTED;
-						measure_ping(true);
+						measure_ping();
 						break;
 					case 'select_catagory':
 						toggleSelection(data.catagory);
@@ -245,11 +245,10 @@
 		}
 	}
 
-	function measure_ping(first = false) {
+	function measure_ping() {
 		prev_ping_ts = performance.now();
-		for (let i = 0; i < (first ? 5 : 1); i++) {
-			socket?.send(JSON.stringify({ op: 'ping' }));
-		}
+
+		socket?.send(JSON.stringify({ op: 'ping' }));
 		if (!ping_timeout) {
 			ping_timeout = setInterval(measure_ping, 1000);
 		}
