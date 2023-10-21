@@ -6,7 +6,7 @@ import { migrate } from "./migrate";
 import { PushEvent } from "@octokit/webhooks-types";
 import axiom, { ingestEvent } from "./axiom";
 import { Catagories, GameData } from "types";
-import { client } from "redis_client";
+import { client as redis } from "redis_client";
 
 const required_env_vars = [
   "GAME_DATA_DIR",
@@ -31,12 +31,12 @@ if (missing_env_vars.length > 0) {
 const db = new Database(`${Bun.env.GAME_DATA_DIR}db.sqlite`);
 
 async function get_questions_list() {
-  let questions_list = await client.GET("shared:questions_list");
+  let questions_list = await redis.GET("shared:questions_list");
   if (!questions_list) {
     const questions_list = await Bun.file(
       `${import.meta.dir}/../assets/data.json`
     ).text();
-    await client.SET("shared:questions_list", questions_list);
+    await redis.SET("shared:questions_list", questions_list);
   }
 
   return JSON.parse(questions_list) as Catagories;
@@ -89,12 +89,12 @@ function publish(
   }
 }
 
-function get_game(id: string) {
-  const game = games.find((game) => game.id === id);
+async function get_game(id: string) {
+  const game = await redis.GET(`games:nhie:${id}`);
   if (!game) {
     return false;
   }
-  return game;
+  return JSON.parse(game) as GameData;
 }
 
 function select_question(game: GameData) {
@@ -127,6 +127,11 @@ function deepCopy(obj: any) {
   } catch (e) {
     console.error(e);
   }
+}
+
+// redis helpers
+async function setgame(id: string, game: GameData) {
+  return await redis.SET(`games:nhie:${id}`, JSON.stringify(game));
 }
 
 const games: GameData[] = [];
@@ -183,7 +188,7 @@ const server = Bun.serve({
           });
         }
 
-        const game = get_game(gameid);
+        const game = await get_game(gameid);
         if (!game) {
           return new Response(JSON.stringify({ error: "game_not_found" }), {
             status: 404,
@@ -248,56 +253,31 @@ const server = Bun.serve({
         switch (op) {
           case "join_game": {
             if (data.create) {
-              if (!games.find((game) => game.id === ws.data.game)) {
-                const game_filehandler = Bun.file(
-                  `${Bun.env.GAME_DATA_DIR}${ws.data.game}.json`
-                );
-
-                if (await game_filehandler.exists()) {
-                  // Load game data from file
-                  try {
-                    const game_data = await game_filehandler.json();
-                    games.push(game_data);
-                    ingestEvent({
-                      event: "game_created",
-                      gameID: ws.data.game,
-                      loaded_from_filesystem: true,
-                    });
-                  } catch (e) {
-                    send(ws, "error", { message: "Game data is invalid" });
-                    ingestEvent({
-                      event: "game_created_failed",
-                      gameID: ws.data.game,
-                      loaded_from_filesystem: true,
-                      message: "Game data is invalid",
-                      error: e,
-                    });
-                  }
-                } else {
-                  // Create a new game
-                  const questions_list = await get_questions_list();
-                  games.push({
-                    id: ws.data.game,
-                    players: [],
-                    catagories: [],
-                    catagory_select: true,
-                    game_completed: false,
-                    current_question: { catagory: "", content: "" },
-                    history: [],
-                    data: { ...questions_list }, // This is a copy of the data
-                    // so that we can remove questions from it
-                    // a better way to do this would be to have a
-                    // mask on the data that is removed as questions
-                  });
-                  ingestEvent({
-                    gameID: ws.data.game,
-                    event: "game_created",
-                    loaded_from_filesystem: false,
-                  });
-                }
+              if (!(await redis.exists(`games:nhie:${ws.data.game}`))) {
+                // Create a new game
+                const questions_list = await get_questions_list();
+                await setgame(ws.data.game, {
+                  id: ws.data.game,
+                  players: [],
+                  catagories: [],
+                  catagory_select: true,
+                  game_completed: false,
+                  current_question: { catagory: "", content: "" },
+                  history: [],
+                  data: { ...questions_list }, // This is a copy of the data
+                  // so that we can remove questions from it
+                  // a better way to do this would be to have a
+                  // mask on the data that is removed as questions
+                });
+                ingestEvent({
+                  gameID: ws.data.game,
+                  event: "game_created",
+                  loaded_from_filesystem: false,
+                });
               }
             }
-            const game = get_game(ws.data.game);
+
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -340,6 +320,8 @@ const server = Bun.serve({
               current_player.connected = true;
             }
 
+            await setgame(ws.data.game, game);
+
             ws.subscribe(ws.data.game);
             ws.subscribe("notifications");
 
@@ -351,7 +333,7 @@ const server = Bun.serve({
             break;
           }
           case "select_catagories": {
-            const game = get_game(ws.data.game);
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -364,6 +346,8 @@ const server = Bun.serve({
 
             game.catagory_select = true;
 
+            setgame(ws.data.game, game);
+
             let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
             break;
@@ -373,7 +357,7 @@ const server = Bun.serve({
               send(ws, "error", { message: "No catagory provided" });
               break;
             }
-            const game = get_game(ws.data.game);
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -395,6 +379,8 @@ const server = Bun.serve({
               },
             });
 
+            await setgame(ws.data.game, game);
+
             publish(ws, ws.data.game, "", {
               op: "select_catagory",
               id: ws.data.game,
@@ -403,7 +389,7 @@ const server = Bun.serve({
             break;
           }
           case "confirm_selections": {
-            const game = get_game(ws.data.game);
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -424,12 +410,13 @@ const server = Bun.serve({
             });
 
             game.catagory_select = false;
+            await setgame(ws.data.game, game);
 
             emit(ws, ws.data.game, "game_state", { game });
             break;
           }
           case "next_question": {
-            const game = get_game(ws.data.game);
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -465,6 +452,8 @@ const server = Bun.serve({
               },
             });
 
+            await setgame(ws.data.game, game);
+
             let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", {
               game: game.game_completed
@@ -475,7 +464,7 @@ const server = Bun.serve({
             break;
           }
           case "reset_game": {
-            const game = get_game(ws.data.game);
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -503,13 +492,15 @@ const server = Bun.serve({
 
             game.data = { ...game_data };
 
+            await setgame(ws.data.game, game);
+
             let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
 
             break;
           }
           case "vote": {
-            const game = get_game(ws.data.game);
+            const game = await get_game(ws.data.game);
             if (!game) {
               send(ws, "error", { message: "Game not found" });
               break;
@@ -580,6 +571,8 @@ const server = Bun.serve({
               },
             });
 
+            await setgame(ws.data.game, game);
+
             let { data: _, history: __, ...wo_data } = game;
             emit(ws, ws.data.game, "game_state", { game: wo_data });
             break;
@@ -617,12 +610,14 @@ const server = Bun.serve({
       });
       send(ws, "open", { message: "Websocket connection opened" });
     },
-    close: (ws) => {
-      const game = get_game(ws.data.game);
+    close: async (ws) => {
+      const game = await get_game(ws.data.game);
       if (!game) return;
 
       const plyr = game.players.find((p) => p.id === ws.data.player);
       plyr.connected = false;
+
+      await setgame(ws.data.game, game);
 
       ingestEvent({
         event: "websocket_connection_closed",
