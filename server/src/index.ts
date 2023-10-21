@@ -6,8 +6,14 @@ import { migrate } from "./migrate";
 import { PushEvent } from "@octokit/webhooks-types";
 import axiom, { ingestEvent } from "./axiom";
 import { Catagories, GameData } from "types";
+import { client } from "redis_client";
 
-const required_env_vars = ["GAME_DATA_DIR", "AXIOM_TOKEN", "AXIOM_ORG_ID"];
+const required_env_vars = [
+  "GAME_DATA_DIR",
+  "REDIS_URI",
+  "AXIOM_TOKEN",
+  "AXIOM_ORG_ID",
+];
 
 const missing_env_vars = required_env_vars.filter(
   (env_var) => !Object.keys(Bun.env).includes(env_var)
@@ -24,16 +30,16 @@ if (missing_env_vars.length > 0) {
 
 const db = new Database(`${Bun.env.GAME_DATA_DIR}db.sqlite`);
 
-let local_questions_list: string = null;
 async function get_questions_list() {
-  if (!local_questions_list) {
+  let questions_list = await client.GET("shared:questions_list");
+  if (!questions_list) {
     const questions_list = await Bun.file(
       `${import.meta.dir}/../assets/data.json`
     ).text();
-    local_questions_list = questions_list;
+    await client.SET("shared:questions_list", questions_list);
   }
 
-  return JSON.parse(local_questions_list) as Catagories;
+  return JSON.parse(questions_list) as Catagories;
 }
 
 function emit(
@@ -183,7 +189,7 @@ const server = Bun.serve({
             status: 404,
           });
         }
-        let { data: _, history: __, ...wo_data } = game;
+        let { data: _, ...wo_data } = game;
 
         return new Response(
           JSON.stringify({
