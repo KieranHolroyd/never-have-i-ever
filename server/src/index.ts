@@ -5,8 +5,9 @@ import { pickRandom } from "mathjs";
 import { migrate } from "./migrate";
 import { PushEvent } from "@octokit/webhooks-types";
 import axiom, { ingestEvent } from "./axiom";
-import { Catagories, GameData } from "types";
-import { client as redis } from "redis_client";
+import { Catagories, GameData, Player } from "types";
+import { client as redis } from "helpers/redis_client";
+import { get_item, setgame } from "helpers/redis";
 
 const required_env_vars = [
   "GAME_DATA_DIR",
@@ -31,15 +32,15 @@ if (missing_env_vars.length > 0) {
 const db = new Database(`${Bun.env.GAME_DATA_DIR}db.sqlite`);
 
 async function get_questions_list() {
-  let questions_list = await redis.GET("shared:questions_list");
+  let questions_list = await redis.json.get("shared:questions_list");
   if (!questions_list) {
     const questions_list = await Bun.file(
       `${import.meta.dir}/../assets/data.json`
-    ).text();
-    await redis.SET("shared:questions_list", questions_list);
+    ).json<Catagories>();
+    await redis.json.SET("shared:questions_list", "$", questions_list);
   }
 
-  return JSON.parse(questions_list) as Catagories;
+  return questions_list as Catagories;
 }
 
 function emit(
@@ -90,11 +91,11 @@ function publish(
 }
 
 async function get_game(id: string) {
-  const game = await redis.GET(`games:nhie:${id}`);
+  const game = await redis.json.get(`games:nhie:${id}`);
   if (!game) {
     return false;
   }
-  return JSON.parse(game) as GameData;
+  return game as GameData;
 }
 
 function select_question(game: GameData) {
@@ -127,11 +128,6 @@ function deepCopy(obj: any) {
   } catch (e) {
     console.error(e);
   }
-}
-
-// redis helpers
-async function setgame(id: string, game: GameData) {
-  return await redis.SET(`games:nhie:${id}`, JSON.stringify(game));
 }
 
 const games: GameData[] = [];
@@ -288,37 +284,70 @@ const server = Bun.serve({
               ws.close(1013, "Game is full");
               break;
             }
-            let current_player = game.players.find(
-              (player) => player.id === ws.data.player
-            );
+
+            let current_player = await get_item("player", {
+              gameid: ws.data.game,
+              playerid: ws.data.player,
+            });
 
             if (!current_player) {
-              game.players.push({
-                id: ws.data.player,
-                name: data.playername,
-                score: 0,
-                connected: true,
-                this_round: {
-                  vote: null,
-                  voted: false,
-                },
-              });
-              ingestEvent({
-                gameID: ws.data.game,
-                event: "player_joined",
-                playerID: ws.data.player,
-                details: {
+              await redis.hSet(
+                `games:nhie:${ws.data.game}:players`,
+                ws.data.player,
+                JSON.stringify({
+                  id: ws.data.player,
                   name: data.playername,
-                },
-              });
+                  score: 0,
+                  connected: true,
+                  this_round: {
+                    vote: null,
+                    voted: false,
+                  },
+                })
+              );
             }
-            current_player = game.players.find(
-              (player) => player.id === ws.data.player
-            );
+
+            current_player = await get_item("player", {
+              gameid: ws.data.game,
+              playerid: ws.data.player,
+            });
+            // let current_player = game.players.find(
+            //   (player) => player.id === ws.data.player
+            // );
+
+            // if (!current_player) {
+            //   game.players.push({
+            //     id: ws.data.player,
+            //     name: data.playername,
+            //     score: 0,
+            //     connected: true,
+            //     this_round: {
+            //       vote: null,
+            //       voted: false,
+            //     },
+            //   });
+            //   ingestEvent({
+            //     gameID: ws.data.game,
+            //     event: "player_joined",
+            //     playerID: ws.data.player,
+            //     details: {
+            //       name: data.playername,
+            //     },
+            //   });
+            // }
+            // current_player = game.players.find(
+            //   (player) => player.id === ws.data.player
+            // );
 
             if (current_player.connected === false) {
               current_player.connected = true;
             }
+
+            await redis.hSet(
+              `games:nhie:${ws.data.game}:players`,
+              ws.data.player,
+              JSON.stringify(current_player)
+            );
 
             await setgame(ws.data.game, game);
 
@@ -614,10 +643,19 @@ const server = Bun.serve({
       const game = await get_game(ws.data.game);
       if (!game) return;
 
-      const plyr = game.players.find((p) => p.id === ws.data.player);
+      // const plyr = game.players.find((p) => p.id === ws.data.player);
+      const plyr = await get_item("player", {
+        gameid: ws.data.game,
+        playerid: ws.data.player,
+      });
       plyr.connected = false;
+      await redis.hSet(
+        `games:nhie:${ws.data.game}:players`,
+        ws.data.player,
+        JSON.stringify(plyr)
+      );
 
-      await setgame(ws.data.game, game);
+      // await setgame(ws.data.game, game);
 
       ingestEvent({
         event: "websocket_connection_closed",
