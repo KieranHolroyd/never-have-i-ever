@@ -5,6 +5,7 @@
 	import Settings from '$lib/components/Settings.svelte';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import { UUIDv4Regex } from '$lib/regex';
+	import { version } from '$lib/version';
 
 	$: isPlayingGame = UUIDv4Regex.test($page.url.pathname.split('/').pop() ?? '');
 </script>
@@ -39,7 +40,9 @@
 		<span
 			class="text-black dark:text-gray-300 tracking-wider text-xs rounded-full py-1 px-2 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
 		>
-			Made by <a href="https://kieran.dev" class="hover:text-white transition">Kieran</a> •
+			v{version} • Made by
+			<a href="https://kieran.dev" class="hover:text-white transition">Kieran</a>
+			•
 			<a href="/suggest" class="hover:text-white transition">Suggest Changes</a>
 		</span>
 	</div>
