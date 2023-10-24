@@ -1,5 +1,11 @@
 import type { GameSocket } from "./router";
 
+/** emit - Send a message to the client and publish it to the game channel
+ * @param ws - The websocket connection
+ * @param topic - The topic to publish to
+ * @param op - The operation to send
+ * @param data_raw - The data to send
+ */
 export function emit(
   ws: GameSocket,
   topic: string,

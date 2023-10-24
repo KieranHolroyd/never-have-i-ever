@@ -2,10 +2,11 @@ import { PushEvent } from "@octokit/webhooks-types";
 import axiom, { ingestEvent } from "./axiom";
 import { Catagories, GameData, Player } from "types";
 import { client as redis } from "helpers/redis_client";
-import { get_item, setgame } from "helpers/redis";
+import { get_item, set_item, setgame } from "helpers/redis";
 import { GameSocket, SocketRouter, handle_incoming_message } from "lib/router";
 import { emit, publish, send } from "lib/socket";
 import { select_question } from "lib/questions";
+import { dbl } from "lib/debug";
 
 const required_env_vars = [
   "GAME_DATA_DIR",
@@ -37,7 +38,7 @@ async function get_questions_list() {
 }
 
 async function get_game(id: string) {
-  const game = await redis.json.get(`games:nhie:${id}`);
+  const game = await get_item("game", { gameid: id });
   if (!game) {
     return false;
   }
@@ -110,7 +111,7 @@ const server = Bun.serve({
           });
         }
 
-        const game = await await get_game(gameid);
+        const game = await get_game(gameid);
         if (!game) {
           return new Response(JSON.stringify({ error: "game_not_found" }), {
             status: 404,
@@ -159,7 +160,7 @@ const server = Bun.serve({
       send(ws, "open", { message: "Websocket connection opened" });
     },
     close: async (ws) => {
-      const game = await await get_game(ws.data.game);
+      const game = await get_game(ws.data.game);
       if (!game) return;
 
       // const plyr = game.players.find((p) => p.id === ws.data.player);
@@ -168,10 +169,10 @@ const server = Bun.serve({
         playerid: ws.data.player,
       });
       plyr.connected = false;
-      await redis.hSet(
-        `games:nhie:${ws.data.game}:players`,
-        ws.data.player,
-        JSON.stringify(plyr)
+      await set_item(
+        "player",
+        { gameid: ws.data.game, playerid: ws.data.player },
+        plyr
       );
 
       // await setgame(ws.data.game, game);
@@ -182,8 +183,8 @@ const server = Bun.serve({
       });
 
       publish(ws, ws.data.game, "", {
-        op: "game_state",
-        game,
+        op: "player_left",
+        player: plyr,
       });
     },
   },
@@ -192,35 +193,22 @@ const server = Bun.serve({
 
 async function player_join(ws: GameSocket, data: any) {
   if (data.create) {
-    if (!games.find((game) => game.id === ws.data.game)) {
-      const game_filehandler = Bun.file(
-        `${Bun.env.GAME_DATA_DIR}${ws.data.game}.json`
-      );
+    if (ws.data.game === undefined) {
+      return send(ws, "error", { message: "No game provided" });
+    }
+    if (data.playername === undefined) {
+      return send(ws, "error", { message: "No player name provided" });
+    }
 
-      if (await game_filehandler.exists()) {
-        // Load game data from file
-        try {
-          const game_data = await game_filehandler.json();
-          games.push(game_data);
-          ingestEvent({
-            event: "game_created",
-            gameID: ws.data.game,
-            loaded_from_filesystem: true,
-          });
-        } catch (e) {
-          send(ws, "error", { message: "Game data is invalid" });
-          ingestEvent({
-            event: "game_created_failed",
-            gameID: ws.data.game,
-            loaded_from_filesystem: true,
-            message: "Game data is invalid",
-            error: e,
-          });
-        }
-      } else {
-        // Create a new game
-        const questions_list = await get_questions_list();
-        games.push({
+    const game_exists = await redis.exists(`games:nhie:${ws.data.game}`);
+
+    if (!game_exists) {
+      // Create a new game
+      const questions_list = await get_questions_list();
+      await set_item(
+        "game",
+        { gameid: ws.data.game },
+        {
           id: ws.data.game,
           players: [],
           catagories: [],
@@ -232,17 +220,17 @@ async function player_join(ws: GameSocket, data: any) {
           // so that we can remove questions from it
           // a better way to do this would be to have a
           // mask on the data that is removed as questions
-        });
-        ingestEvent({
-          gameID: ws.data.game,
-          event: "game_created",
-          loaded_from_filesystem: false,
-        });
-      }
+        }
+      );
+      ingestEvent({
+        gameID: ws.data.game,
+        event: "game_created",
+      });
     }
   }
   const game = await get_game(ws.data.game);
   if (!game) {
+    /*prettier-ignore*/ dbl("game_not_found", { ws, data, game });
     return send(ws, "error", { message: "Game not found" });
   }
 
@@ -257,7 +245,7 @@ async function player_join(ws: GameSocket, data: any) {
   });
 
   if (!current_player) {
-    game.players.push({
+    current_player = {
       id: ws.data.player,
       name: data.playername,
       score: 0,
@@ -266,7 +254,7 @@ async function player_join(ws: GameSocket, data: any) {
         vote: null,
         voted: false,
       },
-    });
+    };
     ingestEvent({
       gameID: ws.data.game,
       event: "player_joined",
@@ -276,19 +264,25 @@ async function player_join(ws: GameSocket, data: any) {
       },
     });
   }
-  current_player = game.players.find((player) => player.id === ws.data.player);
 
-  if (current_player.connected === false) {
-    current_player.connected = true;
-  }
+  current_player.connected = true;
+
+  await set_item(
+    "player",
+    { gameid: ws.data.game, playerid: ws.data.player },
+    current_player
+  );
 
   ws.subscribe(ws.data.game);
   ws.subscribe("notifications");
 
-  let { data: _, ...wo_data } = game;
-  return emit(ws, ws.data.game, "game_state", {
+  const players = await get_item("players", { gameid: ws.data.game });
+
+  send(ws, "player_list", { players });
+
+  emit(ws, ws.data.game, "player_joined", {
     id: ws.data.game,
-    game: wo_data,
+    player: current_player,
   });
 }
 async function select_catagories(ws: GameSocket, data: any) {
@@ -303,6 +297,8 @@ async function select_catagories(ws: GameSocket, data: any) {
   });
 
   game.catagory_select = true;
+
+  await set_item("game", { gameid: ws.data.game }, game);
 
   let { data: _, history: __, ...wo_data } = game;
   return emit(ws, ws.data.game, "game_state", { game: wo_data });
@@ -321,6 +317,8 @@ async function select_catagory(ws: GameSocket, data: any) {
   } else {
     game.catagories.splice(game.catagories.indexOf(data.catagory), 1);
   }
+
+  await set_item("game", { gameid: ws.data.game }, game);
   ingestEvent({
     gameID: ws.data.game,
     event: "catagory_selected",
@@ -330,8 +328,7 @@ async function select_catagory(ws: GameSocket, data: any) {
     },
   });
 
-  return publish(ws, ws.data.game, "", {
-    op: "select_catagory",
+  return publish(ws, ws.data.game, "select_catagory", {
     id: ws.data.game,
     catagory: data.catagory,
   });
@@ -356,6 +353,8 @@ async function confirm_selection(ws: GameSocket, data: any) {
   });
 
   game.catagory_select = false;
+
+  await set_item("game", { gameid: ws.data.game }, game);
 
   return emit(ws, ws.data.game, "game_state", { game });
 }
@@ -394,6 +393,8 @@ async function next_question(ws: GameSocket, data: any) {
       question: game.current_question,
     },
   });
+
+  await set_item("game", { gameid: ws.data.game }, game);
 
   let { data: _, history: __, ...wo_data } = game;
   emit(ws, ws.data.game, "game_state", {

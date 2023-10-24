@@ -165,6 +165,24 @@
 					case 'select_catagory':
 						toggleSelection(data.catagory);
 						break;
+					case 'player_list':
+						players = data.players;
+						break;
+					case 'player_joined':
+						if (!players.find((p) => p.id === data.player.id)) {
+							players = [...players, data.player];
+						} else {
+							players = players.map((p) => {
+								if (p.id === data.player.id) {
+									return data.player;
+								}
+								return p;
+							});
+						}
+						break;
+					case 'player_left':
+						players = players.filter((p) => p.id !== data.player.id);
+						break;
 					case 'game_state':
 						game_state.current_catagory = data.game.catagories;
 						game_state.catagory_select = data.game.catagory_select;
@@ -172,7 +190,7 @@
 						game_state.history = data.game.history;
 
 						current_question = data.game.current_question;
-						players = data.game.players;
+						// players = data.game.players;
 						break;
 					case 'new_round':
 						current_round.votes = [];
