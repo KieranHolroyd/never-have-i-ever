@@ -15,7 +15,8 @@ export function load_test() {
         const last = received;
         runs.push(last);
         received = 0;
-        console.log(last, `rps [${CLIENTS_TO_WAIT_FOR} Clients]`);
+        if (env.verbose)
+          console.log(last, `rps [${CLIENTS_TO_WAIT_FOR} Clients]`);
 
         if (sent === toSend) {
           console.log("DONE");
@@ -28,85 +29,13 @@ export function load_test() {
       const env = process.env;
       const SERVER = env.SERVER || "ws://localhost:3000/";
       const LOG_MESSAGES = env.LOG_MESSAGES === "1";
-      const CLIENTS_TO_WAIT_FOR = parseInt(env.CLIENTS_COUNT || "", 10) || 8;
+      const CLIENTS_TO_WAIT_FOR = parseInt(env.CLIENTS_COUNT || "", 10) || 12;
 
-      const MESSAGES_TO_SEND = [
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":2}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":3}',
-        '{"op":"vote","option":1}',
-        '{"op":"vote","option":1}',
-      ].flat();
+      const MESSAGES_TO_SEND = Array.from({ length: 713 }).map(() => {
+        // return '{"op":"answer","answer":"1"}';
+        const rand_ans = (Math.floor(Math.random() * 3) + 1).toString();
+        return `{"op":"vote","option":"${rand_ans}"}`;
+      });
 
       const NAMES = Array.from({ length: 50 }, (a, i) => [
         "Alice" + i,
@@ -145,7 +74,7 @@ export function load_test() {
       let remainingClients = CLIENTS_TO_WAIT_FOR;
       let promises = [];
 
-      const clients = new Array(CLIENTS_TO_WAIT_FOR);
+      const clients: Array<WebSocket> = new Array(CLIENTS_TO_WAIT_FOR);
       const gameID = v4();
       console.log(
         "GAMEID: ",
@@ -153,9 +82,7 @@ export function load_test() {
         `https://games.kieran.dev/play/${gameID}`
       );
       for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
-        clients[i] = new WebSocket(
-          `${SERVER}?game=${gameID}&player=${NAMES[i]}`
-        );
+        clients[i] = new WebSocket(`${SERVER}?game=${gameID}&player=${v4()}`);
         promises.push(
           new Promise((resolve, reject) => {
             clients[i].onmessage = (event) => {
@@ -207,25 +134,39 @@ export function load_test() {
         clients[i].send(
           `{ "op": "join_game", "create": true, "playername": "${NAMES[i]}"}`
         );
-        await Bun.sleep(20);
-        if (i === 0) {
+        await Bun.sleep(100);
+        if (i === CLIENTS_TO_WAIT_FOR - 1) {
+          clients[i].send('{"op":"select_catagory","catagory":"food"}');
+          clients[i].send('{"op":"select_catagory","catagory":"guys"}');
+          clients[i].send('{"op":"select_catagory","catagory":"dirty"}');
+          clients[i].send('{"op":"select_catagory","catagory":"funny"}');
+          clients[i].send('{"op":"select_catagory","catagory":"games"}');
+          clients[i].send('{"op":"select_catagory","catagory":"girls"}');
+          clients[i].send('{"op":"select_catagory","catagory":"gross"}');
+          clients[i].send('{"op":"select_catagory","catagory":"rules"}');
+          clients[i].send('{"op":"select_catagory","catagory":"random"}');
+          clients[i].send('{"op":"select_catagory","catagory":"couples"}');
+          clients[i].send('{"op":"select_catagory","catagory":"embarassing"}');
+          clients[i].send('{"op":"select_catagory","catagory":"more"}');
           clients[i].send('{"op":"select_catagory","catagory":"writers"}');
+          Bun.sleep(10);
+
           clients[i].send('{"op":"confirm_selections"}');
         }
       }
 
+      await Bun.sleep(2500);
       start_interval();
       console.log("Sending messages");
       for (let j = 0; j < MESSAGES_TO_SEND.length; j++) {
         if (j > 2) {
           clients[0].send('{"op":"next_question"}');
-          await Bun.sleep(10);
         }
         for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
           sent++;
           clients[i].send(MESSAGES_TO_SEND[j]);
+          await Bun.sleep(100);
         }
-        await Bun.sleep(10);
       }
       console.timeEnd(`All ${toSend} messages sent`);
     } catch (e) {

@@ -524,4 +524,18 @@ setInterval(() => {
   });
 }, 5000);
 
+// setInterval(() => {
+//   console.info(
+//     `[${new Date().toISOString()}][INFO] ${
+//       games.filter((g) => {
+//         return g.players.filter((p) => p.connected).length > 0;
+//       }).length
+//     } games active`
+//   );
+//   console.info(
+//     `[${new Date().toISOString()}][INFO] ${rps} requests per second`
+//   );
+//   rps = 0;
+// }, 1000);
+
 console.log(`Server running at http://${server.hostname}:${server.port}/`);
