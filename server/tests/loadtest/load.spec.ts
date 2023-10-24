@@ -15,7 +15,7 @@ test("load test (multi)", async () => {
   expect(response.status).toEqual(200);
 
   const tests = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 100; i++) {
     tests.push(load_test());
   }
   await Promise.allSettled(tests);

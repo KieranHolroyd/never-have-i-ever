@@ -29,7 +29,7 @@ export function load_test() {
       const env = process.env;
       const SERVER = env.SERVER || "ws://localhost:3000/";
       const LOG_MESSAGES = env.LOG_MESSAGES === "1";
-      const CLIENTS_TO_WAIT_FOR = parseInt(env.CLIENTS_COUNT || "", 10) || 12;
+      const CLIENTS_TO_WAIT_FOR = parseInt(env.CLIENTS_COUNT || "", 10) || 4;
 
       const MESSAGES_TO_SEND = Array.from({ length: 713 }).map(() => {
         // return '{"op":"answer","answer":"1"}';
@@ -165,8 +165,8 @@ export function load_test() {
         for (let i = 0; i < CLIENTS_TO_WAIT_FOR; i++) {
           sent++;
           clients[i].send(MESSAGES_TO_SEND[j]);
-          await Bun.sleep(100);
         }
+        await Bun.sleep(10);
       }
       console.timeEnd(`All ${toSend} messages sent`);
     } catch (e) {

@@ -174,6 +174,7 @@ const server = Bun.serve({
         game,
       });
     },
+    perMessageDeflate: true,
   },
   port: 3000,
 });
