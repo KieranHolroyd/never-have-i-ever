@@ -51,6 +51,11 @@
 			<MdiKeyboardBackspace class="absolute top-2.5 lg:top-3 xl:top-3.5 left-2 h-6 w-6" />Back
 		</button>
 	</a>
+	<button
+		class="open-feedback transition relative pl-10 dark:text-white bg-gray-200 dark:bg-gray-600 hover:bg-gray-400 hover:dark:bg-gray-900 mt-2 px-4"
+	>
+		Open Feedback Box
+	</button>
 	<!-- <button
 			type="submit"
 			class="dark:text-white bg-gray-400 dark:bg-gray-800 hover:bg-gray-200 hover:dark:bg-gray-900 mt-2 px-4"
