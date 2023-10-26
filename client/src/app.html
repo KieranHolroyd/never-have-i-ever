@@ -4,6 +4,24 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width" />
+		<!-- START Formbricks Surveys -->
+		<script type="text/javascript">
+			!(function () {
+				var t = document.createElement('script');
+				(t.type = 'text/javascript'),
+					(t.async = !0),
+					(t.src = 'https://unpkg.com/@formbricks/js@^1.1.2/dist/index.umd.js');
+				var e = document.getElementsByTagName('script')[0];
+				e.parentNode.insertBefore(t, e),
+					setTimeout(function () {
+						window.formbricks.init({
+							environmentId: 'clo6xr4282f0xpm0gbskh4bvo',
+							apiHost: 'https://app.formbricks.com'
+						});
+					}, 500);
+			})();
+		</script>
+		<!-- END Formbricks Surveys -->
 		%sveltekit.head%
 	</head>
 	<body class="dark:bg-gray-700 bg-white" data-sveltekit-preload-data="hover">
