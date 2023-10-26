@@ -52,7 +52,7 @@
 		</button>
 	</a>
 	<button
-		class="open-feedback transition relative pl-10 dark:text-white bg-gray-200 dark:bg-gray-600 hover:bg-gray-400 hover:dark:bg-gray-900 mt-2 px-4"
+		class="open-feedback transition relative dark:text-white bg-gray-200 dark:bg-gray-600 hover:bg-gray-400 hover:dark:bg-gray-900 mt-2 px-4"
 	>
 		Open Feedback Box
 	</button>
