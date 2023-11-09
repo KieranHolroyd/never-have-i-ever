@@ -71,7 +71,7 @@
 	};
 
 	onMount(() => {
-		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}`);
+		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}/never-have-i-ever`);
 		player_id = LocalPlayer.id;
 		setupsock();
 
@@ -150,7 +150,7 @@
 	let retry_count = 0;
 	function setupsock() {
 		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
-		const sock_params = `?game=${id}&player=${player_id}`;
+		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
 		if (socket === null) socket = new WebSocket(sock_url + sock_params);
 
 		// message is received
@@ -227,8 +227,12 @@
 				clearInterval(ping_timeout);
 				ping_timeout = null;
 			}
-			if (event.code === 4000) return;
-			setTimeout(reconnect, 200 * Math.max(1, retry_count));
+			if (event.code === 1006) {
+				return (error = 'Failed to connect to server, malformed request');
+			}
+			if (event.code !== 1000) {
+				setTimeout(reconnect, 200 * Math.max(1, retry_count));
+			}
 		});
 
 		// error handler

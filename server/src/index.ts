@@ -69,13 +69,32 @@ const server = Bun.serve({
 
     switch (url.pathname) {
       case "/": {
+        return new Response("Never Have I Ever", { status: 200 });
+      }
+      case "/ws": {
         const params = new URLSearchParams(req.url.split("?")[1]);
 
-        if (!params.has("game") || !params.has("player")) {
-          return new Response("Never Have I Ever", { status: 200 });
+        if (
+          !params.has("game") ||
+          !params.has("player") ||
+          !params.has("playing")
+        ) {
+          return new Response(
+            JSON.stringify({
+              error: "missing_params",
+              message: "Missing required parameters",
+              error_fields: [
+                !params.has("game") ? "game" : null,
+                !params.has("player") ? "player" : null,
+                !params.has("playing") ? "playing" : null,
+              ].filter((e) => e !== null),
+            }),
+            { status: 1003 }
+          );
         }
         const success = server.upgrade(req, {
           headers: {
+            "X-Playing": "never-have-i-ever",
             "X-Gameid": params.get("game"),
           },
           data: {
@@ -84,13 +103,11 @@ const server = Bun.serve({
           },
         });
         if (success) {
-          // Bun automatically returns a 101 Switching Protocols
-          // if the upgrade succeeds
           return undefined;
         }
 
         // handle HTTP request normally
-        return new Response("Never Have I Ever", { status: 200 });
+        return new Response("Websocket Only Route", { status: 200 });
       }
       case "/api/catagories": {
         const catagories = await get_questions_list();

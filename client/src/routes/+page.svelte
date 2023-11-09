@@ -10,9 +10,9 @@
 
 	function startGame() {
 		if (LocalPlayer.name === null) {
-			return goto(`/play/name?redirect=/play/${data.newgame_id}`);
+			return goto(`/play/name?redirect=/play/${data.newgame_id}/never-have-i-ever`);
 		}
-		goto(`/play/${data.newgame_id}`);
+		goto(`/play/${data.newgame_id}/never-have-i-ever`);
 	}
 </script>
 
