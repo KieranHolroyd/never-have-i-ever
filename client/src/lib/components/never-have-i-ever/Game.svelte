@@ -15,6 +15,7 @@
 
 	import MdiUndoVariant from '~icons/mdi/undo-variant';
 	import MdiListBox from '~icons/mdi/list-box';
+	import MdiShareOutline from '~icons/mdi/share-outline';
 
 	export let id: string;
 	export let catagories: Catagories | undefined;
@@ -69,6 +70,26 @@
 	} = {
 		votes: []
 	};
+
+	const share_data = {
+		title: 'Never Have I Ever ~ games.kieran.dev',
+		text: 'play Never Have I Ever with me!',
+		url: `https://games.kieran.dev/play/${id}/never-have-i-ever`
+	};
+
+	async function share_game() {
+		if (navigator.share) {
+			await navigator.share(share_data);
+		} else {
+			await navigator.clipboard.writeText(share_data.url);
+			show_notification = true;
+			notification_content = 'Copied game link to clipboard';
+			setTimeout(() => {
+				show_notification = false;
+				notification_content = '';
+			}, 2500);
+		}
+	}
 
 	onMount(() => {
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}/never-have-i-ever`);
@@ -483,11 +504,20 @@
 	</Notification>
 	{#if connection === Status.CONNECTED}
 		<div
-			class="fixed text-xs w-[3.25rem] pointer-events-none top-32 left-2.5 rounded-full py-0.5 px-1 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
+			class="fixed text-xs w-[3.25rem] pointer-events-none top-[11.5rem] left-2.5 rounded-full py-0.5 px-1 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
 		>
 			<span class="dark:text-white text-black">{client_ping.toFixed(0)}ms</span>
 		</div>
 	{/if}
+</div>
+<div class="fixed z-20 top-[7.5rem] left-2">
+	<button
+		class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200"
+		title="Share!"
+		on:click={share_game}
+	>
+		<MdiShareOutline class="dark:text-white h-8 w-8" />
+	</button>
 </div>
 
 <style lang="scss">
