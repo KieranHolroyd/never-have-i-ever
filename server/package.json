@@ -4,24 +4,25 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "dev:inspect": "bun --inspect --watch src/index.ts"
   },
   "devDependencies": {
     "@types/redis": "^4.0.11",
-    "bun-types": "latest",
-    "ws": "^8.14.2"
+    "bun-types": "^1.1.43",
+    "ws": "^8.18.0"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@axiomhq/js": "^1.0.0-rc.1",
-    "@octokit/webhooks-types": "^7.3.1",
-    "@stricjs/utils": "^1.5.5",
-    "bunrest": "^1.3.6",
-    "figlet": "^1.6.0",
-    "mathjs": "^11.11.1",
-    "redis": "^4.6.10",
-    "uuid": "^9.0.1"
+    "@axiomhq/js": "^1.3.1",
+    "@octokit/webhooks-types": "^7.6.1",
+    "@stricjs/utils": "^2.0.7",
+    "bunrest": "^1.3.8",
+    "figlet": "^1.8.0",
+    "mathjs": "^14.0.1",
+    "redis": "^4.7.0",
+    "uuid": "^11.0.5"
   }
 }

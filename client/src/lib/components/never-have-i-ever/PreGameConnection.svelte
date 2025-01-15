@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { Status, type Player } from '$lib/types';
 
-	export let connection: Status = Status.DISCONNECTED;
-	export let players: Player[] = [];
+	interface Props {
+		connection?: Status;
+		players?: Player[];
+	}
+
+	let { connection = Status.DISCONNECTED, players = [] }: Props = $props();
 </script>
 
 <div

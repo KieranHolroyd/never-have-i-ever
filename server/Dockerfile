@@ -1,4 +1,4 @@
-FROM oven/bun:1.0
+FROM oven/bun:1.1
 
 # Copy package.json
 COPY package.json .

@@ -2,12 +2,17 @@
 	import { settingsStore } from '$lib/settings';
 	import { Tutorial } from '$lib/tutorial';
 
-	export let id: string;
-	export let title: string;
+	interface Props {
+		id: string;
+		title: string;
+		children?: import('svelte').Snippet;
+	}
 
-	let hidden = false;
+	let { id, title, children }: Props = $props();
 
-	$: isShown = !Tutorial.isSeen(id) && $settingsStore.no_tutorials !== true;
+	let hidden = $state(false);
+
+	let isShown = $derived(!Tutorial.isSeen(id) && $settingsStore.no_tutorials !== true);
 
 	function markAsSeen() {
 		Tutorial.markAsSeen(id);
@@ -22,11 +27,11 @@
 		>
 			<div class="mx-auto prose lg:prose-xl dark:prose-invert">
 				<h1 class="text-center">{title}</h1>
-				<slot />
+				{@render children?.()}
 				<div class="flex justify-end">
 					<button
 						class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"
-						on:click={markAsSeen}
+						onclick={markAsSeen}
 					>
 						Continue
 					</button>

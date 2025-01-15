@@ -5,8 +5,8 @@
 	import { page } from '$app/stores';
 	import { LocalPlayer } from '$lib/player';
 
-	let nickname: string = LocalPlayer.name ?? '';
-	let error: string = '';
+	let nickname: string = $state(LocalPlayer.name ?? '');
+	let error: string = $state('');
 
 	function choose_nickname() {
 		if (nickname === '') {
@@ -46,11 +46,11 @@
 		name="name"
 		placeholder="P. Flynn"
 		bind:value={nickname}
-		on:keydown={(e) => (e.key === 'Enter' ? choose_nickname() : null)}
+		onkeydown={(e) => (e.key === 'Enter' ? choose_nickname() : null)}
 	/>
 	<button
 		class="block w-full text-left text-white bg-blue-500 hover:bg-blue-600"
-		on:click={choose_nickname}
+		onclick={choose_nickname}
 	>
 		Confirm Selection
 	</button>

@@ -6,7 +6,11 @@
 	import { LocalPlayer } from '$lib/player';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	function startGame() {
 		if (LocalPlayer.name === null) {
@@ -33,7 +37,7 @@
 				memories in this classic party game gone virtual!
 			</p>
 			<div class="absolute bottom-4 right-4">
-				<button class="relative pl-12 p-4 menu-button" on:click={startGame}>
+				<button class="relative pl-12 p-4 menu-button" onclick={startGame}>
 					<MdiGamepadSquare class="absolute left-4 top-2 h-10 w-6" /> Start New Game
 				</button>
 			</div>

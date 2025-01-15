@@ -26,9 +26,9 @@ if (missing_env_vars.length > 0) {
 async function get_questions_list() {
   let questions_list = await client.json.GET("shared:questions_list");
   if (!questions_list) {
-    const questions_list = await Bun.file(
+    const questions_list = (await Bun.file(
       `${import.meta.dir}/../assets/data.json`
-    ).json<Catagories>();
+    ).json()) as Catagories;
     await client.json.set("shared:questions_list", "$", questions_list);
   }
 

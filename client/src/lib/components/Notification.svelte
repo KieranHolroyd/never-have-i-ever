@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 
-	export let show = false;
+	interface Props {
+		show?: boolean;
+		children?: import('svelte').Snippet;
+	}
+
+	let { show = false, children }: Props = $props();
 
 	const dispatch = createEventDispatcher();
 </script>
@@ -11,11 +16,11 @@
 		<div
 			class="rounded-lg border border-black dark:border-white bg-gray-200 dark:bg-gray-800 dark:text-white text-center py-4 px-8"
 		>
-			<slot />
+			{@render children?.()}
 			<br />
 			<button
 				class="uppercase text-xs bg-gray-400 hover:bg-gray-500"
-				on:click={() => dispatch('closeNotification')}
+				onclick={() => dispatch('closeNotification')}
 			>
 				Close
 			</button>

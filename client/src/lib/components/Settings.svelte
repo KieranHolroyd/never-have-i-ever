@@ -8,10 +8,10 @@
 	import Notification from './Notification.svelte';
 	import { settingsStore } from '$lib/settings';
 
-	let show = false;
+	let show = $state(false);
 
 	let settings = settingsStore;
-	let error: string | null = null;
+	let error: string | null = $state(null);
 
 	function save_settings() {
 		try {
@@ -30,7 +30,7 @@
 			class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200 {show
 				? 'transform rotate-90'
 				: 'transform'}"
-			on:click={() => (show = !show)}
+			onclick={() => (show = !show)}
 		>
 			{#if show}
 				<MdiClose class="dark:text-white h-8 w-8" />
@@ -53,7 +53,7 @@
 				<input
 					type="checkbox"
 					class=""
-					on:change={(e) => {
+					onchange={(e) => {
 						$settings = { ...$settings, no_nsfw: e?.currentTarget?.checked };
 					}}
 					checked={$settings.no_nsfw ?? false}
@@ -67,7 +67,7 @@
 					<input
 						type="checkbox"
 						class=""
-						on:change={(e) => {
+						onchange={(e) => {
 							$settings = { ...$settings, no_tutorials: e?.currentTarget?.checked };
 						}}
 						checked={$settings.no_tutorials ?? false}
@@ -82,7 +82,7 @@
 					<input
 						type="checkbox"
 						class=""
-						on:change={(e) => {
+						onchange={(e) => {
 							$settings = { ...$settings, show_hidden: e?.currentTarget?.checked };
 						}}
 						checked={$settings.show_hidden ?? false}
@@ -91,7 +91,7 @@
 				</div>
 				<button
 					class="transition bg-blue-500 text-white font-bold py-2 px-4 hover:bg-blue-400 w-full shadow hover:shadow-lg"
-					on:click={save_settings}
+					onclick={save_settings}
 				>
 					<MdiSave class="inline-block" /> Save
 				</button>

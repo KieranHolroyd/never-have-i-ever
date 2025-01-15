@@ -7,7 +7,7 @@
 
 	import clickOutside from '$lib/clickOutside';
 
-	let show = false;
+	let show = $state(false);
 </script>
 
 <div
@@ -20,7 +20,7 @@
 			class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200 {show
 				? 'transform rotate-90'
 				: 'transform'}"
-			on:click={() => (show = !show)}
+			onclick={() => (show = !show)}
 		>
 			{#if show}
 				<MdiClose class="dark:text-white h-8 w-8" />

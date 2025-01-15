@@ -17,23 +17,27 @@
 	import MdiListBox from '~icons/mdi/list-box';
 	import MdiShareOutline from '~icons/mdi/share-outline';
 
-	export let id: string;
-	export let catagories: Catagories | undefined;
+	interface Props {
+		id: string;
+		catagories: Catagories | undefined;
+	}
 
-	let error: string | null = null;
-	let show_notification = false;
-	let notification_content = '';
+	let { id, catagories = $bindable() }: Props = $props();
+
+	let error: string | null = $state(null);
+	let show_notification = $state(false);
+	let notification_content = $state('');
 
 	let settings = settingsStore;
 
-	let connection: Status = Status.CONNECTING;
+	let connection: Status = $state(Status.CONNECTING);
 	let player_id: string | null = null;
-	let errors: any[] = [];
-	let players: Player[] = [];
+	let errors: any[] = $state([]);
+	let players: Player[] = $state([]);
 
 	// ping stuff
 	let prev_ping_ts = 0; //ms (epoch)
-	let client_ping = 0; //ms
+	let client_ping = $state(0); //ms
 	let ping_timeout: ReturnType<typeof setInterval> | null;
 	let last_pong = 0; //ms
 
@@ -42,21 +46,21 @@
 	let current_question: {
 		content: string;
 		catagory: string;
-	} | null = null;
-	let conf_reset_display = false;
-	let categories_click = false;
+	} | null = $state(null);
+	let conf_reset_display = $state(false);
+	let categories_click = $state(false);
 
 	let game_state: {
 		catagory_select: boolean;
 		game_completed: boolean;
 		current_catagory: string[];
 		history: any[];
-	} = {
+	} = $state({
 		catagory_select: true,
 		game_completed: false,
 		current_catagory: [],
 		history: []
-	};
+	});
 	const current_round: {
 		votes: {
 			player: {
@@ -319,9 +323,9 @@
 				{#if catagories !== undefined}
 					{#each Object.entries(catagories) as [catagory_name, catagory]}
 						{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
-							<span />
+							<span></span>
 						{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
-							<span />
+							<span></span>
 						{:else}
 							<label class="my-[2px]">
 								<div
@@ -331,7 +335,7 @@
 										type="checkbox"
 										class=""
 										bind:group={game_state.current_catagory}
-										on:change={() => emitSelectCatagory(catagory_name)}
+										onchange={() => emitSelectCatagory(catagory_name)}
 										value={catagory_name}
 										checked={game_state.current_catagory.includes(catagory_name)}
 									/>
@@ -351,7 +355,7 @@
 			</div>
 			<button
 				class="rounded-none transition bg-green-500 text-white font-bold py-2 px-4 hover:bg-green-400 w-64 rounded-b-md shadow hover:shadow-lg"
-				on:click={() => confirmSelections()}
+				onclick={() => confirmSelections()}
 			>
 				Continue
 			</button>
@@ -405,19 +409,19 @@
 				<div class="row dark:bg-gray-700 bg-white pb-2">
 					<button
 						class="text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-green-400 hover:dark:bg-opacity-50 col-span-3"
-						on:click={() => vote(VoteOptions.Have)}
+						onclick={() => vote(VoteOptions.Have)}
 					>
 						Have
 					</button>
 					<button
 						class="border-x dark:border-gray-500 border-gray-200 text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-blue-400 hover:dark:bg-opacity-50 col-span-3"
-						on:click={() => vote(VoteOptions.Kinda)}
+						onclick={() => vote(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
 					<button
 						class="text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-red-400 hover:dark:bg-opacity-50 col-span-3"
-						on:click={() => vote(VoteOptions.HaveNot)}
+						onclick={() => vote(VoteOptions.HaveNot)}
 					>
 						Have not
 					</button>
@@ -425,20 +429,20 @@
 				<div class="row">
 					<button
 						class="text-white bg-gray-600 hover:bg-red-400 col-span-2"
-						on:click={() => conf_reset()}
+						onclick={() => conf_reset()}
 					>
 						<MdiUndoVariant class="w-6 h-6 mx-auto" />
 					</button>
 					<button
 						class="text-white bg-green-500 hover:bg-green-400 text-2xl md:text-4xl py-4 col-span-5"
-						on:click={() => selectQuestion()}
+						onclick={() => selectQuestion()}
 					>
 						Next Question
 					</button>
 					<button
 						class="text-white bg-gray-600 hover:bg-gray-400 col-span-2"
-						on:dblclick={() => selectCatagories()}
-						on:click={() => {
+						ondblclick={() => selectCatagories()}
+						onclick={() => {
 							categories_click = true;
 							setTimeout(() => (categories_click = false), 1000);
 						}}
@@ -487,10 +491,10 @@
 		{/each}
 
 		<History history={game_state.history} />
-		<button on:click={() => reset()}>Reset Game</button>
+		<button onclick={() => reset()}>Reset Game</button>
 	{/if}
 	{#if conf_reset_display}
-		<button class="red-button mt-4" on:click={() => reset()}>Confirm Reset</button>
+		<button class="red-button mt-4" onclick={() => reset()}>Confirm Reset</button>
 	{/if}
 	<!-- Global Notifications Panel -->
 	<Notification
@@ -514,7 +518,7 @@
 	<button
 		class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200"
 		title="Share!"
-		on:click={share_game}
+		onclick={share_game}
 	>
 		<MdiShareOutline class="dark:text-white h-8 w-8" />
 	</button>

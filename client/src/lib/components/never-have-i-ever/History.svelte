@@ -2,7 +2,11 @@
 	import { colour_map } from '$lib/colour';
 	import type { GameRound } from '$lib/types';
 
-	export let history: GameRound[];
+	interface Props {
+		history: GameRound[];
+	}
+
+	let { history }: Props = $props();
 </script>
 
 {#each history as round, idx}

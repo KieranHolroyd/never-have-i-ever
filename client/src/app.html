@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
@@ -14,10 +14,10 @@
 				var e = document.getElementsByTagName('script')[0];
 				e.parentNode.insertBefore(t, e),
 					setTimeout(function () {
-						window.formbricks.init({
+						window?.formbricks?.init({
 							environmentId: 'clo6xr4282f0xpm0gbskh4bvo',
 							apiHost: 'https://app.formbricks.com'
-						});
+						}) ?? console.log('[Formbricks] Not initialized');
 					}, 500);
 			})();
 		</script>

@@ -6,8 +6,13 @@
 	import Navbar from '$lib/components/Navbar.svelte';
 	import { UUIDv4Regex } from '$lib/regex';
 	import { version } from '$lib/version';
+	interface Props {
+		children: import('svelte').Snippet;
+	}
 
-	$: isPlayingGame = UUIDv4Regex.test($page.url.pathname.split('/').pop() ?? '');
+	let { children }: Props = $props();
+
+	let isPlayingGame = $derived(UUIDv4Regex.test($page.url.pathname.split('/').pop() ?? ''));
 </script>
 
 <svelte:head>
@@ -33,7 +38,7 @@
 	<meta property="og:url" content={$page.url.href} />
 </svelte:head>
 <div class="max-w-4xl mx-auto transition-all pl-16 lg:pl-0">
-	<slot />
+	{@render children()}
 	<Settings />
 	<Navbar />
 	<div class={`fixed ${isPlayingGame ? 'hidden' : ''} bottom-4 text-center left-0 right-0`}>
@@ -41,7 +46,7 @@
 			class="text-black dark:text-gray-300 tracking-wider text-xs rounded-full py-1 px-2 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
 		>
 			v{version} • Made by
-			<a href="https://kieran.dev" class="hover:text-white transition">Kieran</a>
+			<a href="https://v3.kieran.dev" class="hover:text-white transition">Kieran</a>
 			•
 			<a href="/suggest" class="hover:text-white transition">Suggest Changes</a>
 		</span>
