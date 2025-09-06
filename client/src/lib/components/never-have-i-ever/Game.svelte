@@ -303,6 +303,12 @@
 							notification_content = data.notification;
 							show_reload_button = data.showReloadButton || false;
 						}, data.delay);
+						// Auto-reload after deployment notification
+						if (data.delay) {
+							setTimeout(() => {
+								window.location.reload();
+							}, data.delay + 10000); // Reload 10 seconds after notification
+						}
 						break;
 					case 'round_timeout':
 						console.log('[DEBUG] Round timeout received:', data.message);

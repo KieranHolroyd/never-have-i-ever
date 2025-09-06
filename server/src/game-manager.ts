@@ -730,16 +730,45 @@ export class GameManager {
         return new Response("Not main branch, ignoring", { status: 200 });
       }
 
+      // Auto-deploy the server
+      console.log("[AUTO-DEPLOY] Starting automatic deployment...");
+      try {
+        const { spawn } = await import("child_process");
+        const { dirname } = await import("path");
+        const projectRoot = dirname(dirname(process.cwd()));
+        const deployProcess = spawn("./deploy-server.sh", [], {
+          cwd: projectRoot,
+          stdio: "inherit",
+          shell: true
+        });
+
+        deployProcess.on("close", (code) => {
+          if (code === 0) {
+            console.log("[AUTO-DEPLOY] Deployment completed successfully");
+          } else {
+            console.error(`[AUTO-DEPLOY] Deployment failed with exit code ${code}`);
+          }
+        });
+
+        deployProcess.on("error", (error) => {
+          console.error("[AUTO-DEPLOY] Failed to start deployment:", error);
+        });
+
+      } catch (deployError) {
+        console.error("[AUTO-DEPLOY] Error initiating deployment:", deployError);
+      }
+
+      // Notify users about the automatic deployment
       server.publish(
         "notifications",
         JSON.stringify({
-          delay: 30000,
-          notification: "🎉 Update available! Click reload to get the latest version.",
-          showReloadButton: true,
+          delay: 5000,
+          notification: "🚀 Auto-deploying latest version... Server will restart automatically!",
           op: "github_push",
         })
       );
-      return new Response("OK", { status: 200 });
+
+      return new Response("Auto-deployment initiated", { status: 200 });
     } catch (error) {
       console.error("Error handling GitHub webhook:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), {
