@@ -53,6 +53,10 @@ bun run dev
 Then run the browser tests:
 
 ```bash
+# Install Playwright browsers (first time only)
+npm run test:install
+npm run test:install-deps  # Install system dependencies if needed
+
 # Run all tests
 npm run test
 
@@ -64,6 +68,18 @@ npm run test:headed
 
 # Debug tests
 npm run test:debug
+```
+
+### Local Playwright Commands
+
+This project uses local Playwright binaries for security (command allowlisting). The npm scripts automatically use:
+
+- `./node_modules/.bin/playwright` - Main CLI
+- Local browser installations in `./node_modules/playwright-core/browsers/`
+
+If you need to allowlist commands in your shell, add:
+```
+[path/to/project]/client/node_modules/.bin/playwright
 ```
 
 ### Test Coverage

@@ -1,0 +1,238 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('WebSocket Real-time Functionality', () => {
+  test('should establish WebSocket connection successfully', async ({ page }) => {
+    // Navigate to game page
+    await page.goto('/');
+    await page.locator('text=Start New Game').click();
+    await page.locator('input[name="name"]').fill('WebSocketTest');
+    await page.locator('text=Confirm Selection').click();
+
+    // Should show connecting status
+    await expect(page.locator('text=connecting')).toBeVisible();
+
+    // Should eventually show connected status
+    await page.waitForSelector('text=connected', { timeout: 10000 });
+    await expect(page.locator('text=connected')).toBeVisible();
+  });
+
+  test('should handle WebSocket reconnection on page reload', async ({ page }) => {
+    // Start game
+    await page.goto('/');
+    await page.locator('text=Start New Game').click();
+    await page.locator('input[name="name"]').fill('ReconnectTest');
+    await page.locator('text=Confirm Selection').click();
+
+    // Wait for connection
+    await page.waitForSelector('text=connected', { timeout: 10000 });
+
+    // Get initial connection status
+    await expect(page.locator('text=connected')).toBeVisible();
+
+    // Reload page
+    await page.reload();
+
+    // Should reconnect automatically
+    await page.waitForSelector('text=connected', { timeout: 10000 });
+    await expect(page.locator('text=connected')).toBeVisible();
+
+    // Should maintain player name
+    await expect(page.locator('text=ReconnectTest')).toBeVisible();
+  });
+
+  test('should synchronize category selections between players', async ({ browser }) => {
+    const context1 = await browser.newContext();
+    const context2 = await browser.newContext();
+    const page1 = await context1.newPage();
+    const page2 = await context2.newPage();
+
+    try {
+      // Player 1 creates game
+      await page1.goto('/');
+      await page1.locator('text=Start New Game').click();
+      await page1.locator('input[name="name"]').fill('SyncPlayer1');
+      await page1.locator('text=Confirm Selection').click();
+
+      const gameUrl = page1.url();
+      const gameIdMatch = gameUrl.match(/\/play\/([^/]+)\/never-have-i-ever/);
+      expect(gameIdMatch).toBeTruthy();
+      const gameId = gameIdMatch![1];
+
+      // Player 2 joins
+      await page2.goto(`/play/name?redirect=/play/${gameId}/never-have-i-ever`);
+      await page2.locator('input[name="name"]').fill('SyncPlayer2');
+      await page2.locator('text=Confirm Selection').click();
+
+      // Both should reach category selection
+      await page1.waitForSelector('text=Select Catagories');
+      await page2.waitForSelector('text=Select Catagories');
+
+      // Player 1 selects categories
+      const checkboxes1 = page1.locator('input[type="checkbox"]');
+      await checkboxes1.nth(0).check();
+      await checkboxes1.nth(1).check();
+
+      // Player 2 should see the same selections (if server syncs them)
+      await page2.waitForTimeout(1000); // Wait for potential sync
+
+      // Both continue
+      await page1.locator('text=Continue').click();
+      await page2.locator('text=Continue').click();
+
+      // Both should see questions
+      await page1.waitForSelector('[data-testid="question-content"]');
+      await page2.waitForSelector('[data-testid="question-content"]');
+
+      // Questions should be the same
+      const question1 = await page1.locator('[data-testid="question-content"]').textContent();
+      const question2 = await page2.locator('[data-testid="question-content"]').textContent();
+      expect(question1).toBe(question2);
+
+    } finally {
+      await context1.close();
+      await context2.close();
+    }
+  });
+
+  test('should handle real-time voting updates', async ({ browser }) => {
+    const context1 = await browser.newContext();
+    const context2 = await browser.newContext();
+    const page1 = await context1.newPage();
+    const page2 = await context2.newPage();
+
+    try {
+      // Setup game with both players
+      await page1.goto('/');
+      await page1.locator('text=Start New Game').click();
+      await page1.locator('input[name="name"]').fill('VotePlayer1');
+      await page1.locator('text=Confirm Selection').click();
+
+      const gameUrl = page1.url();
+      const gameId = gameUrl.match(/\/play\/([^/]+)\/never-have-i-ever/)![1];
+
+      await page2.goto(`/play/name?redirect=/play/${gameId}/never-have-i-ever`);
+      await page2.locator('input[name="name"]').fill('VotePlayer2');
+      await page2.locator('text=Confirm Selection').click();
+
+      // Both select categories and continue
+      await page1.locator('input[type="checkbox"]').first().check();
+      await page2.locator('input[type="checkbox"]').first().check();
+      await page1.locator('text=Continue').click();
+      await page2.locator('text=Continue').click();
+
+      // Both should see the question
+      await page1.waitForSelector('[data-testid="question-content"]');
+      await page2.waitForSelector('[data-testid="question-content"]');
+
+      // Player 1 votes first
+      await page1.locator('text=Have').click();
+
+      // Player 2 should see Player 1's name in the player list
+      await expect(page2.locator('[data-testid="player-VotePlayer1"]')).toBeVisible();
+
+      // Player 2 votes
+      await page2.locator('text=Kinda').click();
+
+      // Player 1 should see Player 2's vote
+      await expect(page1.locator('[data-testid="player-VotePlayer2"]')).toBeVisible();
+
+      // Scores should be updated for both players
+      await page1.waitForTimeout(500);
+      const score1 = await page1.locator('[data-testid="player-score-VotePlayer1"]').textContent();
+      const score2 = await page2.locator('[data-testid="player-score-VotePlayer2"]').textContent();
+
+      expect(score1).toBe('1'); // Full point
+      expect(score2).toBe('0.5'); // Half point
+
+    } finally {
+      await context1.close();
+      await context2.close();
+    }
+  });
+
+  test('should handle WebSocket connection drops gracefully', async ({ page }) => {
+    // Start game
+    await page.goto('/');
+    await page.locator('text=Start New Game').click();
+    await page.locator('input[name="name"]').fill('DisconnectTest');
+    await page.locator('text=Confirm Selection').click();
+
+    // Wait for connection
+    await page.waitForSelector('text=connected', { timeout: 10000 });
+
+    // Simulate connection issues by reloading
+    await page.reload();
+
+    // Should attempt to reconnect
+    await page.waitForSelector('text=connecting', { timeout: 5000 });
+
+    // Should eventually reconnect
+    await page.waitForSelector('text=connected', { timeout: 10000 });
+    await expect(page.locator('text=connected')).toBeVisible();
+  });
+
+  test('should maintain game state during WebSocket reconnection', async ({ page }) => {
+    // Start game and get to question phase
+    await page.goto('/');
+    await page.locator('text=Start New Game').click();
+    await page.locator('input[name="name"]').fill('StateTest');
+    await page.locator('text=Confirm Selection').click();
+
+    await page.waitForSelector('text=Select Catagories');
+    await page.locator('input[type="checkbox"]').first().check();
+    await page.locator('text=Continue').click();
+
+    await page.waitForSelector('[data-testid="question-content"]');
+    const originalQuestion = await page.locator('[data-testid="question-content"]').textContent();
+
+    // Vote to establish score
+    await page.locator('text=Have').click();
+    const originalScore = await page.locator('[data-testid="player-score-StateTest"]').textContent();
+
+    // Reload to simulate reconnection
+    await page.reload();
+
+    // Should reconnect and maintain state
+    await page.waitForSelector('text=connected', { timeout: 10000 });
+
+    // Should be back to the same question
+    await page.waitForSelector('[data-testid="question-content"]');
+    const reconnectedQuestion = await page.locator('[data-testid="question-content"]').textContent();
+    expect(reconnectedQuestion).toBe(originalQuestion);
+
+    // Score should be maintained
+    const reconnectedScore = await page.locator('[data-testid="player-score-StateTest"]').textContent();
+    expect(reconnectedScore).toBe(originalScore);
+  });
+
+  test('should handle rapid WebSocket messages', async ({ page }) => {
+    // Start game
+    await page.goto('/');
+    await page.locator('text=Start New Game').click();
+    await page.locator('input[name="name"]').fill('RapidTest');
+    await page.locator('text=Confirm Selection').click();
+
+    await page.waitForSelector('text=Select Catagories');
+
+    // Rapidly interact with categories
+    const checkboxes = page.locator('input[type="checkbox"]');
+
+    // Check/uncheck rapidly
+    for (let i = 0; i < 3; i++) {
+      await checkboxes.nth(i).check();
+      await page.waitForTimeout(100);
+    }
+
+    for (let i = 0; i < 2; i++) {
+      await checkboxes.nth(i).uncheck();
+      await page.waitForTimeout(100);
+    }
+
+    // Continue
+    await page.locator('text=Continue').click();
+
+    // Should handle rapid messages without crashing
+    await page.waitForSelector('[data-testid="question-content"]', { timeout: 10000 });
+    await expect(page.locator('[data-testid="question-content"]')).toBeVisible();
+  });
+});

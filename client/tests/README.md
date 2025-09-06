@@ -2,6 +2,19 @@
 
 This directory contains automated browser tests for the Never Have I Ever game using Playwright.
 
+## Local Playwright Setup
+
+For security reasons (command allowlisting), this project uses local Playwright binaries instead of `npx`:
+
+```bash
+# Install Playwright browsers locally
+npm run test:install
+npm run test:install-deps  # Install system dependencies if needed
+
+# Allowlist these specific commands in your shell:
+# /path/to/project/client/node_modules/.bin/playwright
+```
+
 ## Test Structure
 
 ### Core Test Files

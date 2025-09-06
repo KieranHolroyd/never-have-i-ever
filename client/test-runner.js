@@ -17,7 +17,10 @@ function runTests() {
   console.log('📝 Note: Playwright will automatically start both client and server');
 
   return new Promise((resolve, reject) => {
-    const testProcess = spawn('npx', ['playwright', 'test'], {
+    // Use local playwright binary
+    const playwrightBin = path.join(clientDir, 'node_modules', '.bin', 'playwright');
+    console.log('Using Playwright binary:', playwrightBin);
+    const testProcess = spawn(playwrightBin, ['test'], {
       cwd: clientDir,
       stdio: 'inherit'
     });
