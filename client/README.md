@@ -36,3 +36,52 @@ bun run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+
+## Testing
+
+This project includes comprehensive automated browser testing using Playwright.
+
+### Running Tests
+
+Make sure the server is running first:
+
+```bash
+cd ../server
+bun run dev
+```
+
+Then run the browser tests:
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests with UI (interactive)
+npm run test:ui
+
+# Run tests with visible browser
+npm run test:headed
+
+# Debug tests
+npm run test:debug
+```
+
+### Test Coverage
+
+The test suite covers:
+
+- **Game Flow**: Home page, game creation, player setup
+- **Category Selection**: UI interaction, synchronization
+- **Voting System**: Vote buttons, score tracking, question progression
+- **Multiplayer**: Real-time synchronization, player management
+- **End-to-End**: Complete game scenarios, error handling
+
+### Test Structure
+
+- `tests/game.spec.ts` - Basic game functionality
+- `tests/multiplayer.spec.ts` - Multiplayer features
+- `tests/voting.spec.ts` - Voting mechanism
+- `tests/e2e.spec.ts` - End-to-end scenarios
+- `tests/helpers.ts` - Test utilities and helpers
+
+See `tests/README.md` for detailed documentation.

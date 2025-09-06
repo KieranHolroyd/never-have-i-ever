@@ -486,8 +486,8 @@
 		{:else}
 			{#if current_question?.content !== undefined}
 				<div class="mx-auto my-6 max-w-lg p-3">
-					<p class="m-0 text-xs uppercase font-bold">Catagory: {current_question?.catagory}</p>
-					<p class="relative text-lg my-1 p-1">{current_question?.content}</p>
+					<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">Catagory: {current_question?.catagory}</p>
+					<p class="relative text-lg my-1 p-1" data-testid="question-content">{current_question?.content}</p>
 				</div>
 				{#if error}
 					<p class="text-red-700">{error}</p>
@@ -495,10 +495,11 @@
 				<div class="mx-auto my-6 max-w-lg p-3">
 					<p class="m-0 text-xs uppercase font-bold">Players</p>
 					{#each players.filter((p) => p.connected) as player}
-						<div class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`}>
+						<div class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`} data-testid={`player-${player.name}`}>
 							{player.name}: {player.this_round.vote ?? 'Not Voted'}
 							<div
 								class="absolute text-xs leading-[1.825] top-1 right-1 bg-red-600 border border-white rounded-full text-white min-w-[1.5rem] h-6 px-1"
+								data-testid={`player-score-${player.name}`}
 							>
 								{player.score}
 							</div>
