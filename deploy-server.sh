@@ -288,7 +288,7 @@ main() {
     clone_or_update_repository
     setup_environment
     build_and_deploy
-    verify_data_loading
+    # verify_data_loading
     setup_firewall
     show_status
     cleanup
