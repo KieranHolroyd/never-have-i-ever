@@ -1,12 +1,10 @@
 import { GameData, Player } from "../types";
+import { SafeJSON } from "./json";
+import { z } from "zod";
 
 export function deepCopy<T>(obj: T): T {
-  try {
-    return JSON.parse(JSON.stringify(obj));
-  } catch (e) {
-    console.error("Error in deepCopy:", e);
-    throw e;
-  }
+  const jsonString = SafeJSON.stringify(obj);
+  return SafeJSON.parse(jsonString, z.any()) as T;
 }
 
 export function omitKeys<T extends Record<string, any>, K extends keyof T>(

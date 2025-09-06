@@ -9,6 +9,9 @@ COPY package.json bun.lockb* ./
 # Install dependencies
 RUN bun install --frozen-lockfile
 
+# Install jq for JSON validation
+RUN apt-get update && apt-get install -y jq && rm -rf /var/lib/apt/lists/*
+
 # Copy source code
 COPY . .
 

@@ -74,13 +74,13 @@ AXIOM_ORG_ID=your-axiom-org-id-here
 
 ### Ports
 - **3000**: Main application port
-- **6379**: Redis port (internal use)
+- **6379**: Valkey port (internal use)
 
 ## Directory Structure
 ```
 /opt/never-have-i-ever-server/     # Application code
 /var/gamedata/                     # Game data persistence
-/var/dockerdata/                   # Redis data persistence
+/var/dockerdata/                   # Valkey data persistence
 ```
 
 ## Troubleshooting

@@ -10,7 +10,7 @@ services:
       - GAME_DATA_DIR=/home/bun/app/assets/games/
       - AXIOM_TOKEN=${AXIOM_TOKEN}
       - AXIOM_ORG_ID=${AXIOM_ORG_ID}
-      - REDIS_URI=redis://cache:6379
+      - VALKEY_URI=valkey://cache:6379
 
     volumes:
       - /var/gamedata:/home/bun/app/assets/games/

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type Catagories = { [key: string]: Catagory };
 export type Catagory = {
   flags: {
@@ -5,6 +7,16 @@ export type Catagory = {
   };
   questions: string[];
 };
+
+// Zod schemas for type validation
+export const CatagorySchema = z.object({
+  flags: z.object({
+    is_nsfw: z.boolean(),
+  }),
+  questions: z.array(z.string()),
+});
+
+export const CatagoriesSchema = z.record(z.string(), CatagorySchema);
 
 // TAKEN FROM ../client/src/lib/types.ts
 export enum VoteOptions {

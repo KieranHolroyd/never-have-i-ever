@@ -1,4 +1,4 @@
-import { GameData, Player, Catagories } from "./types";
+import { GameData, Player, Catagories, CatagoriesSchema } from "./types";
 import { config } from "./config";
 import { client } from "./redis_client";
 import { select_question } from "./lib/questions";
@@ -7,6 +7,7 @@ import { emit, publish, send } from "./lib/socket";
 import { ingestEvent } from "./axiom";
 import { GameNotFoundError, GameFullError, ValidationError } from "./errors";
 import { deepCopy, sanitizeGameState, requirePlayer } from "./utils";
+import { ValkeyJSON } from "./utils/json";
 import { PushEvent } from "@octokit/webhooks-types";
 
 export class GameManager {
@@ -82,12 +83,12 @@ export class GameManager {
   }
 
   private async getQuestionsList(): Promise<Catagories> {
-    let questionsList = await client.json.GET("shared:questions_list");
+    let questionsList = await ValkeyJSON.get(client, "shared:questions_list", CatagoriesSchema);
 
     if (!questionsList) {
       const questionsFile = Bun.file(`${import.meta.dir}/../assets/data.json`);
       const questionsData = await questionsFile.json() as Catagories;
-      await client.json.set("shared:questions_list", "$", questionsData);
+      await ValkeyJSON.set(client, "shared:questions_list", questionsData, CatagoriesSchema);
       questionsList = questionsData;
     }
 

@@ -2,16 +2,16 @@ import { z } from "zod";
 
 const configSchema = z.object({
   GAME_DATA_DIR: z.string(),
-  REDIS_URI: z.string(),
+  VALKEY_URI: z.string(),
   AXIOM_TOKEN: z.string().optional(),
   AXIOM_ORG_ID: z.string().optional(),
 });
 
 const rawConfig = {
-  GAME_DATA_DIR: Bun.env.GAME_DATA_DIR,
-  REDIS_URI: Bun.env.REDIS_URI,
-  AXIOM_TOKEN: Bun.env.AXIOM_TOKEN,
-  AXIOM_ORG_ID: Bun.env.AXIOM_ORG_ID,
+  GAME_DATA_DIR: Bun.env.GAME_DATA_DIR || process.env.GAME_DATA_DIR || './tests/fixtures/games/',
+  VALKEY_URI: Bun.env.VALKEY_URI || process.env.VALKEY_URI || 'valkey://localhost:6379',
+  AXIOM_TOKEN: Bun.env.AXIOM_TOKEN || process.env.AXIOM_TOKEN,
+  AXIOM_ORG_ID: Bun.env.AXIOM_ORG_ID || process.env.AXIOM_ORG_ID,
 };
 
 export const config = configSchema.parse(rawConfig);
@@ -39,7 +39,7 @@ export const WEBSOCKET_PARAMS = {
 
 export const REQUIRED_ENV_VARS = [
   "GAME_DATA_DIR",
-  "REDIS_URI",
+  "VALKEY_URI",
 ] as const;
 
 export const OPTIONAL_ENV_VARS = [

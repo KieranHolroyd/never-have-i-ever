@@ -121,7 +121,7 @@ AXIOM_TOKEN=your-axiom-token-here
 AXIOM_ORG_ID=your-axiom-org-id-here
 
 # Optional: Add other environment variables as needed
-# REDIS_URL=redis://cache:6379
+# VALKEY_URL=valkey://cache:6379
 # NODE_ENV=production
 EOF
 
@@ -150,6 +150,67 @@ build_and_deploy() {
     docker compose up -d
 
     log_success "Server deployed successfully"
+}
+
+verify_data_loading() {
+    log_info "Verifying data loading and Valkey storage..."
+
+    cd "$SERVER_DIR/server"
+
+    # Wait for services to be healthy
+    log_info "Waiting for services to start..."
+    sleep 10
+
+    # Check if containers are running
+    if ! docker compose ps | grep -q "Up"; then
+        log_error "Services are not running properly"
+        docker compose logs
+        exit 1
+    fi
+
+    # Run load_data.ts to ensure SQLite database is populated
+    log_info "Running load_data.ts to populate SQLite database..."
+    if ! docker compose exec -T web bun run src/load_data.ts; then
+        log_error "Failed to run load_data.ts"
+        exit 1
+    fi
+
+    # Wait a moment for data to be processed
+    sleep 2
+
+    # Verify Valkey connection and data storage
+    log_info "Verifying Valkey data storage..."
+    VALKEY_CHECK=$(docker compose exec -T cache valkey-cli -h localhost -p 6379 EXISTS shared:questions_list)
+    if [[ "$VALKEY_CHECK" != "1" ]]; then
+        log_error "Questions data not found in Valkey at key 'shared:questions_list'"
+        log_info "Checking Valkey contents..."
+        docker compose exec -T cache valkey-cli -h localhost -p 6379 KEYS "*"
+        exit 1
+    fi
+
+    # Verify the data structure in Valkey
+    log_info "Verifying data structure in Valkey..."
+    VALKEY_DATA=$(docker compose exec -T cache valkey-cli -h localhost -p 6379 GET shared:questions_list)
+    if [[ -z "$VALKEY_DATA" ]]; then
+        log_error "Questions data in Valkey is empty"
+        exit 1
+    fi
+
+    # Basic JSON validation
+    if ! echo "$VALKEY_DATA" | jq . >/dev/null 2>&1; then
+        log_error "Questions data in Valkey is not valid JSON"
+        exit 1
+    fi
+
+    # Check that we have categories in the data
+    CATEGORY_COUNT=$(echo "$VALKEY_DATA" | jq 'keys | length')
+    if [[ "$CATEGORY_COUNT" -lt 1 ]]; then
+        log_error "No categories found in questions data"
+        exit 1
+    fi
+
+    log_success "Data verification completed successfully"
+    log_info "Found $CATEGORY_COUNT categories in the questions data"
 }
 
 setup_firewall() {
@@ -210,6 +271,7 @@ main() {
     clone_or_update_repository
     setup_environment
     build_and_deploy
+    verify_data_loading
     setup_firewall
     show_status
     cleanup
@@ -243,6 +305,11 @@ case "${1:-}" in
     "cleanup")
         cleanup
         log_success "Cleanup completed"
+        ;;
+    "verify-data")
+        log_info "Running data verification..."
+        cd "$SERVER_DIR/server" 2>/dev/null || { log_error "Server not found at $SERVER_DIR"; exit 1; }
+        verify_data_loading
         ;;
     *)
         main

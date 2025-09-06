@@ -1,6 +1,8 @@
 import { ServerWebSocket } from "bun";
 import { send } from "./socket";
 import { ingestEvent } from "../axiom";
+import { SafeJSON } from "../utils/json";
+import { z } from "zod";
 
 export type GameSocketMetadata = {
   game: string;
@@ -13,6 +15,11 @@ export type HandlerFn = (ws: GameSocket, data: any) => Promise<void>;
 export type SocketRouteHandlers = {
   [key: string]: HandlerFn;
 };
+
+// Schema for WebSocket messages
+const WebSocketMessageSchema = z.object({
+  op: z.string(),
+});
 
 export class SocketRouter {
   private static handlers: SocketRouteHandlers = {};
@@ -43,7 +50,7 @@ export async function handle_incoming_message(
     return;
   }
   try {
-    const data = JSON.parse(message);
+    const data = SafeJSON.parse(message, WebSocketMessageSchema);
     const op = data.op;
 
     if (op !== "ping") {
