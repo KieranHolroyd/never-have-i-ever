@@ -13,7 +13,7 @@ services:
     volumes:
       - /var/gamedata:/home/bun/app/assets/games/
   cache:
-    image: redis/redis-stack-server:latest
+    image: valkey/valkey:latest
     restart: always
     ports:
       - "6379:6379"
