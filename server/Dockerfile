@@ -16,7 +16,7 @@ COPY . .
 RUN mkdir -p /app/assets/games
 
 # Expose port (assuming the app runs on a port, adjust if needed)
-EXPOSE 3000
+EXPOSE 3001
 
 # Run the project
 CMD ["bun", "run", "start"]
