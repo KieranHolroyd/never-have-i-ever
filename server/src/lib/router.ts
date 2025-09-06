@@ -19,7 +19,7 @@ export type SocketRouteHandlers = {
 // Schema for WebSocket messages
 const WebSocketMessageSchema = z.object({
   op: z.string(),
-});
+}).passthrough();
 
 export class SocketRouter {
   private static handlers: SocketRouteHandlers = {};

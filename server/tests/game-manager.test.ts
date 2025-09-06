@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { GameManager } from '../src/game-manager';
 import { select_question } from '../src/lib/questions';
+import { SafeJSON } from '../src/utils/json';
+import { z } from 'zod';
 import './setup';
 
 // Access the mocked Bun file from global
@@ -170,6 +172,73 @@ describe('GameManager', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({ message: 'Category is required', op: 'error' })
       );
+    });
+
+    it('should send validation error for empty category string', async () => {
+      const data = { catagory: '' };
+
+      await gameManager.handleSelectCategory(mockGameSocket, data);
+
+      expect(mockWs.send).toHaveBeenCalledWith(
+        JSON.stringify({ message: 'Category is required', op: 'error' })
+      );
+    });
+
+    it('should send validation error for null category', async () => {
+      const data = { catagory: null };
+
+      await gameManager.handleSelectCategory(mockGameSocket, data);
+
+      expect(mockWs.send).toHaveBeenCalledWith(
+        JSON.stringify({ message: 'Category is required', op: 'error' })
+      );
+    });
+
+    it('should send validation error for undefined category', async () => {
+      const data = { catagory: undefined };
+
+      await gameManager.handleSelectCategory(mockGameSocket, data);
+
+      expect(mockWs.send).toHaveBeenCalledWith(
+        JSON.stringify({ message: 'Category is required', op: 'error' })
+      );
+    });
+
+    it('should handle category selection with additional WebSocket fields', async () => {
+      const data = {
+        catagory: 'test-category',
+        extraField: 'extra-value',
+        anotherField: 123
+      };
+
+      await gameManager.handleSelectCategory(mockGameSocket, data);
+
+      const game = await gameManager.getOrCreateGame('test-game');
+      expect(game.catagories).toContain('test-category');
+    });
+
+    it('should handle multiple category selections with extra fields', async () => {
+      // First selection
+      const data1 = {
+        catagory: 'food',
+        timestamp: Date.now(),
+        userAgent: 'test-agent'
+      };
+
+      await gameManager.handleSelectCategory(mockGameSocket, data1);
+
+      // Second selection
+      const data2 = {
+        catagory: 'games',
+        sessionId: 'abc-123',
+        metadata: { source: 'test' }
+      };
+
+      await gameManager.handleSelectCategory(mockGameSocket, data2);
+
+      const game = await gameManager.getOrCreateGame('test-game');
+      expect(game.catagories).toContain('food');
+      expect(game.catagories).toContain('games');
     });
   });
 
@@ -443,5 +512,44 @@ describe('GameManager', () => {
         expect(data.error).toBe('no_gameid');
       });
     });
+  });
+});
+
+describe('WebSocket Message Parsing', () => {
+  it('should allow additional fields to pass through WebSocket message schema', () => {
+    const WebSocketMessageSchema = z.object({
+      op: z.string(),
+    }).passthrough();
+
+    const message = JSON.stringify({
+      op: 'select_catagory',
+      catagory: 'test-category',
+      extraField: 'extra-value',
+      timestamp: 1234567890
+    });
+
+    const parsed = SafeJSON.parse(message, WebSocketMessageSchema);
+
+    expect(parsed.op).toBe('select_catagory');
+    expect(parsed.catagory).toBe('test-category');
+    expect(parsed.extraField).toBe('extra-value');
+    expect(parsed.timestamp).toBe(1234567890);
+  });
+
+  it('should handle category selection message format correctly', () => {
+    const WebSocketMessageSchema = z.object({
+      op: z.string(),
+    }).passthrough();
+
+    const message = JSON.stringify({
+      op: 'select_catagory',
+      catagory: 'writers'
+    });
+
+    const parsed = SafeJSON.parse(message, WebSocketMessageSchema);
+
+    expect(parsed.op).toBe('select_catagory');
+    expect(parsed.catagory).toBe('writers');
+    expect(Object.keys(parsed)).toHaveLength(2);
   });
 });
