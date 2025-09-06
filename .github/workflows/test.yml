@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
   test:
@@ -26,75 +26,77 @@ jobs:
         node-version: [22.x]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
-      with:
-        bun-version: latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-    - name: Cache Bun dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.bun/install/cache
-          server/bun.lockb
-          client/bun.lockb
-        key: ${{ runner.os }}-bun-${{ hashFiles('server/bun.lockb', 'client/bun.lockb') }}
-        restore-keys: |
-          ${{ runner.os }}-bun-
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            server/bun.lockb
+            client/bun.lockb
+          key: ${{ runner.os }}-bun-${{ hashFiles('server/bun.lockb', 'client/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: |
-          client/package-lock.json
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: |
+            client/package-lock.json
 
-    - name: Install client dependencies
-      run: |
-        cd client
-        bun install
+      - name: Install client dependencies
+        run: |
+          cd client
+          bun install
 
-    - name: Install server dependencies
-      run: |
-        cd server
-        bun install
+      - name: Install server dependencies
+        run: |
+          cd server
+          bun install
 
-    - name: Install Playwright browsers
-      run: |
-        cd client
-        npx playwright install --with-deps
+      - name: Install Playwright browsers
+        run: |
+          cd client
+          npx playwright install --with-deps
 
-    - name: Run server tests
-      run: |
-        cd server
-        bun test
-      env:
-        GAME_DATA_DIR: ./assets/games/
-        VALKEY_URI: valkey://localhost:6379
-      continue-on-error: true
+      - name: Run server tests
+        run: |
+          cd server
+          bun test
+        env:
+          GAME_DATA_DIR: ./assets/games/
+          VALKEY_URI: valkey://localhost:6379
+        continue-on-error: true
 
-    - name: Build client
-      run: |
-        cd client
-        npm run build
-      continue-on-error: true
+      - name: Build client
+        run: |
+          cd client
+          npm run build
+        continue-on-error: true
 
-    - name: Run browser tests
-      run: |
-        cd client
-        npm run test
-      env:
-        BASE_URL: http://localhost:5173
-      continue-on-error: true
+      - name: Run browser tests
+        run: |
+          cd client
+          npm run test
+        env:
+          PUBLIC_API_URL: http://localhost:3000/
+          PUBLIC_SOCKET_URL: ws://localhost:3000/ws
+          BASE_URL: http://localhost:5173
+        continue-on-error: true
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: playwright-report-${{ matrix.node-version }}
-        path: client/playwright-report/
-        retention-days: 7
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.node-version }}
+          path: client/playwright-report/
+          retention-days: 7
