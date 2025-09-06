@@ -5,7 +5,7 @@ services:
     stop_signal: SIGINT
     stop_grace_period: 2s
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - GAME_DATA_DIR=/home/bun/app/assets/games/
       - AXIOM_TOKEN=${AXIOM_TOKEN}
