@@ -10,6 +10,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      valkey:
+        image: valkey/valkey:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
         node-version: [22.x]
@@ -61,6 +72,9 @@ jobs:
       run: |
         cd server
         bun test
+      env:
+        GAME_DATA_DIR: ./assets/games/
+        VALKEY_URI: valkey://localhost:6379
       continue-on-error: true
 
     - name: Build client

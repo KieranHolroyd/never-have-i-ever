@@ -45,7 +45,9 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'cd ../server && bun run dev',
+      command: process.env.CI
+        ? 'cd ../server && GAME_DATA_DIR=./assets/games/ VALKEY_URI=valkey://localhost:6379 bun run dev'
+        : 'cd ../server && bun run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
