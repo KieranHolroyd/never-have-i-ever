@@ -8,7 +8,7 @@ test.describe('Never Have I Ever Game', () => {
 
   test('should load the home page', async ({ page }) => {
     await expect(page).toHaveTitle('Games ~ Kieran.dev');
-    await expect(page.locator('h1')).toContainText('Never Have I Ever');
+    await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
     await expect(page.locator('text=Start New Game')).toBeVisible();
   });
 
@@ -25,8 +25,8 @@ test.describe('Never Have I Ever Game', () => {
     await page.goto('/play/name');
 
     // Should have input field for player name
-    await expect(page.locator('input[name="playerName"]')).toBeVisible();
-    await expect(page.locator('text=Continue')).toBeVisible();
+    await expect(page.locator('input[name="name"]')).toBeVisible();
+    await expect(page.locator('text=Confirm Selection')).toBeVisible();
   });
 
   test('should handle invalid game URL gracefully', async ({ page }) => {

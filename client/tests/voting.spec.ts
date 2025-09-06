@@ -6,7 +6,7 @@ test.describe('Voting Functionality', () => {
     await page.goto('/');
 
     // Should have the basic page structure
-    await expect(page.locator('h1')).toContainText('Never Have I Ever');
+    await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
     await expect(page.locator('text=Start New Game')).toBeVisible();
   });
 
@@ -23,6 +23,6 @@ test.describe('Voting Functionality', () => {
     await page.goto('/play/name');
 
     // Should load without errors
-    await expect(page.locator('input[name="playerName"]')).toBeVisible();
+    await expect(page.locator('input[name="name"]')).toBeVisible();
   });
 });

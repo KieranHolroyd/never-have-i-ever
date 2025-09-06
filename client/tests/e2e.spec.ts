@@ -11,29 +11,32 @@ test.describe('End-to-End Game Flow', () => {
 
     // Go back to home
     await page.goto('/');
-    await expect(page.locator('h1')).toContainText('Never Have I Ever');
+    await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
   });
 
   test('should handle direct navigation to routes', async ({ page }) => {
     // Direct navigation to name page
     await page.goto('/play/name');
-    await expect(page.locator('input[name="playerName"]')).toBeVisible();
+    await expect(page.locator('input[name="name"]')).toBeVisible();
 
     // Direct navigation to invalid game
     await page.goto('/play/invalid-game-id/never-have-i-ever');
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('should maintain page state across navigation', async ({ page }) => {
+  test('should handle browser navigation', async ({ page }) => {
     // Navigate to home
     await page.goto('/');
-    const initialTitle = await page.title();
 
-    // Navigate to name page and back
+    // Navigate to name page
     await page.locator('text=Start New Game').click();
+    await expect(page).toHaveURL(/\/play\/name/);
+
+    // Go back to home
     await page.goBack();
 
-    // Should maintain state
-    await expect(page).toHaveTitle(initialTitle);
+    // Should be back on home page
+    await expect(page).toHaveURL('/');
+    await expect(page.locator('body')).toBeVisible();
   });
 });

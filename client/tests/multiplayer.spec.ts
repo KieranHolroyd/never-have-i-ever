@@ -15,8 +15,8 @@ test.describe('Multiplayer Functionality', () => {
       await page2.goto('/');
 
       // Both should see the same content
-      await expect(page1.locator('h1')).toContainText('Never Have I Ever');
-      await expect(page2.locator('h1')).toContainText('Never Have I Ever');
+      await expect(page1.locator('.menu-container h1')).toContainText('Never Have I Ever');
+      await expect(page2.locator('.menu-container h1')).toContainText('Never Have I Ever');
 
     } finally {
       // Clean up
@@ -35,7 +35,7 @@ test.describe('Multiplayer Functionality', () => {
     await page2.goto('/play/name');
 
     // Verify they load correctly
-    await expect(page1.locator('h1')).toContainText('Never Have I Ever');
-    await expect(page2.locator('input[name="playerName"]')).toBeVisible();
+    await expect(page1.locator('.menu-container h1')).toContainText('Never Have I Ever');
+    await expect(page2.locator('input[name="name"]')).toBeVisible();
   });
 });
