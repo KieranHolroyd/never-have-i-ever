@@ -12,10 +12,19 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-PROJECT_NAME="never-have-i-ever-server"
-SERVER_DIR="/opt/never-have-i-ever-server"
-DOCKER_COMPOSE_FILE="docker-compose.yml"
+# Load environment variables from .env file if it exists
+if [[ -f ".env" ]]; then
+    log_info "Loading environment variables from .env file..."
+    set -a
+    source .env
+    set +a
+fi
+
+# Configuration (with defaults that can be overridden by .env)
+PROJECT_NAME="${PROJECT_NAME:-never-have-i-ever-server}"
+SERVER_DIR="${SERVER_DIR:-/opt/never-have-i-ever-server}"
+DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
+REPO_URL="${REPO_URL:-https://github.com/your-username/never-have-i-ever.git}"
 
 # Functions
 log_info() {
@@ -97,7 +106,7 @@ clone_or_update_repository() {
         git pull origin master
     else
         log_info "Cloning repository..."
-        git clone https://github.com/your-username/never-have-i-ever.git "$SERVER_DIR"
+        git clone "$REPO_URL" "$SERVER_DIR"
         cd "$SERVER_DIR"
     fi
 
@@ -117,12 +126,14 @@ setup_environment() {
 
         cat > "$ENV_FILE" << EOF
 # Axiom logging configuration
-AXIOM_TOKEN=your-axiom-token-here
-AXIOM_ORG_ID=your-axiom-org-id-here
+AXIOM_TOKEN=${AXIOM_TOKEN:-your-axiom-token-here}
+AXIOM_ORG_ID=${AXIOM_ORG_ID:-your-axiom-org-id-here}
+
+# Valkey configuration
+VALKEY_URL=${VALKEY_URL:-valkey://cache:6379}
 
 # Optional: Add other environment variables as needed
-# VALKEY_URL=valkey://cache:6379
-# NODE_ENV=production
+NODE_ENV=${NODE_ENV:-production}
 EOF
 
         log_warning "Please edit $ENV_FILE with your actual Axiom credentials and other settings"

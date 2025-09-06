@@ -11,22 +11,24 @@ This guide explains how to deploy the Never Have I Ever server to an Ubuntu mach
 
 ## Quick Deployment
 
-1. **Copy the deployment script to your server:**
+1. **Copy the deployment script and create configuration:**
    ```bash
    scp deploy-server.sh user@your-server:/home/user/
+   scp deploy.env.example user@your-server:/home/user/.env
    ```
 
-2. **SSH into your server and run the script:**
+2. **Edit the .env file with your configuration:**
+   ```bash
+   nano .env  # Edit repository URL, server directory, and credentials
+   ```
+
+3. **SSH into your server and run the script:**
    ```bash
    ssh user@your-server
    ./deploy-server.sh
    ```
 
-3. **Configure environment variables:**
-   The script will create a `.env` file that you'll need to edit with your Axiom credentials:
-   ```bash
-   nano /opt/never-have-i-ever-server/server/.env
-   ```
+The script will automatically load variables from the `.env` file in its working directory.
 
 ## Script Usage
 
@@ -49,6 +51,9 @@ This guide explains how to deploy the Never Have I Ever server to an Ubuntu mach
 # Stop server
 ./deploy-server.sh stop
 
+# Verify data loading and Valkey storage
+./deploy-server.sh verify-data
+
 # Clean up Docker system
 ./deploy-server.sh cleanup
 ```
@@ -60,17 +65,33 @@ This guide explains how to deploy the Never Have I Ever server to an Ubuntu mach
 3. **Code Deployment**: Clones or updates the repository
 4. **Environment Setup**: Creates `.env` file for configuration
 5. **Docker Deployment**: Builds and starts the containers
-6. **Firewall Configuration**: Opens necessary ports
-7. **Status Check**: Shows deployment status and logs
+6. **Data Verification**: Ensures `load_data.ts` has run and data is stored in Valkey
+7. **Firewall Configuration**: Opens necessary ports
+8. **Status Check**: Shows deployment status and logs
 
 ## Configuration
 
-### Environment Variables
-Edit `/opt/never-have-i-ever-server/server/.env`:
+### Deployment Script .env File
+Create a `.env` file in the same directory as `deploy-server.sh` with the following variables:
+
 ```bash
+# Project settings
+PROJECT_NAME=never-have-i-ever-server
+SERVER_DIR=/opt/never-have-i-ever-server
+DOCKER_COMPOSE_FILE=docker-compose.yml
+
+# Repository URL for cloning/updating the code
+REPO_URL=https://github.com/your-username/never-have-i-ever.git
+
+# Server environment variables (automatically written to server/.env)
 AXIOM_TOKEN=your-axiom-token-here
 AXIOM_ORG_ID=your-axiom-org-id-here
+VALKEY_URL=valkey://cache:6379
+NODE_ENV=production
 ```
+
+### Server Environment Variables
+The script will also create `/opt/never-have-i-ever-server/server/.env` with the server-specific variables. If you've already set them in the deployment `.env`, they'll be automatically populated.
 
 ### Ports
 - **3000**: Main application port
