@@ -1,0 +1,47 @@
+{
+	"id": "test-game",
+	"players": [
+		{
+			"id": "player1",
+			"name": "Test Player 1",
+			"score": 2.5,
+			"connected": true,
+			"this_round": {
+				"vote": null,
+				"voted": false
+			}
+		},
+		{
+			"id": "player2",
+			"name": "Test Player 2",
+			"score": 1.0,
+			"connected": false,
+			"this_round": {
+				"vote": null,
+				"voted": false
+			}
+		}
+	],
+	"catagories": [
+		"test-category"
+	],
+	"catagory_select": false,
+	"game_completed": false,
+	"waiting_for_players": false,
+	"current_question": {
+		"catagory": "",
+		"content": ""
+	},
+	"history": [],
+	"data": {
+		"test-category": {
+			"flags": {
+				"is_nsfw": false
+			},
+			"questions": [
+				"Test question 1?",
+				"Test question 2?"
+			]
+		}
+	}
+}

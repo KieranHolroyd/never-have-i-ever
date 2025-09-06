@@ -89,13 +89,28 @@
 					/>
 					<span class="float-right"> Show Hidden Questions </span>
 				</div>
-				<button
-					class="transition bg-blue-500 text-white font-bold py-2 px-4 hover:bg-blue-400 w-full shadow hover:shadow-lg"
-					onclick={save_settings}
-				>
-					<MdiSave class="inline-block" /> Save
-				</button>
 			</label>
+			<label class="my-[2px]">
+				<div
+					class="bg-gray-300 dark:bg-slate-700 py-2 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75 my-2 rounded-md"
+				>
+					<input
+						type="checkbox"
+						class=""
+						onchange={(e) => {
+							$settings = { ...$settings, show_debug: e?.currentTarget?.checked };
+						}}
+						checked={$settings.show_debug ?? false}
+					/>
+					<span class="float-right"> Show Debug Info </span>
+				</div>
+			</label>
+			<button
+				class="transition bg-blue-500 text-white font-bold py-2 px-4 hover:bg-blue-400 w-full shadow hover:shadow-lg"
+				onclick={save_settings}
+			>
+				<MdiSave class="inline-block" /> Save
+			</button>
 		</label>
 	</div>
 </div>

@@ -1,0 +1,20 @@
+{
+	"test-category": {
+		"flags": {
+			"is_nsfw": false
+		},
+		"questions": [
+			"Test question 1?",
+			"Test question 2?",
+			"Test question 3?"
+		]
+	},
+	"nsfw-category": {
+		"flags": {
+			"is_nsfw": true
+		},
+		"questions": [
+			"NSFW test question?"
+		]
+	}
+}

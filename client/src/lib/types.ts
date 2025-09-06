@@ -33,6 +33,7 @@ export type Settings = {
 	no_nsfw?: boolean;
 	no_tutorials?: boolean;
 	show_hidden?: boolean;
+	show_debug?: boolean;
 };
 
 export type Catagories = {
@@ -67,6 +68,7 @@ export type GameData = {
 	// Control States
 	catagory_select: boolean;
 	game_completed: boolean;
+	waiting_for_players: boolean;
 
 	// Local game state
 	data: Catagories;

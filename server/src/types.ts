@@ -47,6 +47,10 @@ export type GameData = {
   // Control States
   catagory_select: boolean;
   game_completed: boolean;
+  waiting_for_players: boolean;
+
+  // Round timeout
+  round_timeout?: NodeJS.Timeout;
 
   // Local game state
   data: Catagories;

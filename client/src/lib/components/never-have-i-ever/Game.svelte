@@ -53,14 +53,21 @@
 	let game_state: {
 		catagory_select: boolean;
 		game_completed: boolean;
+		waiting_for_players: boolean;
 		current_catagory: string[];
 		history: any[];
 	} = $state({
 		catagory_select: true,
 		game_completed: false,
+		waiting_for_players: false,
 		current_catagory: [],
 		history: []
 	});
+
+	let round_timeout: number = $state(0);
+	let timeout_start: number = $state(0);
+	let timeout_duration: number = $state(0);
+	let timeout_interval: ReturnType<typeof setInterval> | null = $state(null);
 	const current_round: {
 		votes: {
 			player: {
@@ -115,6 +122,13 @@
 		return () => {
 			socket?.close(4000);
 			socket = null;
+			if (timeout_interval) {
+				clearInterval(timeout_interval);
+				timeout_interval = null;
+			}
+			round_timeout = 0;
+			timeout_start = 0;
+			timeout_duration = 0;
 		};
 	});
 
@@ -148,18 +162,20 @@
 		socket?.send(JSON.stringify({ op: 'select_catagories' }));
 	}
 	function selectQuestion() {
-		if (players?.filter((p) => p.this_round.voted).length > 0) {
-			socket?.send(JSON.stringify({ op: 'next_question' }));
-		} else {
-			error = 'You must vote before moving on';
-			setTimeout(() => {
-				error = null;
-			}, 2500);
-		}
+		socket?.send(JSON.stringify({ op: 'next_question' }));
 	}
 	function reset() {
 		socket?.send(JSON.stringify({ op: 'reset_game' }));
 		conf_reset_display = false;
+
+		// Clear timeout on reset
+		if (timeout_interval) {
+			clearInterval(timeout_interval);
+			timeout_interval = null;
+		}
+		round_timeout = 0;
+		timeout_start = 0;
+		timeout_duration = 0;
 	}
 
 	function emitSelectCatagory(catagory: string) {
@@ -167,7 +183,26 @@
 	}
 
 	function vote(option: VoteOptions) {
+		console.log('[DEBUG] Voting:', option);
 		socket?.send(JSON.stringify({ op: 'vote', option }));
+	}
+
+	// Debug function for browser console
+	function debugGameState() {
+		console.log('[DEBUG] Current game state:', {
+			game_state,
+			timeout_start,
+			timeout_duration,
+			round_timeout,
+			timeout_interval: timeout_interval ? 'active' : 'inactive',
+			current_question,
+			players
+		});
+	}
+
+	// Make debug function available globally
+	if (browser) {
+		(window as any).debugGameState = debugGameState;
 	}
 
 	/// WEBSOCKET STUFF
@@ -191,12 +226,55 @@
 						toggleSelection(data.catagory);
 						break;
 					case 'game_state':
+						console.log('[DEBUG] Game state received:', {
+							waiting_for_players: data.game.waiting_for_players,
+							timeout_start: data.game.timeout_start,
+							timeout_duration: data.game.timeout_duration,
+							current_timeout_start: timeout_start,
+							current_timeout_duration: timeout_duration
+						});
+
 						game_state.current_catagory = data.game.catagories;
 						game_state.catagory_select = data.game.catagory_select;
 						game_state.game_completed = data.game.game_completed;
+						game_state.waiting_for_players = data.game.waiting_for_players || false;
 						game_state.history = data.game.history;
 
 						current_question = data.game.current_question;
+
+						// Handle server-synced timeout (starts when first vote is cast)
+						if (game_state.waiting_for_players && data.game.timeout_start !== undefined && data.game.timeout_duration) {
+							console.log('[DEBUG] Setting timeout:', data.game.timeout_start, data.game.timeout_duration);
+							timeout_start = data.game.timeout_start;
+							timeout_duration = data.game.timeout_duration;
+
+							// Start or update countdown
+							if (!timeout_interval) {
+								console.log('[DEBUG] Starting countdown interval');
+								timeout_interval = setInterval(() => {
+									const elapsed = Date.now() - timeout_start;
+									const remaining = Math.max(0, Math.ceil((timeout_duration - elapsed) / 1000));
+									round_timeout = remaining;
+
+									console.log('[DEBUG] Countdown:', remaining, 'seconds remaining');
+
+									if (remaining <= 0) {
+										console.log('[DEBUG] Countdown finished');
+										if (timeout_interval) {
+											clearInterval(timeout_interval);
+											timeout_interval = null;
+										}
+									}
+								}, 100); // Update more frequently for smoother countdown
+							}
+						} else if (!game_state.waiting_for_players && timeout_interval) {
+							console.log('[DEBUG] Clearing timeout interval');
+							clearInterval(timeout_interval);
+							timeout_interval = null;
+							round_timeout = 0;
+							timeout_start = 0;
+							timeout_duration = 0;
+						}
 						players = data.game.players;
 						break;
 					case 'new_round':
@@ -219,6 +297,24 @@
 							show_notification = true;
 							notification_content = data.notification;
 						}, data.delay);
+						break;
+					case 'round_timeout':
+						console.log('[DEBUG] Round timeout received:', data.message);
+						show_notification = true;
+						notification_content = data.message;
+						setTimeout(() => {
+							show_notification = false;
+							notification_content = '';
+						}, 3000);
+
+						// Clear timeout state when timeout occurs
+						if (timeout_interval) {
+							clearInterval(timeout_interval);
+							timeout_interval = null;
+						}
+						round_timeout = 0;
+						timeout_start = 0;
+						timeout_duration = 0;
 						break;
 					case 'pong':
 						const multi_diff = performance.now() - prev_ping_ts;
@@ -405,6 +501,43 @@
 			{:else}
 				<h2>Choose a question</h2>
 			{/if}
+			{#if game_state.waiting_for_players}
+				<div class="mx-auto mt-4 p-4 bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 dark:border-yellow-600 rounded-lg max-w-md">
+					<div class="text-center">
+						<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+							Round in Progress
+						</h3>
+						<div class="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
+							{players?.filter((p) => p.connected && p.this_round.voted).length || 0} / {players?.filter((p) => p.connected).length || 0} players voted
+						</div>
+						{#if timeout_start === 0}
+							<div class="text-xs text-yellow-600 dark:text-yellow-400">
+								Timer starts when first player votes
+							</div>
+						{:else if round_timeout > 0}
+							<div class="text-xs text-yellow-600 dark:text-yellow-400">
+								Auto-proceed in {round_timeout}s • Skip available when all voted
+							</div>
+						{:else}
+							<div class="text-xs text-yellow-600 dark:text-yellow-400">
+								Processing next question...
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Debug Info -->
+			{#if $settings?.show_debug}
+				<div class="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+					<div>Timer: {round_timeout}s | Start: {timeout_start} | Duration: {timeout_duration}</div>
+					<div>Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval ? 'active' : 'inactive'}</div>
+					<button class="mt-1 px-2 py-1 bg-blue-500 text-white rounded text-xs" onclick={debugGameState}>
+						Debug State
+					</button>
+				</div>
+			{/if}
+
 			<div class="action-bar">
 				<div class="row dark:bg-gray-700 bg-white pb-2">
 					<button
@@ -436,8 +569,17 @@
 					<button
 						class="text-white bg-green-500 hover:bg-green-400 text-2xl md:text-4xl py-4 col-span-5"
 						onclick={() => selectQuestion()}
+						disabled={game_state.waiting_for_players && (players?.filter((p) => p.connected && p.this_round.voted).length || 0) !== (players?.filter((p) => p.connected).length || 1)}
 					>
-						Next Question
+						{#if game_state.waiting_for_players}
+							{#if (players?.filter((p) => p.connected && p.this_round.voted).length || 0) === (players?.filter((p) => p.connected).length || 1)}
+								Skip Round
+							{:else}
+								Waiting for Votes
+							{/if}
+						{:else}
+							Next Question
+						{/if}
 					</button>
 					<button
 						class="text-white bg-gray-600 hover:bg-gray-400 col-span-2"
