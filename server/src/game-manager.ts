@@ -194,10 +194,8 @@ export class GameManager {
         details: { catagory: data.catagory },
       });
 
-      this.broadcastToGame(ws.data.game, "select_catagory", {
-        id: ws.data.game,
-        catagory: data.catagory,
-      });
+      const gameState = sanitizeGameState(game);
+      this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
     } catch (error) {
       if (error instanceof ValidationError) {
         send(ws, "error", { message: error.message });

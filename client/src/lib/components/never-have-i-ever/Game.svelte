@@ -227,9 +227,6 @@
 						connection = Status.CONNECTED;
 						measure_ping();
 						break;
-					case 'select_catagory':
-						toggleSelection(data.catagory);
-						break;
 					case 'game_state':
 						console.log('[DEBUG] Game state received:', {
 							waiting_for_players: data.game.waiting_for_players,
@@ -442,10 +439,8 @@
 									<input
 										type="checkbox"
 										class=""
-										bind:group={game_state.current_catagory}
-										onchange={() => emitSelectCatagory(catagory_name)}
-										value={catagory_name}
 										checked={game_state.current_catagory.includes(catagory_name)}
+										onchange={() => emitSelectCatagory(catagory_name)}
 									/>
 									<span class="float-right">
 										{#if catagory.flags.is_nsfw}
