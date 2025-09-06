@@ -8,6 +8,7 @@ This guide explains how to deploy the Never Have I Ever server to an Ubuntu mach
 - SSH access to the server
 - Git repository access
 - Axiom account (for logging) - optional but recommended
+- Regular user account with sudo access (recommended) or root access (not recommended)
 
 ## Quick Deployment
 
@@ -27,6 +28,8 @@ This guide explains how to deploy the Never Have I Ever server to an Ubuntu mach
    ssh user@your-server
    ./deploy-server.sh
    ```
+
+   **Note:** The script can be run as root, but will show a warning. It's recommended to run as a regular user with sudo access.
 
 The script will automatically load variables from the `.env` file in its working directory.
 
@@ -64,7 +67,7 @@ The script will automatically load variables from the `.env` file in its working
 2. **Directory Setup**: Creates necessary directories with proper permissions
 3. **Code Deployment**: Clones or updates the repository
 4. **Environment Setup**: Creates `.env` file for configuration
-5. **Docker Deployment**: Builds and starts the containers
+5. **Docker Deployment**: Builds and starts the containers (with BuildKit optimizations for faster builds)
 6. **Data Verification**: Ensures `load_data.ts` has run and data is stored in Valkey
 7. **Firewall Configuration**: Opens necessary ports
 8. **Status Check**: Shows deployment status and logs
@@ -138,6 +141,17 @@ docker compose up -d
 - Data is persisted in `/var/gamedata/` and `/var/dockerdata/`
 - Consider setting up SSL/TLS for production use
 - Regularly update the server and Docker images
+
+## Docker Build Optimizations
+
+The deployment uses several optimizations for faster Docker builds:
+
+- **BuildKit**: Enabled for advanced caching and parallel builds
+- **Layer Caching**: Dependencies are installed in separate layers for better caching
+- **Slim Base Image**: Uses `oven/bun:1.2-slim` for smaller image size
+- **Cache Mounts**: APT and Bun caches are mounted for faster subsequent builds
+- **Docker Ignore**: Excludes unnecessary files from build context
+- **Frozen Lockfile**: Ensures reproducible dependency installation
 
 ## Monitoring
 

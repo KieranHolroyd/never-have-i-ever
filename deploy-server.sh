@@ -12,20 +12,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Load environment variables from .env file if it exists
-if [[ -f ".env" ]]; then
-    log_info "Loading environment variables from .env file..."
-    set -a
-    source .env
-    set +a
-fi
-
-# Configuration (with defaults that can be overridden by .env)
-PROJECT_NAME="${PROJECT_NAME:-never-have-i-ever-server}"
-SERVER_DIR="${SERVER_DIR:-/opt/never-have-i-ever-server}"
-DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
-REPO_URL="${REPO_URL:-https://github.com/your-username/never-have-i-ever.git}"
-
 # Functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -43,19 +29,36 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Load environment variables from .env file if it exists
+if [[ -f ".env" ]]; then
+    log_info "Loading environment variables from .env file..."
+    set -a
+    source .env
+    set +a
+fi
+
+# Configuration (with defaults that can be overridden by .env)
+PROJECT_NAME="${PROJECT_NAME:-never-have-i-ever-server}"
+SERVER_DIR="${SERVER_DIR:-/opt/never-have-i-ever-server}"
+DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
+REPO_URL="${REPO_URL:-https://github.com/your-username/never-have-i-ever.git}"
+
 check_prerequisites() {
     log_info "Checking prerequisites..."
 
     # Check if running as root or with sudo
+    # Note: Script can now run as root with a warning (changed from previous behavior that would exit)
     if [[ $EUID -eq 0 ]]; then
-        log_error "This script should not be run as root. Please run as a regular user with sudo access."
-        exit 1
-    fi
-
-    # Check if sudo is available
-    if ! command -v sudo &> /dev/null; then
-        log_error "sudo is required but not installed."
-        exit 1
+        log_warning "Running as root is not recommended. Consider running as a regular user with sudo access."
+        log_info "Continuing with root privileges..."
+        SUDO_CMD=""
+    else
+        # Check if sudo is available
+        if ! command -v sudo &> /dev/null; then
+            log_error "sudo is required but not installed."
+            exit 1
+        fi
+        SUDO_CMD="sudo"
     fi
 
     # Check if Docker is installed
@@ -83,16 +86,18 @@ setup_directories() {
     log_info "Setting up directories..."
 
     # Create server directory
-    sudo mkdir -p "$SERVER_DIR"
+    $SUDO_CMD mkdir -p "$SERVER_DIR"
 
     # Create data directories for persistent storage
-    sudo mkdir -p /var/gamedata
-    sudo mkdir -p /var/dockerdata
+    $SUDO_CMD mkdir -p /var/gamedata
+    $SUDO_CMD mkdir -p /var/dockerdata
 
     # Set proper permissions
-    sudo chown -R $USER:$USER "$SERVER_DIR"
-    sudo chown -R $USER:$USER /var/gamedata
-    sudo chown -R $USER:$USER /var/dockerdata
+    if [[ $EUID -ne 0 ]]; then
+        $SUDO_CMD chown -R $USER:$USER "$SERVER_DIR"
+        $SUDO_CMD chown -R $USER:$USER /var/gamedata
+        $SUDO_CMD chown -R $USER:$USER /var/dockerdata
+    fi
 
     log_success "Directories created and permissions set"
 }
@@ -155,7 +160,8 @@ build_and_deploy() {
 
     # Build and start services
     log_info "Building Docker images..."
-    docker compose build --no-cache
+    # Enable BuildKit for better caching and performance
+    DOCKER_BUILDKIT=1 docker compose build --no-cache
 
     log_info "Starting services..."
     docker compose up -d
@@ -228,16 +234,16 @@ setup_firewall() {
     log_info "Configuring firewall..."
 
     # Allow SSH (if not already allowed)
-    sudo ufw allow ssh || true
+    $SUDO_CMD ufw allow ssh || true
 
     # Allow the application port
-    sudo ufw allow 3000 || true
+    $SUDO_CMD ufw allow 3000 || true
 
     # Allow Redis port (if needed externally)
-    sudo ufw allow 6379 || true
+    $SUDO_CMD ufw allow 6379 || true
 
     # Enable firewall if not already enabled
-    sudo ufw --force enable || true
+    $SUDO_CMD ufw --force enable || true
 
     log_success "Firewall configured"
 }
@@ -257,7 +263,7 @@ show_status() {
 
     echo ""
     echo "=== Firewall Status ==="
-    sudo ufw status
+    $SUDO_CMD ufw status
 
     echo ""
     log_success "Deployment completed!"
