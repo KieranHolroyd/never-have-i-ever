@@ -12,7 +12,7 @@ import { PushEvent } from "@octokit/webhooks-types";
 
 export class GameManager {
   private games: Map<string, GameData> = new Map();
-  private readonly ROUND_TIMEOUT_MS = 5000; // 45 seconds
+  private readonly ROUND_TIMEOUT_MS = 30000; // 30 seconds
 
   // Track timeout start times for sync across clients
   private timeoutStarts: Map<string, number> = new Map();
