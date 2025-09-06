@@ -50,4 +50,4 @@
 		<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512.png" />
 	{/if}
 </svelte:head>
-<NeverHaveIEver id={$page.params.gameid} catagories={data.catagories} />
+<NeverHaveIEver id={$page.params.gameid ?? ''} catagories={data.catagories} />

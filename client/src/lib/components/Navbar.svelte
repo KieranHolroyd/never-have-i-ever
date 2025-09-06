@@ -4,8 +4,10 @@
 	import IcBaselineHouse from '~icons/ic/baseline-house';
 	import IcBaselineContactEmail from '~icons/ic/baseline-contact-mail';
 	import IcRoundAccountCircle from '~icons/ic/round-account-circle';
+	import MdiInformationOutline from '~icons/mdi/information-outline';
 
 	import clickOutside from '$lib/clickOutside';
+	import { version } from '$lib/version';
 
 	let show = $state(false);
 </script>
@@ -51,5 +53,9 @@
 				<IcRoundAccountCircle class="absolute left-3 top-2.5 dark:text-white h-6 w-6" /> Change username
 			</div>
 		</a>
+		<div class="relative font-bold w-full pl-12 pr-3 py-2 text-sm opacity-75 border-t border-slate-400/30 mt-2 pt-3">
+			<MdiInformationOutline class="absolute left-3 top-2.5 dark:text-white h-5 w-5" />
+			<span>v{version}</span>
+		</div>
 	</div>
 </div>

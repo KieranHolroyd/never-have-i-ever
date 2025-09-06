@@ -27,6 +27,7 @@
 	let error: string | null = $state(null);
 	let show_notification = $state(false);
 	let notification_content = $state('');
+	let show_reload_button = $state(false);
 
 	let settings = settingsStore;
 
@@ -100,6 +101,10 @@
 				notification_content = '';
 			}, 2500);
 		}
+	}
+
+	function reload_page() {
+		window.location.reload();
 	}
 
 	onMount(() => {
@@ -296,6 +301,7 @@
 						setTimeout(() => {
 							show_notification = true;
 							notification_content = data.notification;
+							show_reload_button = data.showReloadButton || false;
 						}, data.delay);
 						break;
 					case 'round_timeout':
@@ -641,9 +647,11 @@
 	<!-- Global Notifications Panel -->
 	<Notification
 		show={show_notification}
+		showReloadButton={show_reload_button}
 		on:closeNotification={() => {
 			show_notification = false;
 			notification_content = '';
+			show_reload_button = false;
 		}}
 	>
 		{notification_content}

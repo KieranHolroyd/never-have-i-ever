@@ -734,7 +734,8 @@ export class GameManager {
         "notifications",
         JSON.stringify({
           delay: 30000,
-          notification: "An update is available, please reload the page.",
+          notification: "🎉 Update available! Click reload to get the latest version.",
+          showReloadButton: true,
           op: "github_push",
         })
       );

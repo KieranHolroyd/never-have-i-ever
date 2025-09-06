@@ -30,10 +30,10 @@
 					Up {player.this_round.vote === 'Have'
 						? '+1'
 						: player.this_round.vote === 'Have Not'
-						? '0'
-						: player.this_round.vote === 'Kinda'
-						? '+0.5'
-						: 'N/A'} Points
+							? '0'
+							: player.this_round.vote === 'Kinda'
+								? '+0.5'
+								: 'N/A'} Points
 				</div>
 				<div
 					class="absolute text-xs leading-[1.825] top-1 right-1 bg-red-600 border border-white rounded-full text-white min-w-[1.5rem] h-6 px-1"

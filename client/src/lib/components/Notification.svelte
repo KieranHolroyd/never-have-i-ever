@@ -4,11 +4,16 @@
 	interface Props {
 		show?: boolean;
 		children?: import('svelte').Snippet;
+		showReloadButton?: boolean;
 	}
 
-	let { show = false, children }: Props = $props();
+	let { show = false, children, showReloadButton = false }: Props = $props();
 
 	const dispatch = createEventDispatcher();
+
+	function reloadPage() {
+		window.location.reload();
+	}
 </script>
 
 {#if show}
@@ -18,12 +23,22 @@
 		>
 			{@render children?.()}
 			<br />
-			<button
-				class="uppercase text-xs bg-gray-400 hover:bg-gray-500"
-				onclick={() => dispatch('closeNotification')}
-			>
-				Close
-			</button>
+			<div class="flex justify-center gap-2 mt-2">
+				{#if showReloadButton}
+					<button
+						class="uppercase text-xs bg-green-500 hover:bg-green-600 px-3 py-1 rounded"
+						onclick={reloadPage}
+					>
+						Reload
+					</button>
+				{/if}
+				<button
+					class="uppercase text-xs bg-gray-400 hover:bg-gray-500 px-3 py-1 rounded"
+					onclick={() => dispatch('closeNotification')}
+				>
+					Close
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}
