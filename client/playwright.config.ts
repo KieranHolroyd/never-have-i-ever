@@ -12,7 +12,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Use multiple workers for speed */
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 12 : 4,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -31,7 +31,29 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
-  projects: [
+  projects: process.env.CI ? [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        navigationTimeout: 10000,
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        navigationTimeout: 10000,
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        navigationTimeout: 10000,
+      },
+    },
+  ] : [
     {
       name: 'chromium',
       use: {
@@ -39,7 +61,7 @@ export default defineConfig({
         /* Reduce navigation timeout */
         navigationTimeout: 10000,
       },
-    },
+    }
   ],
 
   /* Run your local dev server before starting the tests */
