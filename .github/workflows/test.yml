@@ -60,7 +60,7 @@ jobs:
     - name: Run server tests
       run: |
         cd server
-        bun run test
+        bun test
 
     - name: Build client
       run: |
