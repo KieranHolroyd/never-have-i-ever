@@ -26,23 +26,7 @@ if [[ ! -w "$LOG_DIR" ]]; then
     LOG_FILE="$LOG_DIR/deploy-$(date +%Y%m%d).log"
 fi
 
-# Initialize log file
-touch "$LOG_FILE" 2>/dev/null || {
-    log_warning "Cannot create log file at $LOG_FILE, using /tmp/deploy.log"
-    LOG_FILE="/tmp/deploy-$(date +%Y%m%d).log"
-    touch "$LOG_FILE" 2>/dev/null || {
-        log_error "Cannot create log file, logging to file disabled"
-        LOG_FILE=""
-    }
-}
-
-# Log startup information
-if [[ -n "$LOG_FILE" ]]; then
-    log_info "Deployment logs will be written to: $LOG_FILE"
-    echo "==========================================" >> "$LOG_FILE"
-    echo "Deployment started at $(date)" >> "$LOG_FILE"
-    echo "==========================================" >> "$LOG_FILE"
-fi
+# Log file initialization will happen after function definitions
 
 # Functions
 log_to_file() {
@@ -85,6 +69,26 @@ PROJECT_NAME="${PROJECT_NAME:-never-have-i-ever-server}"
 SERVER_DIR="${SERVER_DIR:-/opt/never-have-i-ever-server}"
 DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
 REPO_URL="${REPO_URL:-https://github.com/your-username/never-have-i-ever.git}"
+
+# Initialize log file after functions are defined
+initialize_logging() {
+    touch "$LOG_FILE" 2>/dev/null || {
+        log_warning "Cannot create log file at $LOG_FILE, using /tmp/deploy.log"
+        LOG_FILE="/tmp/deploy-$(date +%Y%m%d).log"
+        touch "$LOG_FILE" 2>/dev/null || {
+            log_error "Cannot create log file, logging to file disabled"
+            LOG_FILE=""
+        }
+    }
+
+    # Log startup information
+    if [[ -n "$LOG_FILE" ]]; then
+        log_info "Deployment logs will be written to: $LOG_FILE"
+        echo "==========================================" >> "$LOG_FILE"
+        echo "Deployment started at $(date)" >> "$LOG_FILE"
+        echo "==========================================" >> "$LOG_FILE"
+    fi
+}
 
 check_prerequisites() {
     log_info "Checking prerequisites..."
@@ -353,6 +357,9 @@ main() {
     echo "========================================"
     echo "Never Have I Ever - Server Deployment"
     echo "========================================"
+
+    # Initialize logging after all functions are defined
+    initialize_logging
 
     check_prerequisites
     setup_directories

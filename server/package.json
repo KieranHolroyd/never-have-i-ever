@@ -5,11 +5,7 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
-    "dev:inspect": "bun --inspect --watch src/index.ts",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage"
+    "dev:inspect": "bun --inspect --watch src/index.ts"
   },
   "devDependencies": {
     "bun-types": "^1.2.21",
