@@ -493,7 +493,13 @@
 			if (ping_timeout) { clearInterval(ping_timeout); ping_timeout = null; }
 			if (connection_timeout) { clearTimeout(connection_timeout); connection_timeout = null; }
 			connection = Status.CONNECTING;
-			setupsock();
+
+			try {
+				setupsock();
+			} catch (e) {
+				console.log(`[DEBUG] Failed to reconnect: ${e}`);
+				scheduleReconnect();
+			}
 		}
 
 		// Cleanup function for reconnect timeout
