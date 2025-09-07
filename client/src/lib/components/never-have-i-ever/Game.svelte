@@ -140,6 +140,10 @@
 				clearTimeout(reconnect_timeout);
 				reconnect_timeout = null;
 			}
+			if (connection_timeout) {
+				clearTimeout(connection_timeout);
+				connection_timeout = null;
+			}
 			round_timeout = 0;
 			timeout_start = 0;
 			timeout_duration = 0;
@@ -150,6 +154,10 @@
 		if (reconnect_timeout) {
 			clearTimeout(reconnect_timeout);
 			reconnect_timeout = null;
+		}
+		if (connection_timeout) {
+			clearTimeout(connection_timeout);
+			connection_timeout = null;
 		}
 	});
 
@@ -230,10 +238,20 @@
 	let socket: WebSocket | null = null;
 	let retry_count = 0;
 	let reconnect_timeout: ReturnType<typeof setTimeout> | null = null;
+	let connection_timeout: ReturnType<typeof setTimeout> | null = null;
 	function setupsock() {
 		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
 		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
 		if (socket === null) socket = new WebSocket(sock_url + sock_params);
+
+		// Set connection timeout (10 seconds)
+		connection_timeout = setTimeout(() => {
+			console.log('[DEBUG] Connection timeout - server unreachable');
+			if (socket && socket.readyState === WebSocket.CONNECTING) {
+				socket.close();
+				scheduleReconnect();
+			}
+		}, 10000);
 
 		// message is received
 		socket?.addEventListener('message', (event) => {
@@ -370,10 +388,14 @@
 		socket?.addEventListener('open', (event) => {
 			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
 			retry_count = 0;
-			// Clear any pending reconnect timeout on successful connection
+			// Clear any pending timeouts on successful connection
 			if (reconnect_timeout) {
 				clearTimeout(reconnect_timeout);
 				reconnect_timeout = null;
+			}
+			if (connection_timeout) {
+				clearTimeout(connection_timeout);
+				connection_timeout = null;
 			}
 		});
 
@@ -383,6 +405,10 @@
 			if (ping_timeout) {
 				clearInterval(ping_timeout);
 				ping_timeout = null;
+			}
+			if (connection_timeout) {
+				clearTimeout(connection_timeout);
+				connection_timeout = null;
 			}
 			if (event.code === 1006) {
 				return (error = 'Failed to connect to server, malformed request');
@@ -399,6 +425,12 @@
 				clearInterval(ping_timeout);
 				ping_timeout = null;
 			}
+			if (connection_timeout) {
+				clearTimeout(connection_timeout);
+				connection_timeout = null;
+			}
+			// Trigger reconnect on connection errors
+			scheduleReconnect();
 		});
 		function scheduleReconnect() {
 			retry_count = retry_count + 1;
