@@ -765,8 +765,8 @@ export class GameManager {
       logger.info("Starting automatic deployment...");
       try {
         const { spawn } = await import("child_process");
-        const { dirname, resolve } = await import("path");
-        const projectRoot = dirname('/opt/never-have-i-ever-server')
+        const { resolve } = await import("path");
+        const projectRoot = '/opt/never-have-i-ever-server/';
         const scriptPath = resolve(projectRoot, "deploy-server.sh");
 
         logger.info(`Running deployment script at: ${scriptPath}`);

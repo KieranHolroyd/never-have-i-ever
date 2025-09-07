@@ -82,6 +82,9 @@ const server = Bun.serve({
       case ROUTES.GITHUB_WEBHOOK: {
         return await gameManager.handleGithubWebhook(req, server);
       }
+      case ROUTES.SPECIAL: {
+        return new Response("Special", { status: 200 });
+      }
       default: {
         return new Response("Not found", { status: 404 });
       }
