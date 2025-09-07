@@ -9,6 +9,7 @@ import { GameNotFoundError, GameFullError, ValidationError } from "./errors";
 import { deepCopy, sanitizeGameState, requirePlayer } from "./utils";
 import { ValkeyJSON } from "./utils/json";
 import { PushEvent } from "@octokit/webhooks-types";
+import logger from "./logger";
 
 export class GameManager {
   private games: Map<string, GameData> = new Map();
@@ -19,6 +20,9 @@ export class GameManager {
 
   // Store WebSocket instances for broadcasting
   private gameWebSockets: Map<string, Set<GameSocket>> = new Map();
+
+  // Track if a deployment is in progress
+  private deploymentInProgress = false;
 
   async getOrCreateGame(gameId: string): Promise<GameData> {
     let game = this.games.get(gameId);
@@ -48,7 +52,7 @@ export class GameManager {
         return gameData;
       }
     } catch (error) {
-      console.error(`Error loading game ${gameId}:`, error);
+      logger.error(`Error loading game ${gameId}:`, error);
     }
 
     return null;
@@ -729,34 +733,41 @@ export class GameManager {
       }
 
       // Auto-deploy the server
-      console.log("[AUTO-DEPLOY] Starting automatic deployment...");
+      logger.info("Starting automatic deployment...");
       try {
         const { spawn } = await import("child_process");
-        const { dirname } = await import("path");
+        const { dirname, resolve } = await import("path");
         const projectRoot = dirname(dirname(process.cwd()));
-        const deployProcess = spawn("./deploy-server.sh", [], {
+        const scriptPath = resolve(projectRoot, "deploy-server.sh");
+
+        logger.info(`Running deployment script at: ${scriptPath}`);
+        logger.info(`Working directory: ${projectRoot}`);
+
+        const deployProcess = spawn(scriptPath, [], {
           cwd: projectRoot,
           stdio: "inherit",
-          shell: true
+          shell: true,
+          env: { ...process.env, USER: process.env.USER || "nginx" }
         });
 
         deployProcess.on("close", (code) => {
           if (code === 0) {
-            console.log("[AUTO-DEPLOY] Deployment completed successfully");
+            logger.info("Deployment completed successfully");
           } else {
-            console.error(`[AUTO-DEPLOY] Deployment failed with exit code ${code}`);
+            logger.error(`Deployment failed with exit code ${code}`);
           }
         });
 
         deployProcess.on("error", (error) => {
-          console.error("[AUTO-DEPLOY] Failed to start deployment:", error);
+          logger.error("Failed to start deployment:", error);
         });
 
       } catch (deployError) {
-        console.error("[AUTO-DEPLOY] Error initiating deployment:", deployError);
+        logger.error("Error initiating deployment:", deployError);
       }
 
-      // Notify users about the automatic deployment
+      // Set deployment flag and notify users about the automatic deployment
+      this.deploymentInProgress = true;
       server.publish(
         "notifications",
         JSON.stringify({
@@ -768,9 +779,10 @@ export class GameManager {
 
       return new Response("Auto-deployment initiated", { status: 200 });
     } catch (error) {
-      console.error("Error handling GitHub webhook:", error);
+      logger.error("Error handling GitHub webhook:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), {
         status: 500,
+        headers: { "Content-Type": "application/json" },
       });
     }
   }
@@ -788,7 +800,7 @@ export class GameManager {
           gameID: gameId,
         });
       } catch (error) {
-        console.error(`Error saving game ${gameId}:`, error);
+        logger.error(`Error saving game ${gameId}:`, error);
       }
     }
   }
@@ -810,5 +822,14 @@ export class GameManager {
     } catch (error) {
       throw error;
     }
+  }
+
+  // Deployment tracking methods
+  isDeploymentInProgress(): boolean {
+    return this.deploymentInProgress;
+  }
+
+  clearDeploymentFlag(): void {
+    this.deploymentInProgress = false;
   }
 }

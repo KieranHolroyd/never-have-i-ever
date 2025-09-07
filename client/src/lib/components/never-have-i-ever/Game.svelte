@@ -28,6 +28,7 @@
 	let show_notification = $state(false);
 	let notification_content = $state('');
 	let show_reload_button = $state(false);
+	let should_reload_on_reconnect = $state(false);
 
 	let settings = settingsStore;
 
@@ -226,6 +227,15 @@
 					case 'open':
 						connection = Status.CONNECTED;
 						measure_ping();
+
+						// Check if this is a post-deployment reconnection
+						if (data.postDeploymentReconnect && should_reload_on_reconnect) {
+							console.log('[DEBUG] Post-deployment reconnection detected, reloading page...');
+							setTimeout(() => {
+								window.location.reload();
+							}, 1000); // Small delay to ensure connection is stable
+							should_reload_on_reconnect = false; // Reset flag
+						}
 						break;
 					case 'game_state':
 						console.log('[DEBUG] Game state received:', {
@@ -300,12 +310,8 @@
 							notification_content = data.notification;
 							show_reload_button = data.showReloadButton || false;
 						}, data.delay);
-						// Auto-reload after deployment notification
-						if (data.delay) {
-							setTimeout(() => {
-								window.location.reload();
-							}, data.delay + 10000); // Reload 10 seconds after notification
-						}
+						// Set flag to reload when we reconnect after deployment
+						should_reload_on_reconnect = true;
 						break;
 					case 'round_timeout':
 						console.log('[DEBUG] Round timeout received:', data.message);

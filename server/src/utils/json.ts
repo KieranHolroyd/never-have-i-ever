@@ -52,7 +52,7 @@ export class SafeJSON {
     try {
       return this.parse(jsonString, schema);
     } catch (error) {
-      console.warn(`JSON parsing failed, using fallback: ${(error as Error).message}`);
+      console.warn(`JSON parsing failed, using fallback: ${(error as Error).message}`); // Keep console.warn for fallback parsing
       return fallback;
     }
   }
@@ -131,7 +131,7 @@ export class ValkeyJSON {
       const value = await client.get(key);
       return SafeJSON.parseFromStorage(value, schema) ?? fallback;
     } catch (error) {
-      console.warn(`Failed to get ${key} from Valkey, using fallback: ${(error as Error).message}`);
+      console.warn(`Failed to get ${key} from Valkey, using fallback: ${(error as Error).message}`); // Keep console.warn for Valkey fallback
       return fallback;
     }
   }

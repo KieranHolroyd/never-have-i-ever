@@ -1,4 +1,5 @@
 import type { GameSocket } from "./router";
+import logger from "../logger";
 
 export function emit(
   ws: GameSocket | null,
@@ -25,7 +26,7 @@ export function emit(
         JSON.stringify({ err, message: "Error sending message", op: "error" })
       );
     }
-    console.error("Emit error:", err);
+    logger.error("Emit error:", err);
   }
 }
 

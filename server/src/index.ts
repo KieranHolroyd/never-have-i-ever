@@ -3,17 +3,18 @@ import { config, SERVER_CONFIG, ROUTES, WEBSOCKET_PARAMS, REQUIRED_ENV_VARS, OPT
 import { GameSocket, SocketRouter, handle_incoming_message } from "./lib/router";
 import { emit, publish, send } from "./lib/socket";
 import { GameManager } from "./game-manager";
+import logger from "./logger";
 
 // Validate environment variables
 const missingRequired = REQUIRED_ENV_VARS.filter(envVar => !Bun.env[envVar]);
 if (missingRequired.length > 0) {
-  console.error(`[FATAL ERROR] Missing required environment variables: ${missingRequired.join(", ")}`);
+  logger.error(`Missing required environment variables: ${missingRequired.join(", ")}`);
   process.exit(1);
 }
 
 const missingOptional = OPTIONAL_ENV_VARS.filter(envVar => !Bun.env[envVar]);
 if (missingOptional.length > 0) {
-  console.warn(`[WARNING] Missing optional environment variables: ${missingOptional.join(", ")}`);
+  logger.warn(`Missing optional environment variables: ${missingOptional.join(", ")}`);
 }
 
 // Initialize game manager
@@ -92,7 +93,19 @@ const server = Bun.serve({
         event: "websocket_connection_opened",
         playerID: ws.data.player,
       });
-      send(ws, "open", { message: "WebSocket connection opened" });
+
+      // Check if this is a reconnection after deployment
+      const isPostDeploymentReconnect = gameManager.isDeploymentInProgress();
+
+      send(ws, "open", {
+        message: "WebSocket connection opened",
+        postDeploymentReconnect: isPostDeploymentReconnect
+      });
+
+      // Clear deployment flag after notifying the client
+      if (isPostDeploymentReconnect) {
+        gameManager.clearDeploymentFlag();
+      }
     },
     close: (ws) => {
       gameManager.handleDisconnect(ws);
@@ -107,4 +120,8 @@ setInterval(async () => {
   await gameManager.saveActiveGames();
 }, SERVER_CONFIG.GAME_SAVE_INTERVAL);
 
-console.log(`Server running at http://${server.hostname}:${server.port}/`);
+logger.info(`Server running at http://${server.hostname}:${server.port}/`);
+logger.info(`Log level: ${process.env.LOG_LEVEL || 'INFO'}`);
+if (logger.isFileLoggingEnabled()) {
+  logger.info(`Server logs are being written to: ${logger.getLogFilePath()}`);
+}

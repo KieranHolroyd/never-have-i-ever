@@ -12,21 +12,64 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Log file setup
+LOG_DIR="${LOG_DIR:-/var/log/never-have-i-ever}"
+LOG_FILE="${LOG_FILE:-$LOG_DIR/deploy-$(date +%Y%m%d).log}"
+
+# Create log directory if it doesn't exist
+mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="./logs"
+
+# Fallback to current directory if /var/log is not writable
+if [[ ! -w "$LOG_DIR" ]]; then
+    LOG_DIR="./logs"
+    mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
+    LOG_FILE="$LOG_DIR/deploy-$(date +%Y%m%d).log"
+fi
+
+# Initialize log file
+touch "$LOG_FILE" 2>/dev/null || {
+    log_warning "Cannot create log file at $LOG_FILE, using /tmp/deploy.log"
+    LOG_FILE="/tmp/deploy-$(date +%Y%m%d).log"
+    touch "$LOG_FILE" 2>/dev/null || {
+        log_error "Cannot create log file, logging to file disabled"
+        LOG_FILE=""
+    }
+}
+
+# Log startup information
+if [[ -n "$LOG_FILE" ]]; then
+    log_info "Deployment logs will be written to: $LOG_FILE"
+    echo "==========================================" >> "$LOG_FILE"
+    echo "Deployment started at $(date)" >> "$LOG_FILE"
+    echo "==========================================" >> "$LOG_FILE"
+fi
+
 # Functions
+log_to_file() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+}
+
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
+    log_to_file "INFO" "$1"
 }
 
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
+    log_to_file "SUCCESS" "$1"
 }
 
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
+    log_to_file "WARNING" "$1"
 }
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
+    log_to_file "ERROR" "$1"
 }
 
 # Load environment variables from .env file if it exists
@@ -47,11 +90,16 @@ check_prerequisites() {
     log_info "Checking prerequisites..."
 
     # Check if running as root or with sudo
-    # Note: Script can now run as root with a warning (changed from previous behavior that would exit)
     if [[ $EUID -eq 0 ]]; then
         log_warning "Running as root is not recommended. Consider running as a regular user with sudo access."
         log_info "Continuing with root privileges..."
         SUDO_CMD=""
+        IS_NGINX_USER=false
+    elif [[ $USER == "nginx" ]] || [[ $USER == "www-data" ]]; then
+        # Special handling for nginx/www-data user
+        log_info "Running as nginx/www-data user, skipping privileged operations..."
+        SUDO_CMD=""
+        IS_NGINX_USER=true
     else
         # Check if sudo is available
         if ! command -v sudo &> /dev/null; then
@@ -59,6 +107,7 @@ check_prerequisites() {
             exit 1
         fi
         SUDO_CMD="sudo"
+        IS_NGINX_USER=false
     fi
 
     # Check if Docker is installed
@@ -85,21 +134,36 @@ check_prerequisites() {
 setup_directories() {
     log_info "Setting up directories..."
 
-    # Create server directory
-    $SUDO_CMD mkdir -p "$SERVER_DIR"
+    if [[ "$IS_NGINX_USER" == "true" ]]; then
+        # For nginx user, assume directories already exist with proper permissions
+        log_info "Running as nginx user, assuming directories exist with proper permissions..."
+        if [[ ! -d "$SERVER_DIR" ]]; then
+            log_error "Server directory $SERVER_DIR does not exist. Please create it manually with proper permissions."
+            exit 1
+        fi
+        if [[ ! -d "/var/gamedata" ]]; then
+            log_warning "Game data directory /var/gamedata does not exist. It will be created if needed."
+        fi
+        if [[ ! -d "/var/dockerdata" ]]; then
+            log_warning "Docker data directory /var/dockerdata does not exist. It will be created if needed."
+        fi
+    else
+        # Create server directory
+        $SUDO_CMD mkdir -p "$SERVER_DIR"
 
-    # Create data directories for persistent storage
-    $SUDO_CMD mkdir -p /var/gamedata
-    $SUDO_CMD mkdir -p /var/dockerdata
+        # Create data directories for persistent storage
+        $SUDO_CMD mkdir -p /var/gamedata
+        $SUDO_CMD mkdir -p /var/dockerdata
 
-    # Set proper permissions
-    if [[ $EUID -ne 0 ]]; then
-        $SUDO_CMD chown -R $USER:$USER "$SERVER_DIR"
-        $SUDO_CMD chown -R $USER:$USER /var/gamedata
-        $SUDO_CMD chown -R $USER:$USER /var/dockerdata
+        # Set proper permissions
+        if [[ $EUID -ne 0 ]]; then
+            $SUDO_CMD chown -R $USER:$USER "$SERVER_DIR"
+            $SUDO_CMD chown -R $USER:$USER /var/gamedata
+            $SUDO_CMD chown -R $USER:$USER /var/dockerdata
+        fi
     fi
 
-    log_success "Directories created and permissions set"
+    log_success "Directories verified/created and permissions set"
 }
 
 clone_or_update_repository() {
@@ -231,6 +295,11 @@ verify_data_loading() {
 }
 
 setup_firewall() {
+    if [[ "$IS_NGINX_USER" == "true" ]]; then
+        log_info "Skipping firewall configuration for nginx user..."
+        return 0
+    fi
+
     log_info "Configuring firewall..."
 
     # Allow SSH (if not already allowed)
@@ -261,9 +330,11 @@ show_status() {
     echo "=== Application Logs ==="
     docker compose logs --tail=20 web
 
-    echo ""
-    echo "=== Firewall Status ==="
-    $SUDO_CMD ufw status
+    if [[ "$IS_NGINX_USER" != "true" ]]; then
+        echo ""
+        echo "=== Firewall Status ==="
+        $SUDO_CMD ufw status
+    fi
 
     echo ""
     log_success "Deployment completed!"
