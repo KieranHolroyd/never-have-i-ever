@@ -412,6 +412,7 @@
 				connection_timeout = null;
 			}
 			if (event.code === 1006) {
+				scheduleReconnect();
 				return (error = 'Failed to connect to server, malformed request');
 			}
 			if (event.code !== 1000) {
