@@ -246,7 +246,13 @@
 		if (socket !== null) return;
 		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
 		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
-		socket = new WebSocket(sock_url + sock_params);
+		try {
+			socket = new WebSocket(sock_url + sock_params);
+		} catch (e) {
+			console.log(`[DEBUG] Failed to create socket: ${e}`);
+			scheduleReconnect();
+			
+		}
 
 		// CRITICAL: Attach event listeners IMMEDIATELY after creating WebSocket
 		// If WebSocket fails immediately, we need listeners ready to catch the error
