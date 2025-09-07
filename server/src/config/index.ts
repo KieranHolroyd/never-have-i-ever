@@ -32,6 +32,7 @@ export const SERVER_CONFIG = {
 
 export const ROUTES = {
   HOME: "/",
+  SPECIAL: "/special",
   WEBSOCKET: "/ws",
   CATEGORIES_API: "/api/catagories",
   GAME_API: "/api/game",
