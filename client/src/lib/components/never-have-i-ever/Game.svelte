@@ -239,10 +239,14 @@
 	let retry_count = 0;
 	let reconnect_timeout: ReturnType<typeof setTimeout> | null = null;
 	let connection_timeout: ReturnType<typeof setTimeout> | null = null;
+	let reconnect_scheduled = false;
+	let reconnect_inflight = false;
 	function setupsock() {
+		// Prevent attaching duplicate listeners to an existing socket
+		if (socket !== null) return;
 		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
 		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
-		if (socket === null) socket = new WebSocket(sock_url + sock_params);
+		socket = new WebSocket(sock_url + sock_params);
 
 		// CRITICAL: Attach event listeners IMMEDIATELY after creating WebSocket
 		// If WebSocket fails immediately, we need listeners ready to catch the error
@@ -392,6 +396,8 @@
 				clearTimeout(connection_timeout);
 				connection_timeout = null;
 			}
+			reconnect_scheduled = false;
+			reconnect_inflight = false;
 		});
 
 		// socket closed
@@ -441,6 +447,8 @@
 		}, 10000);
 
 		function scheduleReconnect() {
+			// Avoid multiple scheduled reconnects
+			if (reconnect_scheduled || reconnect_inflight) return;
 			retry_count = retry_count + 1;
 
 			// Calculate delay based on requirements:
@@ -466,19 +474,24 @@
 				return;
 			}
 
+			reconnect_scheduled = true;
 			console.log(`[DEBUG] Scheduling reconnect attempt ${retry_count} in ${delay/1000}s`);
 
 			reconnect_timeout = setTimeout(() => {
+				reconnect_scheduled = false;
 				performReconnect();
 			}, delay);
 		}
 
 		function performReconnect() {
+			if (reconnect_inflight) return;
+			reconnect_inflight = true;
 			console.log(`[DEBUG] Performing reconnect attempt ${retry_count}`);
-			socket?.close();
+			try { socket?.close(); } catch (_) {}
 			socket = null;
+			if (ping_timeout) { clearInterval(ping_timeout); ping_timeout = null; }
+			if (connection_timeout) { clearTimeout(connection_timeout); connection_timeout = null; }
 			connection = Status.CONNECTING;
-			socket = new WebSocket(sock_url + sock_params);
 			setupsock();
 		}
 
@@ -488,6 +501,39 @@
 				clearTimeout(reconnect_timeout);
 				reconnect_timeout = null;
 			}
+		}
+	}
+
+	// Reconnect when browser comes back online or tab becomes visible
+	if (browser) {
+		window.addEventListener('online', () => {
+			if (connection !== Status.CONNECTED) {
+				console.log('[DEBUG] Online event - attempting immediate reconnect');
+				retry_count = Math.max(0, retry_count - 1); // be a bit forgiving after regaining network
+				// Try immediately without waiting for backoff
+				if (reconnect_timeout) { clearTimeout(reconnect_timeout); reconnect_timeout = null; }
+				reconnect_scheduled = false;
+				performImmediateReconnect();
+			}
+		});
+		document.addEventListener('visibilitychange', () => {
+			if (document.visibilityState === 'visible') {
+				if (!socket || socket.readyState !== WebSocket.OPEN) {
+					console.log('[DEBUG] Tab visible - attempting reconnect');
+					performImmediateReconnect();
+				}
+			}
+		});
+
+		function performImmediateReconnect() {
+			if (reconnect_inflight) return;
+			reconnect_inflight = true;
+			try { socket?.close(); } catch (_) {}
+			socket = null;
+			if (ping_timeout) { clearInterval(ping_timeout); ping_timeout = null; }
+			if (connection_timeout) { clearTimeout(connection_timeout); connection_timeout = null; }
+			connection = Status.CONNECTING;
+			setupsock();
 		}
 	}
 
