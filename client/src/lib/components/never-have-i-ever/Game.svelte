@@ -244,15 +244,10 @@
 		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
 		if (socket === null) socket = new WebSocket(sock_url + sock_params);
 
-		// Set connection timeout (10 seconds)
-		connection_timeout = setTimeout(() => {
-			console.log('[DEBUG] Connection timeout - server unreachable');
-			if (socket && socket.readyState === WebSocket.CONNECTING) {
-				socket.close();
-				scheduleReconnect();
-			}
-		}, 10000);
+		// CRITICAL: Attach event listeners IMMEDIATELY after creating WebSocket
+		// If WebSocket fails immediately, we need listeners ready to catch the error
 
+		// Attach all event listeners immediately after creating socket
 		// message is received
 		socket?.addEventListener('message', (event) => {
 			try {
@@ -432,6 +427,19 @@
 			// Trigger reconnect on connection errors
 			scheduleReconnect();
 		});
+
+		// Set connection timeout AFTER all event listeners are attached
+		connection_timeout = setTimeout(() => {
+			console.log('[DEBUG] Connection timeout - server unreachable');
+			if (socket && socket.readyState === WebSocket.CONNECTING) {
+				console.log('[DEBUG] Force closing stuck WebSocket');
+				socket.close();
+				scheduleReconnect();
+			} else {
+				console.log('[DEBUG] Connection timeout cleared - WebSocket state:', socket?.readyState);
+			}
+		}, 10000);
+
 		function scheduleReconnect() {
 			retry_count = retry_count + 1;
 
