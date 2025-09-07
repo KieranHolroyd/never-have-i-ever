@@ -4,6 +4,8 @@ import { client } from "./redis_client";
 import { select_question } from "./lib/questions";
 import { GameSocket } from "./lib/router";
 import { emit, publish, send } from "./lib/socket";
+import { reconnectManager } from "./lib/reconnect-manager";
+
 import { ingestEvent } from "./axiom";
 import { GameNotFoundError, GameFullError, ValidationError } from "./errors";
 import { deepCopy, sanitizeGameState, requirePlayer } from "./utils";
@@ -128,6 +130,15 @@ export class GameManager {
         game.players.push(newPlayer);
       } else {
         existingPlayer.connected = true;
+
+        // Stop any ongoing reconnect attempts for this player
+        reconnectManager.stopReconnect(ws.data.game, ws.data.player);
+
+        ingestEvent({
+          gameID: ws.data.game,
+          event: "player_reconnected",
+          playerID: ws.data.player,
+        });
       }
 
       ingestEvent({
@@ -662,17 +673,35 @@ export class GameManager {
       const player = game.players.find(p => p.id === ws.data.player);
       if (player) {
         player.connected = false;
-      }
 
-      ingestEvent({
-        event: "websocket_connection_closed",
-        playerID: ws.data.player,
-      });
+        // Start reconnect attempts for this player
+        reconnectManager.startReconnect(ws);
+
+        ingestEvent({
+          event: "websocket_connection_closed",
+          playerID: ws.data.player,
+          reconnectStarted: true,
+        });
+      }
 
       const gameState = sanitizeGameState(game);
       this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
     } catch (error) {
       console.error("Error in handleDisconnect:", error);
+    }
+  }
+
+  async handleReconnectStatus(ws: GameSocket, data: any): Promise<void> {
+    try {
+      const status = reconnectManager.getReconnectStatus(ws.data.game, ws.data.player);
+      send(ws, "reconnect_status", {
+        reconnecting: status?.isReconnecting || false,
+        attemptCount: status?.attemptCount || 0,
+        nextAttemptIn: status?.nextAttemptIn || 0,
+      });
+    } catch (error) {
+      console.error("Error in handleReconnectStatus:", error);
+      send(ws, "error", { message: "Failed to get reconnect status" });
     }
   }
 
@@ -831,5 +860,11 @@ export class GameManager {
 
   clearDeploymentFlag(): void {
     this.deploymentInProgress = false;
+  }
+
+  cleanup(): void {
+    logger.info("GameManager cleanup initiated");
+    reconnectManager.cleanup();
+    logger.info("GameManager cleanup completed");
   }
 }

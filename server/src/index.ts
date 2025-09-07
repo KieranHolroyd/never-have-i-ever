@@ -29,6 +29,7 @@ SocketRouter.route("next_question", (ws, data) => gameManager.handleNextQuestion
 SocketRouter.route("reset_game", (ws, data) => gameManager.handleResetGame(ws, data));
 SocketRouter.route("vote", (ws, data) => gameManager.handleVote(ws, data));
 SocketRouter.route("ping", (ws, data) => gameManager.handlePing(ws, data));
+SocketRouter.route("reconnect_status", async (ws, data) => await gameManager.handleReconnectStatus(ws, data));
 
 const server = Bun.serve({
   async fetch(req, server) {
@@ -125,3 +126,16 @@ logger.info(`Log level: ${process.env.LOG_LEVEL || 'INFO'}`);
 if (logger.isFileLoggingEnabled()) {
   logger.info(`Server logs are being written to: ${logger.getLogFilePath()}`);
 }
+
+// Cleanup on shutdown
+process.on('SIGINT', () => {
+  logger.info('Shutting down server...');
+  gameManager.cleanup();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  logger.info('Shutting down server...');
+  gameManager.cleanup();
+  process.exit(0);
+});

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { env } from '$env/dynamic/public';
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
@@ -132,10 +132,25 @@
 				clearInterval(timeout_interval);
 				timeout_interval = null;
 			}
+			if (ping_timeout) {
+				clearInterval(ping_timeout);
+				ping_timeout = null;
+			}
+			if (reconnect_timeout) {
+				clearTimeout(reconnect_timeout);
+				reconnect_timeout = null;
+			}
 			round_timeout = 0;
 			timeout_start = 0;
 			timeout_duration = 0;
 		};
+	});
+
+	onDestroy(() => {
+		if (reconnect_timeout) {
+			clearTimeout(reconnect_timeout);
+			reconnect_timeout = null;
+		}
 	});
 
 	function conf_reset() {
@@ -214,6 +229,7 @@
 	/// WEBSOCKET STUFF
 	let socket: WebSocket | null = null;
 	let retry_count = 0;
+	let reconnect_timeout: ReturnType<typeof setTimeout> | null = null;
 	function setupsock() {
 		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
 		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
@@ -354,6 +370,11 @@
 		socket?.addEventListener('open', (event) => {
 			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
 			retry_count = 0;
+			// Clear any pending reconnect timeout on successful connection
+			if (reconnect_timeout) {
+				clearTimeout(reconnect_timeout);
+				reconnect_timeout = null;
+			}
 		});
 
 		// socket closed
@@ -367,7 +388,7 @@
 				return (error = 'Failed to connect to server, malformed request');
 			}
 			if (event.code !== 1000) {
-				setTimeout(reconnect, 200 * Math.max(1, retry_count));
+				scheduleReconnect();
 			}
 		});
 
@@ -379,13 +400,54 @@
 				ping_timeout = null;
 			}
 		});
-		function reconnect() {
+		function scheduleReconnect() {
 			retry_count = retry_count + 1;
-			console.log(retry_count, 100 * Math.max(1, retry_count));
+
+			// Calculate delay based on requirements:
+			// - 10 seconds for first 2 minutes (12 attempts)
+			// - Then exponential backoff with 2x multiplier
+			// - Max delay of 5 minutes
+			let delay: number;
+
+			if (retry_count <= 12) {
+				// First 2 minutes: fixed 10-second intervals
+				delay = 10000; // 10 seconds
+			} else {
+				// After 2 minutes: exponential backoff
+				const backoffAttempts = retry_count - 12;
+				delay = 10000 * Math.pow(2, backoffAttempts); // Start at 20s, then 40s, 80s, etc.
+				delay = Math.min(delay, 300000); // Cap at 5 minutes
+			}
+
+			// Stop after 30 attempts total
+			if (retry_count >= 30) {
+				console.log('[DEBUG] Max reconnect attempts (30) reached, giving up');
+				error = 'Failed to reconnect to server after multiple attempts';
+				return;
+			}
+
+			console.log(`[DEBUG] Scheduling reconnect attempt ${retry_count} in ${delay/1000}s`);
+
+			reconnect_timeout = setTimeout(() => {
+				performReconnect();
+			}, delay);
+		}
+
+		function performReconnect() {
+			console.log(`[DEBUG] Performing reconnect attempt ${retry_count}`);
 			socket?.close();
 			socket = null;
+			connection = Status.CONNECTING;
 			socket = new WebSocket(sock_url + sock_params);
 			setupsock();
+		}
+
+		// Cleanup function for reconnect timeout
+		function cleanup() {
+			if (reconnect_timeout) {
+				clearTimeout(reconnect_timeout);
+				reconnect_timeout = null;
+			}
 		}
 	}
 

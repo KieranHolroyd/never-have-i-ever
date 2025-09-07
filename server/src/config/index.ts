@@ -21,6 +21,13 @@ export const SERVER_CONFIG = {
   CLIENT_UPDATE_DELAY: 30000, // 30 seconds
   GAME_SAVE_INTERVAL: 5000, // 5 seconds
   MAX_PLAYERS_PER_GAME: 12,
+  RECONNECT: {
+    INITIAL_INTERVAL: 10000, // 10 seconds
+    MAX_INTERVAL: 300000, // 5 minutes
+    BACKOFF_MULTIPLIER: 2, // Exponential backoff multiplier
+    MAX_ATTEMPTS: 30, // Maximum reconnect attempts
+    INITIAL_PHASE_DURATION: 120000, // 2 minutes of initial 10s intervals
+  },
 } as const;
 
 export const ROUTES = {
