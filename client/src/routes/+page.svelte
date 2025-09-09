@@ -27,7 +27,7 @@
 </script>
 
 <!-- Page Background -->
-<div class="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-800 to-slate-900 text-slate-100">
+<div class="min-h-[calc(100vh-4rem)]">
 	<!-- Content Container -->
 	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 		<!-- Heading -->
