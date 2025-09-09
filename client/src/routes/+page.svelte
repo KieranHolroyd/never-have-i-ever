@@ -71,10 +71,11 @@
 						</p>
 					</div>
 					<div class="mt-6 flex justify-end">
-						<button class="group inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" onclick={startCah}>
-							<MdiGamepadSquare class="h-5 w-5" />
-							<span>Start New Game</span>
-						</button>
+						<!-- <button class="group inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" onclick={startCah}> -->
+							<!-- <MdiGamepadSquare class="h-5 w-5" /> -->
+							<!-- <span>Start New Game</span> -->
+						<!-- </button> -->
+						 Coming Soon
 					</div>
 				</div>
 				<div class="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-emerald-400/10 via-transparent to-transparent"></div>
