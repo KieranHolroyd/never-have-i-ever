@@ -67,3 +67,19 @@ export type GameData = {
   // Local game state
   data: Catagories;
 };
+
+// Generic multi-game engine support
+export type GameOperationHandler = (ws: import("./lib/router").GameSocket, data: any) => Promise<void> | void;
+
+export type GameEngine = {
+  // Unique identifier for engine (e.g., "never-have-i-ever", "cards-against-humanity")
+  type: string;
+  // Map of op => handler
+  handlers: Record<string, GameOperationHandler>;
+};
+
+export interface GameEngineRegistry {
+  register(engine: GameEngine): void;
+  get(type: string): GameEngine | undefined;
+  has(type: string): boolean;
+}

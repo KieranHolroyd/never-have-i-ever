@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import NeverHaveIEver from '$lib/components/never-have-i-ever/Game.svelte';
+	import CardsAgainstHumanity from '$lib/components/cards-against-humanity/Game.svelte';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -51,6 +51,4 @@
 	{/if}
 </svelte:head>
 <!-- <NeverHaveIEver id={$page.params.gameid} catagories={data.catagories} /> -->
-<div>
-	<h1>Cards Against Humanity</h1>
-</div>
+<CardsAgainstHumanity id={$page.params.gameid as string} />

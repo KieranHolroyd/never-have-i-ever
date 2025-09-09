@@ -350,7 +350,6 @@ show_status() {
 
 cleanup() {
     log_info "Cleaning up Docker system..."
-    docker system prune -f || true
 }
 
 main() {

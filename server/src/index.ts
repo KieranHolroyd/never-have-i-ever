@@ -3,6 +3,8 @@ import { config, SERVER_CONFIG, ROUTES, WEBSOCKET_PARAMS, REQUIRED_ENV_VARS, OPT
 import { GameSocket, SocketRouter, handle_incoming_message } from "./lib/router";
 import { emit, publish, send } from "./lib/socket";
 import { GameManager } from "./game-manager";
+import { engineRegistry } from "./lib/engine-registry";
+import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
 import logger from "./logger";
 
 // Validate environment variables
@@ -56,14 +58,16 @@ const server = Bun.serve({
           );
         }
 
+        const playing = params.get(WEBSOCKET_PARAMS.PLAYING) || "never-have-i-ever";
         const success = server.upgrade(req, {
           headers: {
-            "X-Playing": "never-have-i-ever",
+            "X-Playing": playing,
             "X-Gameid": params.get(WEBSOCKET_PARAMS.GAME),
           },
           data: {
             game: params.get(WEBSOCKET_PARAMS.GAME),
             player: params.get(WEBSOCKET_PARAMS.PLAYER),
+            playing,
           },
         });
 
@@ -115,6 +119,9 @@ const server = Bun.serve({
   },
   port: SERVER_CONFIG.PORT,
 });
+
+// Register the default engine backed by current GameManager handlers
+engineRegistry.register(createNeverHaveIEverEngine(gameManager));
 
 // Auto-save games periodically
 setInterval(async () => {
