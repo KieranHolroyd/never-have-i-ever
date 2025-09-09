@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-
 	import MdiInformation from '~icons/mdi/information';
 	import MdiGamepadSquare from '~icons/mdi/gamepad-square';
 	import { LocalPlayer } from '$lib/player';
@@ -27,62 +26,59 @@
 	}
 </script>
 
-<div>
-	<div class="grid gap-6 md:grid-cols-2">
-		<div class="menu-container">
-			<h1 class="text-3xl dark:text-white font-bold mb-4">Never Have I Ever</h1>
-			<div
-				class="relative border-2 border-gray-200 dark:border-gray-400 px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
-			>
-				<span class="absolute top-4 left-3">
-					<MdiInformation class="w-8 h-8" />
-				</span>
-				<p class="text-justify pl-11 pr-4">
-					Dive into a virtual realm of cheeky confessions with our real-time online game of Never Have
-					I Ever. Discover amusing truths in a laughter-filled atmosphere, whether with close friends
-					or new acquaintances. Experience a seamless gaming journey as you venture through rounds of
-					startling revelations and playful exchanges. Unmask amusing secrets and forge unforgettable
-					memories in this classic party game gone virtual!
-				</p>
-				<div class="absolute bottom-4 right-4">
-					<button class="relative pl-12 p-4 menu-button" onclick={startNhie}>
-						<MdiGamepadSquare class="absolute left-4 top-2 h-10 w-6" /> Start New Game
-					</button>
-				</div>
-			</div>
-		</div>
-		<div class="menu-container">
-			<h1 class="text-3xl dark:text-white font-bold mb-4">Cards Against Humanity</h1>
-			<div
-				class="relative border-2 border-gray-200 dark:border-gray-400 px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
-			>
-				<span class="absolute top-4 left-3">
-					<MdiInformation class="w-8 h-8" />
-				</span>
-				<p class="text-justify pl-11 pr-4">
-					Play a light multiplayer remake of Cards Against Humanity. This is a minimal UI preview wired
-					to the multi-game engine; full gameplay will evolve over time.
-				</p>
-				<div class="absolute bottom-4 right-4">
-					<button class="relative pl-12 p-4 menu-button" onclick={startCah}>
-						<MdiGamepadSquare class="absolute left-4 top-2 h-10 w-6" /> Start New Game
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
+<!-- Page Background -->
+<div class="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-800 to-slate-900 text-slate-100">
+	<!-- Content Container -->
+	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+		<!-- Heading -->
+		<header class="text-center mb-8">
+			<h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Multiplayer Party Games</h1>
+			<p class="mt-2 text-slate-300 text-sm sm:text-base">Pick a game below and share the link with friends. No accounts. Just play.</p>
+		</header>
 
-<style>
-	.menu-container {
-		@apply p-10 text-gray-800 rounded-md;
-		@apply flex flex-col items-center justify-center;
-	}
-	.menu-button {
-		@apply bg-green-500 text-white rounded-md shadow-md;
-		@apply mt-4 cursor-pointer transition ease-in-out duration-200;
-	}
-	.menu-button:hover {
-		@apply bg-green-400;
-	}
-</style>
+		<!-- Game Cards Grid -->
+		<section class="grid gap-6 md:grid-cols-2">
+			<!-- NHIE Card -->
+			<article class="relative rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 transition transform hover:-translate-y-0.5 hover:shadow-2xl">
+				<div class="p-6">
+					<h2 class="text-2xl font-bold mb-3">Never Have I Ever</h2>
+					<div class="flex items-start gap-3 text-slate-300">
+						<span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-slate-200"><MdiInformation class="h-5 w-5" /></span>
+						<p class="text-sm leading-6">
+							Dive into a virtual realm of cheeky confessions with our real-time online game of Never Have I Ever.
+							Discover amusing truths with friends and new acquaintances, share laughs, and make memories in this classic party game.
+						</p>
+					</div>
+					<div class="mt-6 flex justify-end">
+						<button class="group inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" onclick={startNhie}>
+							<MdiGamepadSquare class="h-5 w-5" />
+							<span>Start New Game</span>
+						</button>
+					</div>
+				</div>
+				<div class="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-emerald-400/10 via-transparent to-transparent"></div>
+			</article>
+
+			<!-- CAH Card -->
+			<article class="relative rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 transition transform hover:-translate-y-0.5 hover:shadow-2xl">
+				<div class="p-6">
+					<h2 class="text-2xl font-bold mb-3">Cards Against Humanity</h2>
+					<div class="flex items-start gap-3 text-slate-300">
+						<span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-slate-200"><MdiInformation class="h-5 w-5" /></span>
+						<p class="text-sm leading-6">
+							Play a light multiplayer remake of Cards Against Humanity. This preview is wired to the new multi-game engine;
+							full gameplay will evolve over time.
+						</p>
+					</div>
+					<div class="mt-6 flex justify-end">
+						<button class="group inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" onclick={startCah}>
+							<MdiGamepadSquare class="h-5 w-5" />
+							<span>Start New Game</span>
+						</button>
+					</div>
+				</div>
+				<div class="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-emerald-400/10 via-transparent to-transparent"></div>
+			</article>
+		</section>
+	</main>
+</div>

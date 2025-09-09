@@ -51,22 +51,26 @@
   onDestroy(() => { try { socket?.close(); } catch (_) {} socket = null; });
 </script>
 
-<div class="text-center">
-  <h1 class="text-2xl font-semibold">Cards Against Humanity</h1>
-  {#if error}
-    <p class="text-red-600">{error}</p>
-  {/if}
-  <p class="text-sm opacity-70">Status: {connection}</p>
-  <div class="mx-auto my-4 max-w-md">
-    <p class="text-xs uppercase font-bold">Players</p>
-    {#each players.filter(p => p.connected) as player}
-      <div class="my-1 p-1 font-bold" data-testid={`player-${player.name}`}>{player.name}</div>
-    {/each}
+<div class="max-w-2xl mx-auto">
+  <div class="rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 p-6">
+    <h1 class="text-2xl font-bold">Cards Against Humanity</h1>
+    {#if error}
+      <p class="text-red-400 mt-1">{error}</p>
+    {/if}
+    <p class="text-sm opacity-70 mt-1">Status: {connection}</p>
+    <div class="mx-auto my-4">
+      <p class="text-xs uppercase font-bold">Players</p>
+      {#each players.filter(p => p.connected) as player}
+        <div class="my-1 p-1 font-bold" data-testid={`player-${player.name}`}>{player.name}</div>
+      {/each}
+    </div>
+    <p class="text-sm opacity-80">Game UI coming soon.</p>
+    <p class="text-xs opacity-60">Connected to engine via playing=cards-against-humanity</p>
+    <div class="mt-4">
+      <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" onclick={() => socket?.send(JSON.stringify({ op: 'ping' }))}>Ping</button>
+      <button class="ml-2 inline-flex items-center gap-2 rounded-lg bg-slate-600 px-3 py-2 text-white font-semibold shadow hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" onclick={() => socket?.send(JSON.stringify({ op: 'reset_game' }))}>Reset</button>
+    </div>
   </div>
-  <p class="text-sm opacity-60">Game UI coming soon.</p>
-  <p class="text-xs opacity-50">Connected to engine via playing=cards-against-humanity</p>
-  <button class="mt-4 px-3 py-2 bg-gray-200 rounded" onclick={() => socket?.send(JSON.stringify({ op: 'ping' }))}>Ping</button>
-  <button class="mt-4 ml-2 px-3 py-2 bg-gray-200 rounded" onclick={() => socket?.send(JSON.stringify({ op: 'reset_game' }))}>Reset (NHIE-compatible)</button>
 </div>
 
 

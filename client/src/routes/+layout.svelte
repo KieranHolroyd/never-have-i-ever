@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import Settings from '$lib/components/Settings.svelte';
 	import Navbar from '$lib/components/Navbar.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 	import { UUIDv4Regex } from '$lib/regex';
 	interface Props {
 		children: import('svelte').Snippet;
@@ -36,8 +37,13 @@
 	<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
 	<meta property="og:url" content={$page.url.href} />
 </svelte:head>
-<div class="max-w-4xl mx-auto transition-all pl-16 lg:pl-0">
-	{@render children()}
-	<Settings />
-	<Navbar />
+
+<!-- Global background + container -->
+<div class="min-h-screen bg-gradient-to-b from-slate-800 to-slate-900 text-slate-100">
+	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all pl-16 lg:pl-0">
+		{@render children()}
+		<Settings />
+		<Navbar />
+		<Footer />
+	</div>
 </div>

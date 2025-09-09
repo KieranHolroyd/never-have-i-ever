@@ -11,3 +11,17 @@ button {
 .red-button {
 	@apply bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-400;
 }
+
+/* Unified UI utilities */
+.panel {
+	@apply rounded-xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow ring-1 ring-white/5;
+}
+.panel-heading {
+	@apply m-0 text-xs uppercase font-bold;
+}
+.card {
+	@apply mx-auto my-6 max-w-md p-3;
+}
+.prose-panel {
+	@apply prose dark:prose-invert;
+}

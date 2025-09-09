@@ -580,51 +580,53 @@
 	/// ----------------
 </script>
 
-<div class="dark:text-white text-black text-center">
+<div class="dark:text-white text-black text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]">
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
-			<div class="mx-auto mt-4 prose dark:prose-invert lg:prose-lg xl:prose-xl">
+			<div class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl">
 				<h1>New Game</h1>
 			</div>
 			<div
-				class="z-10 w-64 mx-auto mt-6 columns-1 dark:text-white dark:bg-gray-800 bg-white border-2 dark:border-gray-600 border-gray-200 shadow rounded-t-md"
+				class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl"
 			>
-				<p class="text-xl font-semibold py-2 dark:bg-black bg-gray-200 rounded-t-md">
+				<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">
 					Select Catagories
 				</p>
 				{#if catagories !== undefined}
-					{#each Object.entries(catagories) as [catagory_name, catagory]}
-						{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
-							<span></span>
-						{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
-							<span></span>
-						{:else}
-							<label class="my-[2px]">
-								<div
-									class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-gray-100 hover:dark:bg-gray-600 duration-75"
-								>
-									<input
-										type="checkbox"
-										class=""
-										checked={game_state.current_catagory.includes(catagory_name)}
-										onchange={() => emitSelectCatagory(catagory_name)}
-									/>
-									<span class="float-right">
-										{#if catagory.flags.is_nsfw}
-											<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
-										{/if}
-										{catagory_name}
-									</span>
-								</div>
-							</label>
-						{/if}
-					{/each}
+					<div class="max-h-96 overflow-auto">
+						{#each Object.entries(catagories) as [catagory_name, catagory]}
+							{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
+								<span></span>
+							{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
+								<span></span>
+							{:else}
+								<label class="my-[2px]">
+									<div
+										class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-slate-700/50 duration-75"
+									>
+										<input
+											type="checkbox"
+											class=""
+											checked={game_state.current_catagory.includes(catagory_name)}
+											onchange={() => emitSelectCatagory(catagory_name)}
+										/>
+										<span class="float-right">
+											{#if catagory.flags.is_nsfw}
+												<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
+											{/if}
+											{catagory_name}
+										</span>
+									</div>
+								</label>
+							{/if}
+						{/each}
+					</div>
 				{:else}
 					<p>Loading...</p>
 				{/if}
 			</div>
 			<button
-				class="rounded-none transition bg-green-500 text-white font-bold py-2 px-4 hover:bg-green-400 w-64 rounded-b-md shadow hover:shadow-lg"
+				class="rounded-none transition bg-emerald-500 text-white font-semibold py-2 px-4 hover:bg-emerald-400 w-full max-w-md mx-auto rounded-b-xl shadow hover:shadow-xl"
 				onclick={() => confirmSelections()}
 			>
 				Continue
@@ -652,15 +654,15 @@
 			</Notification>
 		{:else}
 			{#if current_question?.content !== undefined}
-				<div class="mx-auto my-6 max-w-lg p-3">
+				<div class="panel card">
 					<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">Catagory: {current_question?.catagory}</p>
 					<p class="relative text-lg my-1 p-1" data-testid="question-content">{current_question?.content}</p>
 				</div>
 				{#if error}
 					<p class="text-red-700">{error}</p>
 				{/if}
-				<div class="mx-auto my-6 max-w-lg p-3">
-					<p class="m-0 text-xs uppercase font-bold">Players</p>
+				<div class="panel card">
+					<p class="panel-heading">Players</p>
 					{#each players.filter((p) => p.connected) as player}
 						<div class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`} data-testid={`player-${player.name}`}>
 							{player.name}: {player.this_round.vote ?? 'Not Voted'}
@@ -677,7 +679,7 @@
 				<h2>Choose a question</h2>
 			{/if}
 			{#if game_state.waiting_for_players}
-				<div class="mx-auto mt-4 p-4 bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 dark:border-yellow-600 rounded-lg max-w-md">
+				<div class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600">
 					<div class="text-center">
 						<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
 							Round in Progress
@@ -704,45 +706,46 @@
 
 			<!-- Debug Info -->
 			{#if $settings?.show_debug}
-				<div class="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+				<div class="panel card mb-2 p-2 text-left text-xs">
 					<div>Timer: {round_timeout}s | Start: {timeout_start} | Duration: {timeout_duration}</div>
 					<div>Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval ? 'active' : 'inactive'}</div>
-					<button class="mt-1 px-2 py-1 bg-blue-500 text-white rounded text-xs" onclick={debugGameState}>
+					<button class="mt-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs" onclick={debugGameState}>
 						Debug State
 					</button>
 				</div>
 			{/if}
 
-			<div class="action-bar">
-				<div class="row dark:bg-gray-700 bg-white pb-2">
+			<!-- Restyled Action Bar -->
+			<div class="fixed bottom-0 left-0 w-full z-30">
+				<div class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/60">
 					<button
-						class="text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-green-400 hover:dark:bg-opacity-50 col-span-3"
+						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-emerald-300"
 						onclick={() => vote(VoteOptions.Have)}
 					>
 						Have
 					</button>
 					<button
-						class="border-x dark:border-gray-500 border-gray-200 text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-blue-400 hover:dark:bg-opacity-50 col-span-3"
+						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 hover:text-sky-300"
 						onclick={() => vote(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
 					<button
-						class="text-xl md:text-2xl font-light px-4 dark:bg-gray-700 dark:text-white bg-white hover:bg-red-400 hover:dark:bg-opacity-50 col-span-3"
+						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-rose-300"
 						onclick={() => vote(VoteOptions.HaveNot)}
 					>
 						Have not
 					</button>
 				</div>
-				<div class="row">
+				<div class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),0.5rem)]">
 					<button
-						class="text-white bg-gray-600 hover:bg-red-400 col-span-2"
+						class="col-span-2 text-white bg-slate-700 hover:bg-rose-500 text-xl md:text-2xl py-3"
 						onclick={() => conf_reset()}
 					>
-						<MdiUndoVariant class="w-6 h-6 mx-auto" />
+						<MdiUndoVariant class="w-7 h-7 mx-auto" />
 					</button>
 					<button
-						class="text-white bg-green-500 hover:bg-green-400 text-2xl md:text-4xl py-4 col-span-5"
+						class="col-span-5 text-white bg-emerald-600 hover:bg-emerald-500 text-3xl md:text-5xl py-4"
 						onclick={() => selectQuestion()}
 						disabled={game_state.waiting_for_players && (players?.filter((p) => p.connected && p.this_round.voted).length || 0) !== (players?.filter((p) => p.connected).length || 1)}
 					>
@@ -757,17 +760,18 @@
 						{/if}
 					</button>
 					<button
-						class="text-white bg-gray-600 hover:bg-gray-400 col-span-2"
+						class="col-span-2 text-white bg-slate-700 hover:bg-slate-600 text-xl md:text-2xl py-3"
 						ondblclick={() => selectCatagories()}
 						onclick={() => {
 							categories_click = true;
 							setTimeout(() => (categories_click = false), 1000);
 						}}
 					>
-						<MdiListBox class="w-6 h-6 mx-auto" />
+						<MdiListBox class="w-7 h-7 mx-auto" />
 					</button>
 				</div>
 			</div>
+
 			{#if !$settings.no_tutorials}
 				<div
 					class={`fixed bottom-4 right-4 z-50 py-2 px-4 rounded-md bg-gray-200 dark:bg-gray-800 border-t-2 dark:border-gray-600 border-gray-200 shadow pointer-events-none ${
@@ -835,7 +839,7 @@
 </div>
 <div class="fixed z-20 top-[7.5rem] left-2">
 	<button
-		class="relative rounded-full p-2 bg-slate-200/40 dark:bg-slate-500/40 backdrop-blur-sm border-2 duration-200"
+		class="relative rounded-full p-2 panel duration-200"
 		title="Share!"
 		onclick={share_game}
 	>
@@ -843,14 +847,4 @@
 	</button>
 </div>
 
-<style lang="scss">
-	.action-bar {
-		@apply fixed bottom-0 left-0 w-full;
-		.row {
-			@apply w-full grid grid-cols-9;
-			button {
-				@apply rounded-none duration-150;
-			}
-		}
-	}
-</style>
+

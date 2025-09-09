@@ -23,14 +23,14 @@
 {#if isShown && !hidden}
 	<div class="fixed top-2 left-2 right-2 z-50">
 		<div
-			class="text-left rounded-lg border border-black dark:border-white bg-gray-200 dark:bg-gray-800 py-4 px-8 max-h-[calc(100vh-1rem)] overflow-auto"
+			class="text-left panel py-4 px-8 max-h-[calc(100vh-1rem)] overflow-auto"
 		>
-			<div class="mx-auto prose lg:prose-xl dark:prose-invert">
+			<div class="mx-auto prose-panel lg:prose-xl">
 				<h1 class="text-center">{title}</h1>
 				{@render children?.()}
 				<div class="flex justify-end">
 					<button
-						class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"
+						class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
 						onclick={markAsSeen}
 					>
 						Continue
