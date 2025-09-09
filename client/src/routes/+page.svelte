@@ -12,34 +12,62 @@
 
 	let { data }: Props = $props();
 
-	function startGame() {
+	function startNhie() {
 		if (LocalPlayer.name === null) {
-			return goto(`/play/name?redirect=/play/${data.newgame_id}/never-have-i-ever`);
+			return goto(`/play/name?redirect=/play/${data.newgame_nhie_id}/never-have-i-ever`);
 		}
-		goto(`/play/${data.newgame_id}/never-have-i-ever`);
+		goto(`/play/${data.newgame_nhie_id}/never-have-i-ever`);
+	}
+
+	function startCah() {
+		if (LocalPlayer.name === null) {
+			return goto(`/play/name?redirect=/play/${data.newgame_cah_id}/cards-against-humanity`);
+		}
+		goto(`/play/${data.newgame_cah_id}/cards-against-humanity`);
 	}
 </script>
 
 <div>
-	<div class="menu-container">
-		<h1 class="text-3xl dark:text-white font-bold mb-4">Never Have I Ever</h1>
-		<div
-			class="relative border-2 border-gray-200 dark:border-gray-400 px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
-		>
-			<span class="absolute top-4 left-3">
-				<MdiInformation class="w-8 h-8" />
-			</span>
-			<p class="text-justify pl-11 pr-4">
-				Dive into a virtual realm of cheeky confessions with our real-time online game of Never Have
-				I Ever. Discover amusing truths in a laughter-filled atmosphere, whether with close friends
-				or new acquaintances. Experience a seamless gaming journey as you venture through rounds of
-				startling revelations and playful exchanges. Unmask amusing secrets and forge unforgettable
-				memories in this classic party game gone virtual!
-			</p>
-			<div class="absolute bottom-4 right-4">
-				<button class="relative pl-12 p-4 menu-button" onclick={startGame}>
-					<MdiGamepadSquare class="absolute left-4 top-2 h-10 w-6" /> Start New Game
-				</button>
+	<div class="grid gap-6 md:grid-cols-2">
+		<div class="menu-container">
+			<h1 class="text-3xl dark:text-white font-bold mb-4">Never Have I Ever</h1>
+			<div
+				class="relative border-2 border-gray-200 dark:border-gray-400 px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
+			>
+				<span class="absolute top-4 left-3">
+					<MdiInformation class="w-8 h-8" />
+				</span>
+				<p class="text-justify pl-11 pr-4">
+					Dive into a virtual realm of cheeky confessions with our real-time online game of Never Have
+					I Ever. Discover amusing truths in a laughter-filled atmosphere, whether with close friends
+					or new acquaintances. Experience a seamless gaming journey as you venture through rounds of
+					startling revelations and playful exchanges. Unmask amusing secrets and forge unforgettable
+					memories in this classic party game gone virtual!
+				</p>
+				<div class="absolute bottom-4 right-4">
+					<button class="relative pl-12 p-4 menu-button" onclick={startNhie}>
+						<MdiGamepadSquare class="absolute left-4 top-2 h-10 w-6" /> Start New Game
+					</button>
+				</div>
+			</div>
+		</div>
+		<div class="menu-container">
+			<h1 class="text-3xl dark:text-white font-bold mb-4">Cards Against Humanity</h1>
+			<div
+				class="relative border-2 border-gray-200 dark:border-gray-400 px-2 py-4 pb-20 rounded-lg dark:text-gray-300 dark:bg-gray-900 bg-gray-200"
+			>
+				<span class="absolute top-4 left-3">
+					<MdiInformation class="w-8 h-8" />
+				</span>
+				<p class="text-justify pl-11 pr-4">
+					Play a light multiplayer remake of Cards Against Humanity. This is a minimal UI preview wired
+					to the multi-game engine; full gameplay will evolve over time.
+				</p>
+				<div class="absolute bottom-4 right-4">
+					<button class="relative pl-12 p-4 menu-button" onclick={startCah}>
+						<MdiGamepadSquare class="absolute left-4 top-2 h-10 w-6" /> Start New Game
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
