@@ -73,3 +73,94 @@ export type GameData = {
 	// Local game state
 	data: Catagories;
 };
+
+// Cards Against Humanity Types
+export type CardPack = {
+	id: string;
+	name: string;
+	description: string;
+	author: string;
+	version: string;
+	isOfficial: boolean;
+	isNSFW: boolean;
+	blackCards: BlackCard[];
+	whiteCards: WhiteCard[];
+	metadata: {
+		totalBlackCards: number;
+		totalWhiteCards: number;
+		createdAt: string;
+		updatedAt: string;
+	};
+};
+
+export type BlackCard = {
+	id: string;
+	text: string;
+	pick: number; // Number of white cards to pick (usually 1, sometimes 2 or 3)
+};
+
+export type WhiteCard = {
+	id: string;
+	text: string;
+};
+
+export type SelectedPacks = {
+	[key: string]: boolean; // packId -> selected
+};
+
+// Cards Against Humanity Types
+export type CAHGameState = {
+	id: string;
+	players: CAHPlayer[];
+	selectedPacks: string[];
+
+	// Game phases
+	phase: 'waiting' | 'selecting' | 'judging' | 'scoring' | 'game_over';
+
+	// Current round state
+	currentJudge: string | null;
+	currentBlackCard: CAHBlackCard | null;
+	submittedCards: CAHSubmission[];
+	roundWinner: string | null;
+
+	// Deck state
+	deck: {
+		blackCards: CAHBlackCard[];
+		whiteCards: CAHWhiteCard[];
+	};
+
+	// Game settings
+	handSize: number;
+	maxRounds: number;
+	currentRound: number;
+
+	// Control states
+	waitingForPlayers: boolean;
+	gameCompleted: boolean;
+};
+
+export type CAHPlayer = {
+	id: string;
+	name: string;
+	score: number;
+	connected: boolean;
+	hand: CAHWhiteCard[];
+	isJudge: boolean;
+};
+
+export type CAHBlackCard = {
+	id: string;
+	text: string;
+	pick: number; // Number of white cards to pick (usually 1, sometimes 2 or 3)
+};
+
+export type CAHWhiteCard = {
+	id: string;
+	text: string;
+};
+
+export type CAHSubmission = {
+	playerId: string;
+	cards: CAHWhiteCard[];
+	playerName: string;
+};

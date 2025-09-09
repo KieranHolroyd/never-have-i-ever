@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import CardsAgainstHumanity from '$lib/components/cards-against-humanity/Game.svelte';
+	import CardPackSelection from '$lib/components/cards-against-humanity/CardPackSelection.svelte';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -8,6 +9,17 @@
 	}
 
 	let { data }: Props = $props();
+
+	// Game state management
+	let gameStarted: boolean = $state(false);
+	let selectedPackIds: string[] = $state([]);
+
+	function handlePacksSelected(packs: string[]) {
+		selectedPackIds = packs;
+		gameStarted = true;
+		// TODO: Send selected packs to server/game engine
+		console.log('Selected packs:', selectedPackIds);
+	}
 </script>
 
 <svelte:head>
@@ -51,4 +63,8 @@
 	{/if}
 </svelte:head>
 <!-- <NeverHaveIEver id={$page.params.gameid} catagories={data.catagories} /> -->
-<CardsAgainstHumanity id={$page.params.gameid as string} />
+{#if gameStarted}
+	<CardsAgainstHumanity id={$page.params.gameid as string} {selectedPackIds} />
+{:else}
+	<CardPackSelection gameId={$page.params.gameid as string} onPacksSelected={handlePacksSelected} />
+{/if}

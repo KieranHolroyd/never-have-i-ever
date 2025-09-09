@@ -24,7 +24,9 @@
 </script>
 
 <div class="max-w-md mx-auto mt-10">
-	<div class="rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 p-6">
+	<div
+		class="rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 p-6"
+	>
 		<h1 class="relative pl-12 text-xl font-bold">
 			<IcRoundAccountCircle class="absolute left-0 top-[-2px] text-white h-10 w-10" />
 			{LocalPlayer.name !== null ? `Hello ${LocalPlayer.name}` : 'Choose your nickname'}
@@ -36,7 +38,9 @@
 				You can change your nickname at any time.
 			{/if}
 		</p>
-		<label class="block w-full text-left uppercase text-xs font-bold mt-4 mb-1" for="name">Nickname</label>
+		<label class="block w-full text-left uppercase text-xs font-bold mt-4 mb-1" for="name"
+			>Nickname</label
+		>
 		<input
 			class="block w-full rounded-md text-slate-900 bg-slate-100 placeholder-slate-500 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
 			type="text"

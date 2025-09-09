@@ -78,6 +78,7 @@ This project uses local Playwright binaries for security (command allowlisting).
 - Local browser installations in `./node_modules/playwright-core/browsers/`
 
 If you need to allowlist commands in your shell, add:
+
 ```
 [path/to/project]/client/node_modules/.bin/playwright
 ```

@@ -18,9 +18,7 @@
 
 {#if show}
 	<div class="fixed top-2 left-2 right-2 z-50">
-		<div
-			class="panel text-center py-4 px-8"
-		>
+		<div class="panel text-center py-4 px-8">
 			{@render children?.()}
 			<br />
 			<div class="flex justify-center gap-2 mt-2">

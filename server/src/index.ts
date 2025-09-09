@@ -5,6 +5,7 @@ import { emit, publish, send } from "./lib/socket";
 import { GameManager } from "./game-manager";
 import { engineRegistry } from "./lib/engine-registry";
 import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
+import { createCardsAgainstHumanityEngine } from "./lib/engines/cards-against-humanity";
 import logger from "./logger";
 
 // Validate environment variables
@@ -122,6 +123,9 @@ const server = Bun.serve({
 
 // Register the default engine backed by current GameManager handlers
 engineRegistry.register(createNeverHaveIEverEngine(gameManager));
+
+// Register Cards Against Humanity engine
+engineRegistry.register(createCardsAgainstHumanityEngine(gameManager));
 
 // Auto-save games periodically
 setInterval(async () => {

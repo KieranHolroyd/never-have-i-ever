@@ -1,8 +1,8 @@
 import { env } from '$env/dynamic/public';
-import type { Catagories, GameData } from '$lib/types.js';
+import type { CAHGameState } from '$lib/types.js';
 import { redirect } from '@sveltejs/kit';
 
-type ClientGameData = GameData & {
+type ClientCAHGameData = CAHGameState & {
 	active: boolean;
 };
 
@@ -10,20 +10,26 @@ export async function load({ params }) {
 	if (!params.gameid) {
 		return redirect(307, '/');
 	}
-	const req = await fetch(`${env.PUBLIC_API_URL}api/game?id=${params.gameid}`);
-	const game = (await req.json()) as ClientGameData;
-	const req2 = await fetch(`${env.PUBLIC_API_URL}api/catagories`);
-	const cats = (await req2.json()) as Catagories;
 
-	if (req.status !== 200) {
-		return {};
-	}
-	if (req2.status !== 200) {
-		return {};
-	}
-
+	// For now, return empty data - the game state will be managed via WebSocket
+	// TODO: Add API endpoint for CAH game state when needed
 	return {
-		game: game,
-		catagories: cats
+		game: {
+			id: params.gameid,
+			players: [],
+			selectedPacks: [],
+			phase: 'waiting',
+			currentJudge: null,
+			currentBlackCard: null,
+			submittedCards: [],
+			roundWinner: null,
+			deck: { blackCards: [], whiteCards: [] },
+			handSize: 7,
+			maxRounds: 10,
+			currentRound: 0,
+			waitingForPlayers: true,
+			gameCompleted: false,
+			active: false
+		} as ClientCAHGameData
 	};
 }

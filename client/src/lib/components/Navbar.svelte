@@ -53,7 +53,9 @@
 				<IcRoundAccountCircle class="absolute left-3 top-2.5 h-6 w-6" /> Change username
 			</div>
 		</a>
-		<div class="relative font-bold w-full pl-12 pr-3 py-2 text-sm opacity-80 border-t border-slate-600/40 mt-2 pt-3">
+		<div
+			class="relative font-bold w-full pl-12 pr-3 py-2 text-sm opacity-80 border-t border-slate-600/40 mt-2 pt-3"
+		>
 			<MdiInformationOutline class="absolute left-3 top-2.5 h-5 w-5" />
 			<span>v{version}</span>
 		</div>

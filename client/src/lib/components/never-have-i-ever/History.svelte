@@ -10,9 +10,7 @@
 </script>
 
 {#each history as round, idx}
-	<div
-		class="relative prose-panel panel mx-auto my-6 max-w-md pt-8 pb-2 px-3"
-	>
+	<div class="relative prose-panel panel mx-auto my-6 max-w-md pt-8 pb-2 px-3">
 		<span class="absolute left-2 top-2 uppercase text-xs">
 			<b>Round</b>
 			{idx + 1}

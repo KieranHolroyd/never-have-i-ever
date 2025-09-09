@@ -26,7 +26,9 @@
 				<p class="uppercase text-[10px] opacity-70 mb-1">Players</p>
 				<ul class="space-y-0.5">
 					{#each players as player}
-						<li class={`${!player.connected ? 'line-through opacity-60' : ''} flex justify-between`}>
+						<li
+							class={`${!player.connected ? 'line-through opacity-60' : ''} flex justify-between`}
+						>
 							<span>{player.name}</span>
 							{#if player.connected}<span class="text-emerald-300">{player.score}</span>{/if}
 						</li>

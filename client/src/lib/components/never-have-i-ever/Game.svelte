@@ -251,7 +251,6 @@
 		} catch (e) {
 			console.log(`[DEBUG] Failed to create socket: ${e}`);
 			scheduleReconnect();
-			
 		}
 
 		// CRITICAL: Attach event listeners IMMEDIATELY after creating WebSocket
@@ -294,8 +293,16 @@
 						current_question = data.game.current_question;
 
 						// Handle server-synced timeout (starts when first vote is cast)
-						if (game_state.waiting_for_players && data.game.timeout_start !== undefined && data.game.timeout_duration) {
-							console.log('[DEBUG] Setting timeout:', data.game.timeout_start, data.game.timeout_duration);
+						if (
+							game_state.waiting_for_players &&
+							data.game.timeout_start !== undefined &&
+							data.game.timeout_duration
+						) {
+							console.log(
+								'[DEBUG] Setting timeout:',
+								data.game.timeout_start,
+								data.game.timeout_duration
+							);
 							timeout_start = data.game.timeout_start;
 							timeout_duration = data.game.timeout_duration;
 
@@ -482,7 +489,7 @@
 			}
 
 			reconnect_scheduled = true;
-			console.log(`[DEBUG] Scheduling reconnect attempt ${retry_count} in ${delay/1000}s`);
+			console.log(`[DEBUG] Scheduling reconnect attempt ${retry_count} in ${delay / 1000}s`);
 
 			reconnect_timeout = setTimeout(() => {
 				reconnect_scheduled = false;
@@ -494,10 +501,18 @@
 			if (reconnect_inflight) return;
 			reconnect_inflight = true;
 			console.log(`[DEBUG] Performing reconnect attempt ${retry_count}`);
-			try { socket?.close(); } catch (_) {}
+			try {
+				socket?.close();
+			} catch (_) {}
 			socket = null;
-			if (ping_timeout) { clearInterval(ping_timeout); ping_timeout = null; }
-			if (connection_timeout) { clearTimeout(connection_timeout); connection_timeout = null; }
+			if (ping_timeout) {
+				clearInterval(ping_timeout);
+				ping_timeout = null;
+			}
+			if (connection_timeout) {
+				clearTimeout(connection_timeout);
+				connection_timeout = null;
+			}
 			connection = Status.CONNECTING;
 
 			try {
@@ -524,7 +539,10 @@
 				console.log('[DEBUG] Online event - attempting immediate reconnect');
 				retry_count = Math.max(0, retry_count - 1); // be a bit forgiving after regaining network
 				// Try immediately without waiting for backoff
-				if (reconnect_timeout) { clearTimeout(reconnect_timeout); reconnect_timeout = null; }
+				if (reconnect_timeout) {
+					clearTimeout(reconnect_timeout);
+					reconnect_timeout = null;
+				}
 				reconnect_scheduled = false;
 				performImmediateReconnect();
 			}
@@ -541,10 +559,18 @@
 		function performImmediateReconnect() {
 			if (reconnect_inflight) return;
 			reconnect_inflight = true;
-			try { socket?.close(); } catch (_) {}
+			try {
+				socket?.close();
+			} catch (_) {}
 			socket = null;
-			if (ping_timeout) { clearInterval(ping_timeout); ping_timeout = null; }
-			if (connection_timeout) { clearTimeout(connection_timeout); connection_timeout = null; }
+			if (ping_timeout) {
+				clearInterval(ping_timeout);
+				ping_timeout = null;
+			}
+			if (connection_timeout) {
+				clearTimeout(connection_timeout);
+				connection_timeout = null;
+			}
 			connection = Status.CONNECTING;
 			setupsock();
 		}
@@ -580,18 +606,16 @@
 	/// ----------------
 </script>
 
-<div class="dark:text-white text-black text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]">
+<div
+	class="dark:text-white text-black text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]"
+>
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
 			<div class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl">
 				<h1>New Game</h1>
 			</div>
-			<div
-				class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl"
-			>
-				<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">
-					Select Catagories
-				</p>
+			<div class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl">
+				<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">Select Catagories</p>
 				{#if catagories !== undefined}
 					<div class="max-h-96 overflow-auto">
 						{#each Object.entries(catagories) as [catagory_name, catagory]}
@@ -655,8 +679,12 @@
 		{:else}
 			{#if current_question?.content !== undefined}
 				<div class="panel card">
-					<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">Catagory: {current_question?.catagory}</p>
-					<p class="relative text-lg my-1 p-1" data-testid="question-content">{current_question?.content}</p>
+					<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">
+						Catagory: {current_question?.catagory}
+					</p>
+					<p class="relative text-lg my-1 p-1" data-testid="question-content">
+						{current_question?.content}
+					</p>
 				</div>
 				{#if error}
 					<p class="text-red-700">{error}</p>
@@ -664,7 +692,10 @@
 				<div class="panel card">
 					<p class="panel-heading">Players</p>
 					{#each players.filter((p) => p.connected) as player}
-						<div class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`} data-testid={`player-${player.name}`}>
+						<div
+							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`}
+							data-testid={`player-${player.name}`}
+						>
 							{player.name}: {player.this_round.vote ?? 'Not Voted'}
 							<div
 								class="absolute text-xs leading-[1.825] top-1 right-1 bg-red-600 border border-white rounded-full text-white min-w-[1.5rem] h-6 px-1"
@@ -679,13 +710,17 @@
 				<h2>Choose a question</h2>
 			{/if}
 			{#if game_state.waiting_for_players}
-				<div class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600">
+				<div
+					class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600"
+				>
 					<div class="text-center">
 						<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
 							Round in Progress
 						</h3>
 						<div class="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
-							{players?.filter((p) => p.connected && p.this_round.voted).length || 0} / {players?.filter((p) => p.connected).length || 0} players voted
+							{players?.filter((p) => p.connected && p.this_round.voted).length || 0} / {players?.filter(
+								(p) => p.connected
+							).length || 0} players voted
 						</div>
 						{#if timeout_start === 0}
 							<div class="text-xs text-yellow-600 dark:text-yellow-400">
@@ -708,8 +743,15 @@
 			{#if $settings?.show_debug}
 				<div class="panel card mb-2 p-2 text-left text-xs">
 					<div>Timer: {round_timeout}s | Start: {timeout_start} | Duration: {timeout_duration}</div>
-					<div>Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval ? 'active' : 'inactive'}</div>
-					<button class="mt-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs" onclick={debugGameState}>
+					<div>
+						Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval
+							? 'active'
+							: 'inactive'}
+					</div>
+					<button
+						class="mt-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
+						onclick={debugGameState}
+					>
 						Debug State
 					</button>
 				</div>
@@ -717,7 +759,9 @@
 
 			<!-- Restyled Action Bar -->
 			<div class="fixed bottom-0 left-0 w-full z-30">
-				<div class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/60">
+				<div
+					class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/60"
+				>
 					<button
 						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-emerald-300"
 						onclick={() => vote(VoteOptions.Have)}
@@ -737,7 +781,9 @@
 						Have not
 					</button>
 				</div>
-				<div class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+				<div
+					class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+				>
 					<button
 						class="col-span-2 text-white bg-slate-700 hover:bg-rose-500 text-xl md:text-2xl py-3"
 						onclick={() => conf_reset()}
@@ -747,7 +793,9 @@
 					<button
 						class="col-span-5 text-white bg-emerald-600 hover:bg-emerald-500 text-3xl md:text-5xl py-4"
 						onclick={() => selectQuestion()}
-						disabled={game_state.waiting_for_players && (players?.filter((p) => p.connected && p.this_round.voted).length || 0) !== (players?.filter((p) => p.connected).length || 1)}
+						disabled={game_state.waiting_for_players &&
+							(players?.filter((p) => p.connected && p.this_round.voted).length || 0) !==
+								(players?.filter((p) => p.connected).length || 1)}
 					>
 						{#if game_state.waiting_for_players}
 							{#if (players?.filter((p) => p.connected && p.this_round.voted).length || 0) === (players?.filter((p) => p.connected).length || 1)}
@@ -838,13 +886,7 @@
 	{/if}
 </div>
 <div class="fixed z-20 top-[7.5rem] left-2">
-	<button
-		class="relative rounded-full p-2 panel duration-200"
-		title="Share!"
-		onclick={share_game}
-	>
+	<button class="relative rounded-full p-2 panel duration-200" title="Share!" onclick={share_game}>
 		<MdiShareOutline class="dark:text-white h-8 w-8" />
 	</button>
 </div>
-
-

@@ -69,6 +69,7 @@ npx playwright test voting.spec.ts
 ## Test Categories
 
 ### Game Flow Tests
+
 - Home page loading
 - Game creation
 - Player name input
@@ -76,18 +77,21 @@ npx playwright test voting.spec.ts
 - Question display
 
 ### Multiplayer Tests
+
 - Multiple players joining same game
 - Real-time synchronization
 - Player count display
 - Cross-player state updates
 
 ### Voting Tests
+
 - Vote button functionality
 - Score tracking
 - Question progression
 - Player status updates
 
 ### End-to-End Tests
+
 - Complete game flow from start to finish
 - Error handling
 - State persistence
@@ -105,10 +109,12 @@ Tests are configured in `playwright.config.ts` with the following settings:
 ## CI/CD Integration
 
 Tests are automatically run on GitHub Actions for:
+
 - Push to master/main branches
 - Pull requests to master/main branches
 
 The CI pipeline:
+
 1. Installs dependencies
 2. Builds the client
 3. Runs server tests
@@ -123,7 +129,7 @@ The CI pipeline:
 import { test, expect } from '@playwright/test';
 
 test('test description', async ({ page }) => {
-  // Test code here
+	// Test code here
 });
 ```
 
@@ -133,12 +139,12 @@ test('test description', async ({ page }) => {
 import { test, expect, GameHelper } from './helpers';
 
 test('using helpers', async ({ page }) => {
-  const gameHelper = new GameHelper(page);
+	const gameHelper = new GameHelper(page);
 
-  await gameHelper.startNewGame('Test Player');
-  await gameHelper.selectCategories([0, 1]);
-  await gameHelper.waitForQuestion();
-  await gameHelper.vote('Have');
+	await gameHelper.startNewGame('Test Player');
+	await gameHelper.selectCategories([0, 1]);
+	await gameHelper.waitForQuestion();
+	await gameHelper.vote('Have');
 });
 ```
 
@@ -149,16 +155,19 @@ Test data like categories and questions are loaded from the server automatically
 ## Troubleshooting
 
 ### Server Connection Issues
+
 - Ensure the server is running on `http://localhost:3000`
 - Check server logs for connection errors
 - Verify WebSocket connections are working
 
 ### Test Timeouts
+
 - Increase timeout values for slow operations
 - Use `page.waitForTimeout()` for brief pauses
 - Check network conditions
 
 ### Browser-Specific Issues
+
 - Test across multiple browsers when debugging
 - Use `--headed` mode to see what's happening
 - Check browser console for JavaScript errors
@@ -166,6 +175,7 @@ Test data like categories and questions are loaded from the server automatically
 ## Contributing
 
 When adding new tests:
+
 1. Follow the existing naming conventions
 2. Add appropriate test descriptions
 3. Include error handling

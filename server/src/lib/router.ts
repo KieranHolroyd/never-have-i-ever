@@ -3,10 +3,12 @@ import { send } from "./socket";
 import { ingestEvent } from "../axiom";
 import { SafeJSON } from "../utils/json";
 import { z } from "zod";
+import { engineRegistry } from "./engine-registry";
 
 export type GameSocketMetadata = {
   game: string;
   player: string;
+  playing: string;
 };
 
 export type GameSocket = ServerWebSocket<GameSocketMetadata>;
@@ -25,6 +27,14 @@ export class SocketRouter {
   private static handlers: SocketRouteHandlers = {};
 
   static async handle(ws: GameSocket, op: string, data: any) {
+    // First try to find engine-specific handler
+    const engine = engineRegistry.get(ws.data.playing);
+    if (engine && engine.handlers[op]) {
+      await engine.handlers[op](ws, data);
+      return;
+    }
+
+    // Fall back to global handlers
     if (this.handlers[op]) {
       await this.handlers[op](ws, data);
     } else {
