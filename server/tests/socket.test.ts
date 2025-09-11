@@ -12,13 +12,14 @@ describe('Socket Utils', () => {
   });
 
   describe('emit', () => {
-    it('should send message to WebSocket when provided', () => {
+    it('should publish message to topic when WebSocket provided', () => {
       const data = { test: 'data' };
 
       emit(mockWs, 'topic', 'test-op', data);
 
       expect(mockWs.publish).toHaveBeenCalledWith('topic', JSON.stringify({ ...data, op: 'test-op' }));
-      expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify({ ...data, op: 'test-op' }));
+      // We intentionally avoid direct send in emit to prevent duplicate deliveries
+      expect(mockWs.send).not.toHaveBeenCalled();
     });
 
     it('should handle error when no WebSocket provided', () => {
