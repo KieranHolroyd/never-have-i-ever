@@ -11,9 +11,9 @@ export function emit(
     const data = JSON.stringify({ ...data_raw, op });
 
     if (ws) {
-      // Send to specific WebSocket and publish to topic
+      // Publish to the topic; subscribers (including the sender if subscribed)
+      // will receive exactly one copy. Avoid direct send to prevent duplicates.
       ws.publish(topic, data);
-      ws.send(data);
     } else {
       // Broadcast only to topic (when no specific WebSocket)
       // Note: This requires a WebSocket instance to publish

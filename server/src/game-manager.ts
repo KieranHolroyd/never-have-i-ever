@@ -403,13 +403,15 @@ export class GameManager {
       return;
     }
 
-    console.log('[DEBUG] Broadcasting to', gameSockets.size, 'clients in game:', gameId);
-    for (const ws of gameSockets) {
-      try {
-        emit(ws, gameId, op, data);
-      } catch (error) {
-        console.error('[DEBUG] Error broadcasting to client:', error);
-      }
+    // Publish exactly once via any connected socket to avoid duplicate messages.
+    const iterator = gameSockets.values();
+    const wsAny = iterator.next().value;
+    if (!wsAny) return;
+
+    try {
+      emit(wsAny, gameId, op, data);
+    } catch (error) {
+      console.error('[DEBUG] Error broadcasting to game:', error);
     }
   }
 

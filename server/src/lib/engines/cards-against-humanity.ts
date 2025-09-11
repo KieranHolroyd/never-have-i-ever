@@ -323,6 +323,12 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         throw new Error("Player not found or is judge");
       }
 
+      // Prevent duplicate submissions in the same round
+      const alreadySubmitted = game.submittedCards.some(s => s.playerId === player.id);
+      if (alreadySubmitted) {
+        throw new Error("You have already submitted for this round");
+      }
+
       // Find the cards in player's hand
       const submittedCards = cardIds.map((cardId: string) =>
         player.hand.find(card => card.id === cardId)

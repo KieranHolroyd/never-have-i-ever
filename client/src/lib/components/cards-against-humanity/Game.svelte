@@ -97,11 +97,11 @@
 
                     // Selecting phase: submit required number of cards if not judge
                     if (g.phase === 'selecting' && !me.isJudge) {
-                        if (g.currentRound !== bot.lastSubmittedRound) {
+                        const alreadySubmitted = (g.submittedCards || []).some((s: any) => s.playerId === bot.id);
+                        if (!alreadySubmitted && g.currentRound !== bot.lastSubmittedRound) {
                             const pick = g.currentBlackCard?.pick ?? 1;
                             const hand = [...(me.hand || [])];
                             if (hand.length >= pick) {
-                                // pick random unique cards
                                 const chosenIds: string[] = [];
                                 for (let i = 0; i < pick; i++) {
                                     const idx = Math.floor(Math.random() * hand.length);
@@ -184,6 +184,10 @@
 					case 'game_state':
 						gameState = data.game;
 						currentPlayer = gameState?.players.find((p) => p.id === LocalPlayer.id) || null;
+						// Guard: if round advanced, clear local selection to avoid stale UI
+						if (gameState) {
+							selectedCardIds = [];
+						}
 						break;
 
 					case 'error':
@@ -218,8 +222,24 @@
 		}
 	}
 
-	function submitCards(cardIds: string[]) {
-		sendMessage('submit_cards', { cardIds });
+	let selectedCardIds: string[] = $state([]);
+
+	function toggleSelectCard(cardId: string) {
+		if (selectedCardIds.includes(cardId)) {
+			selectedCardIds = selectedCardIds.filter((id) => id !== cardId);
+		} else {
+			selectedCardIds = [...selectedCardIds, cardId];
+		}
+	}
+
+	function clearSelected() {
+		selectedCardIds = [];
+	}
+
+	function submitCards(cardIds?: string[]) {
+		const toSubmit = cardIds ?? selectedCardIds;
+		sendMessage('submit_cards', { cardIds: toSubmit });
+		clearSelected();
 	}
 
 	function selectWinner(winnerPlayerId: string) {
@@ -344,17 +364,32 @@
 				<!-- Card Selection Phase -->
 				<div class="mb-6">
 					<h3 class="text-lg font-semibold mb-3">Your Hand ({currentPlayer.hand.length} cards)</h3>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-						{#each currentPlayer.hand as card}
-							<button
-								class="bg-white text-black rounded-lg p-4 hover:bg-gray-100 transition-colors text-left w-full"
-								onclick={() => submitCards([card.id])}
-							>
-								<p>{card.text}</p>
-							</button>
-						{/each}
-					</div>
-					<p class="text-sm opacity-60 mt-3">Click a card to submit it for this round.</p>
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+					{#each currentPlayer.hand as card}
+						<button
+							class="rounded-lg p-4 transition-colors text-left w-full border
+								{selectedCardIds.includes(card.id)
+									? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+									: 'bg-white text-black hover:bg-gray-100 border-gray-300'}"
+							onclick={() => toggleSelectCard(card.id)}
+						>
+							<p>{card.text}</p>
+						</button>
+					{/each}
+				</div>
+				<div class="flex items-center gap-3 mt-3">
+					<button
+						class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-white text-sm font-medium disabled:opacity-50"
+						onclick={() => submitCards()}
+						disabled={selectedCardIds.length !== (gameState.currentBlackCard?.pick ?? 1)}
+					>
+						Submit {gameState.currentBlackCard?.pick ?? 1}
+					</button>
+					<button class="px-3 py-2 bg-slate-600 hover:bg-slate-500 rounded text-white text-sm" onclick={clearSelected}>
+						Clear
+					</button>
+				</div>
+				<p class="text-sm opacity-60 mt-2">Select exactly {gameState.currentBlackCard?.pick ?? 1} card(s) and press Submit.</p>
 				</div>
 			{:else if gameState.phase === 'judging' && currentPlayer?.isJudge}
 				<!-- Judging Phase -->
