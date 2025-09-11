@@ -383,17 +383,9 @@ export class GameManager {
       timeout_duration: (gameStateWithTimeout as any).timeout_duration
     });
 
-    // Broadcast to all players in the game
-    // Since we don't have a WebSocket instance, we'll need to use a different approach
-    // For now, let's create a minimal WebSocket-like object that can broadcast
-    const broadcastWs = this.createBroadcastWebSocket(gameId);
-
-    try {
-      emit(broadcastWs, gameId, "game_state", { game: gameStateWithTimeout });
-      emit(broadcastWs, gameId, "new_round");
-    } catch (error) {
-      console.error('[DEBUG] Error broadcasting from advanceToNextQuestion:', error);
-    }
+    // Broadcast to all players via topic publish using any connected socket
+    this.broadcastToGame(gameId, "game_state", { game: gameStateWithTimeout });
+    this.broadcastToGame(gameId, "new_round", {});
   }
 
   private broadcastToGame(gameId: string, op: string, data: any): void {
@@ -415,19 +407,8 @@ export class GameManager {
     }
   }
 
-  private createBroadcastWebSocket(gameId: string): GameSocket {
-    return {
-      data: { game: gameId, player: "system" },
-      publish: (topic: string, data: string) => {
-        console.log('[DEBUG] Broadcasting to topic:', topic, 'data:', data);
-        // Use our broadcast method instead
-        this.broadcastToGame(gameId, JSON.parse(data).op, JSON.parse(data));
-      },
-      send: (data: string) => {
-        console.log('[DEBUG] Sending to client:', data);
-      }
-    } as GameSocket;
-  }
+  // Topic-based broadcasting is handled by `broadcastToGame`, which selects any
+  // connected WebSocket for the game and publishes once to the game topic.
 
   async handleResetGame(ws: GameSocket, data: any): Promise<void> {
     try {
