@@ -1,0 +1,29 @@
+{
+  "blackCards": [
+    { "id": "b1", "text": "Why can't I sleep at night?", "pick": 1 },
+    { "id": "b2", "text": "___: kid-tested, mother-approved.", "pick": 1 },
+    { "id": "b3", "text": "In the new DLC, you can combine ___ and ___!", "pick": 2 }
+  ],
+  "whiteCards": [
+    { "id": "w1", "text": "Being on fire." },
+    { "id": "w2", "text": "Racism." },
+    { "id": "w3", "text": "Old-people smell." },
+    { "id": "w4", "text": "A micropenis." },
+    { "id": "w5", "text": "Women in yogurt commercials." },
+    { "id": "w6", "text": "Classist undertones." },
+    { "id": "w7", "text": "Not giving a fuck." },
+    { "id": "w8", "text": "Sexting." },
+    { "id": "w9", "text": "Roofies." },
+    { "id": "w10", "text": "A man on the brink of orgasm." },
+    { "id": "w11", "text": "Donald Trump." },
+    { "id": "w12", "text": "The milkman." },
+    { "id": "w13", "text": "Grandma." },
+    { "id": "w14", "text": "Explosions." },
+    { "id": "w15", "text": "A really cool hat." },
+    { "id": "w16", "text": "Gloryholes." },
+    { "id": "w17", "text": "Flesh-eating bacteria." },
+    { "id": "w18", "text": "A saxophone solo." },
+    { "id": "w19", "text": "An ugly face." },
+    { "id": "w20", "text": "A cooler full of organs." }
+  ]
+}

@@ -172,6 +172,13 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     // Draw new black card
     game.currentBlackCard = drawBlackCard(game);
 
+    // If we have exhausted the black deck, end the game gracefully
+    if (!game.currentBlackCard) {
+      game.phase = 'game_over';
+      game.gameCompleted = true;
+      return;
+    }
+
     // Reset player submitted status
     game.players.forEach(p => {
       if (p.connected && !p.isJudge) {

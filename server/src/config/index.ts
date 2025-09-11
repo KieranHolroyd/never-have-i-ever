@@ -8,7 +8,8 @@ const configSchema = z.object({
 });
 
 const rawConfig = {
-  GAME_DATA_DIR: Bun.env.GAME_DATA_DIR || process.env.GAME_DATA_DIR || './tests/fixtures/games/',
+  // Default to server/assets/games in production-like runs; tests override via env
+  GAME_DATA_DIR: Bun.env.GAME_DATA_DIR || process.env.GAME_DATA_DIR || './assets/games/',
   VALKEY_URI: Bun.env.VALKEY_URI || process.env.VALKEY_URI || 'valkey://localhost:6379',
   AXIOM_TOKEN: Bun.env.AXIOM_TOKEN || process.env.AXIOM_TOKEN,
   AXIOM_ORG_ID: Bun.env.AXIOM_ORG_ID || process.env.AXIOM_ORG_ID,
