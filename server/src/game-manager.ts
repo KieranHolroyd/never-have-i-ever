@@ -3,7 +3,6 @@ import { config } from "./config";
 import { client } from "./redis_client";
 import { select_question } from "./lib/questions";
 import { GameSocket } from "./lib/router";
-import { emit, publish, send } from "./lib/socket";
 import { reconnectManager } from "./lib/reconnect-manager";
 
 import { ingestEvent } from "./axiom";
@@ -25,6 +24,29 @@ export class GameManager {
 
   // Track if a deployment is in progress
   private deploymentInProgress = false;
+
+  // NHIE-specific socket helpers to avoid cross-engine coupling
+  private sendToClient(ws: GameSocket, op: string, data_raw: object = {}): void {
+    try {
+      const data = JSON.stringify({ ...data_raw, op });
+      ws.send(data);
+    } catch (err) {
+      try {
+        ws.send(JSON.stringify({ err, message: "Error sending message", op: "error" }));
+      } catch (_) {
+        // ignore
+      }
+    }
+  }
+
+  private publishToGame(ws: GameSocket, op: string, data_raw: object = {}): void {
+    try {
+      const data = JSON.stringify({ ...data_raw, op });
+      ws.publish(ws.data.game, data);
+    } catch (err) {
+      this.sendToClient(ws, "error", { message: "Error publishing message", err });
+    }
+  }
 
   async getOrCreateGame(gameId: string): Promise<GameData> {
     let game = this.games.get(gameId);
@@ -113,7 +135,7 @@ export class GameManager {
       const game = await this.getOrCreateGame(ws.data.game);
 
       if (game.players.length >= 12) {
-        send(ws, "error", { message: "Game is full" });
+        this.sendToClient(ws, "error", { message: "Game is full" });
         ws.close(1013, "Game is full");
         return;
       }
@@ -164,7 +186,7 @@ export class GameManager {
       });
     } catch (error) {
       console.error("Error in handleJoinGame:", error);
-      send(ws, "error", { message: "Failed to join game" });
+      this.sendToClient(ws, "error", { message: "Failed to join game" });
     }
   }
 
@@ -180,10 +202,10 @@ export class GameManager {
       });
 
       const gameState = sanitizeGameState(game);
-      emit(ws, ws.data.game, "game_state", { game: gameState });
+      this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
     } catch (error) {
       console.error("Error in handleSelectCategories:", error);
-      send(ws, "error", { message: "Failed to start category selection" });
+      this.sendToClient(ws, "error", { message: "Failed to start category selection" });
     }
   }
 
@@ -213,11 +235,11 @@ export class GameManager {
       this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
     } catch (error) {
       if (error instanceof ValidationError) {
-        send(ws, "error", { message: error.message });
+        this.sendToClient(ws, "error", { message: error.message });
         return;
       }
       console.error("Error in handleSelectCategory:", error);
-      send(ws, "error", { message: "Failed to select category" });
+      this.sendToClient(ws, "error", { message: "Failed to select category" });
     }
   }
 
@@ -241,11 +263,11 @@ export class GameManager {
       this.broadcastToGame(ws.data.game, "game_state", { game });
     } catch (error) {
       if (error instanceof ValidationError) {
-        send(ws, "error", { message: error.message });
+        this.sendToClient(ws, "error", { message: error.message });
         return;
       }
       console.error("Error in handleConfirmSelections:", error);
-      send(ws, "error", { message: "Failed to confirm selections" });
+      this.sendToClient(ws, "error", { message: "Failed to confirm selections" });
     }
   }
 
@@ -261,7 +283,7 @@ export class GameManager {
         if (votedPlayers.length === connectedPlayers.length) {
           this.skipCurrentRound(ws, game);
         } else {
-          send(ws, "error", {
+          this.sendToClient(ws, "error", {
             message: `Cannot skip - waiting for all players to vote (${votedPlayers.length}/${connectedPlayers.length})`
           });
         }
@@ -324,7 +346,7 @@ export class GameManager {
       this.broadcastToGame(ws.data.game, "new_round", {});
     } catch (error) {
       console.error("Error in handleNextQuestion:", error);
-      send(ws, "error", { message: "Failed to get next question" });
+      this.sendToClient(ws, "error", { message: "Failed to get next question" });
     }
   }
 
@@ -401,7 +423,8 @@ export class GameManager {
     if (!wsAny) return;
 
     try {
-      emit(wsAny, gameId, op, data);
+      const payload = JSON.stringify({ ...data, op });
+      wsAny.publish(gameId, payload);
     } catch (error) {
       console.error('[DEBUG] Error broadcasting to game:', error);
     }
@@ -448,7 +471,7 @@ export class GameManager {
       this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
     } catch (error) {
       console.error("Error in handleResetGame:", error);
-      send(ws, "error", { message: "Failed to reset game" });
+      this.sendToClient(ws, "error", { message: "Failed to reset game" });
     }
   }
 
@@ -508,11 +531,11 @@ export class GameManager {
       }
     } catch (error) {
       if (error instanceof ValidationError) {
-        send(ws, "error", { message: error.message });
+        this.sendToClient(ws, "error", { message: error.message });
         return;
       }
       console.error("Error in handleVote:", error);
-      send(ws, "error", { message: "Failed to cast vote" });
+      this.sendToClient(ws, "error", { message: "Failed to cast vote" });
     }
   }
 
@@ -547,7 +570,7 @@ export class GameManager {
   }
 
   async handlePing(ws: GameSocket, data: any): Promise<void> {
-    send(ws, "pong");
+    this.sendToClient(ws, "pong");
   }
 
   private allPlayersVoted(game: GameData): boolean {
@@ -677,14 +700,14 @@ export class GameManager {
   async handleReconnectStatus(ws: GameSocket, data: any): Promise<void> {
     try {
       const status = reconnectManager.getReconnectStatus(ws.data.game, ws.data.player);
-      send(ws, "reconnect_status", {
+      this.sendToClient(ws, "reconnect_status", {
         reconnecting: status?.isReconnecting || false,
         attemptCount: status?.attemptCount || 0,
         nextAttemptIn: status?.nextAttemptIn || 0,
       });
     } catch (error) {
       console.error("Error in handleReconnectStatus:", error);
-      send(ws, "error", { message: "Failed to get reconnect status" });
+      this.sendToClient(ws, "error", { message: "Failed to get reconnect status" });
     }
   }
 

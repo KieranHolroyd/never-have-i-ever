@@ -23,16 +23,8 @@ if (missingOptional.length > 0) {
 // Initialize game manager
 const gameManager = new GameManager();
 
-// Setup WebSocket routes
-SocketRouter.route("join_game", (ws, data) => gameManager.handleJoinGame(ws, data));
-SocketRouter.route("select_catagories", (ws, data) => gameManager.handleSelectCategories(ws, data));
-SocketRouter.route("select_catagory", (ws, data) => gameManager.handleSelectCategory(ws, data));
-SocketRouter.route("confirm_selections", (ws, data) => gameManager.handleConfirmSelections(ws, data));
-SocketRouter.route("next_question", (ws, data) => gameManager.handleNextQuestion(ws, data));
-SocketRouter.route("reset_game", (ws, data) => gameManager.handleResetGame(ws, data));
-SocketRouter.route("vote", (ws, data) => gameManager.handleVote(ws, data));
-SocketRouter.route("ping", (ws, data) => gameManager.handlePing(ws, data));
-SocketRouter.route("reconnect_status", async (ws, data) => await gameManager.handleReconnectStatus(ws, data));
+// Note: Do not register NHIE handlers globally here.
+// Each engine must register its own operations to avoid cross-engine leakage.
 
 const server = Bun.serve({
   async fetch(req, server) {
@@ -114,7 +106,10 @@ const server = Bun.serve({
       }
     },
     close: (ws) => {
-      gameManager.handleDisconnect(ws);
+      // Only invoke NHIE-specific disconnect logic for NHIE sessions
+      if (ws.data.playing === "never-have-i-ever") {
+        gameManager.handleDisconnect(ws);
+      }
     },
     perMessageDeflate: true,
   },
