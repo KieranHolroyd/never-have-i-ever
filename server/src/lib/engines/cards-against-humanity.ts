@@ -1,6 +1,8 @@
 import type { GameEngine } from "../../types";
 import type { GameSocket } from "../router";
 import { GameManager } from "../../game-manager";
+import { config } from "../../config";
+import { emit } from "../socket";
 
 // Cards Against Humanity specific types
 export type CAHGameState = {
@@ -69,8 +71,19 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+/**
+ * Factory to create the Cards Against Humanity engine.
+ *
+ * Notes on architecture:
+ * - This engine maintains its own in-memory game state per `gameId`.
+ * - Broadcasting is handled via the WebSocket instance provided by the router
+ *   and uses topic-based pub/sub on the `gameId` channel (ws.publish).
+ * - Clients are subscribed to the `gameId` topic on join so that publishes
+ *   reach all players in the same game. We also send the message directly to
+ *   the initiating client (ws.send) via `emit` for immediate feedback.
+ */
 export function createCardsAgainstHumanityEngine(gameManager: GameManager): GameEngine {
-  // In-memory game state storage (in production, this would be in Redis/database)
+  // In-memory game state storage (in production, use Redis/database)
   const cahGames = new Map<string, CAHGameState>();
 
   function getOrCreateCAHGame(gameId: string): CAHGameState {
@@ -102,10 +115,18 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     return game;
   }
 
-  function broadcastToGame(gameId: string, op: string, data: any): void {
-    // Use the game manager's broadcast functionality
-    if (gameManager.broadcastToGame) {
-      gameManager.broadcastToGame(gameId, op, data);
+  /**
+   * Broadcast a message to all players in a game by publishing to the
+   * `gameId` topic and also directly sending to the invoking client.
+   *
+   * The SocketRouter gives us the `ws` that initiated the operation;
+   * we rely on that to publish. All clients are subscribed in `join_game`.
+   */
+  function broadcastToGame(ws: GameSocket, op: string, data: any): void {
+    try {
+      emit(ws, ws.data.game, op, data);
+    } catch (_) {
+      // No-op; `emit` internally logs errors and attempts to send an error
     }
   }
 
@@ -188,6 +209,14 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         player.connected = true;
       }
 
+      // Subscribe this client to the game topic and notifications channel
+      try {
+        ws.subscribe(ws.data.game);
+        ws.subscribe("notifications");
+      } catch (_) {
+        // Ignore subscribe errors in tests or environments without a bus
+      }
+
       // If we're waiting for players and have enough, start the game
       if (game.phase === 'waiting' && game.players.filter(p => p.connected).length >= 3) {
         game.waitingForPlayers = false;
@@ -196,7 +225,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         }
       }
 
-      broadcastToGame(ws.data.game, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game });
     },
 
     select_packs: async (ws, data) => {
@@ -211,33 +240,66 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
 
       // TODO: Load actual card data from selected packs
       // For now, we'll use placeholder data
-      game.deck.blackCards = [
-        { id: 'b1', text: 'Why can\'t I sleep at night?', pick: 1 },
-        { id: 'b2', text: 'What\'s that smell?', pick: 1 },
-        { id: 'b3', text: 'I got 99 problems but _____ ain\'t one.', pick: 1 },
-      ];
+      // Define a type for the CAH card data file
+      type CAHCardData = {
+        blackCards: CAHBlackCard[];
+        whiteCards: CAHWhiteCard[];
+      };
 
-      game.deck.whiteCards = [
-        { id: 'w1', text: 'Being on fire.' },
-        { id: 'w2', text: 'Racism.' },
-        { id: 'w3', text: 'Old-people smell.' },
-        { id: 'w4', text: 'A micropenis.' },
-        { id: 'w5', text: 'Women in yogurt commercials.' },
-        { id: 'w6', text: 'Classist undertones.' },
-        { id: 'w7', text: 'Not giving a fuck.' },
-        { id: 'w8', text: 'Sexting.' },
-        { id: 'w9', text: 'Roofies.' },
-        { id: 'w10', text: 'A man on the brink of orgasm.' },
-      ];
+      // Load actual card data from the JSON file
+      const filePath = `${config.GAME_DATA_DIR}cards-against-humanity.json`;
+      try {
+        const cardFile = Bun.file(filePath);
+        if (await cardFile.exists()) {
+          const cardData = await cardFile.json() as CAHCardData;
+          game.deck.blackCards = cardData.blackCards;
+          game.deck.whiteCards = cardData.whiteCards;
+        } else {
+          console.warn(`Cards Against Humanity data file not found at: ${filePath}. Using placeholder data.`);
+          // Fallback to placeholder data if file not found
+          game.deck.blackCards = [
+            { id: 'b1', text: 'Why can\'t I sleep at night?', pick: 1 },
+            { id: 'b2', text: 'What\'s that smell?', pick: 1 },
+            { id: 'b3', text: 'I got 99 problems but _____ ain\'t one.', pick: 1 },
+          ];
+          game.deck.whiteCards = [
+            { id: 'w1', text: 'Being on fire.' },
+            { id: 'w2', text: 'Racism.' },
+            { id: 'w3', text: 'Old-people smell.' },
+            { id: 'w4', text: 'A micropenis.' },
+            { id: 'w5', text: 'Women in yogurt commercials.' },
+            { id: 'w6', text: 'Classist undertones.' },
+            { id: 'w7', text: 'Not giving a fuck.' },
+            { id: 'w8', text: 'Sexting.' },
+            { id: 'w9', text: 'Roofies.' },
+            { id: 'w10', text: 'A man on the brink of orgasm.' },
+          ];
+        }
+      } catch (error) {
+        console.error(`Error loading Cards Against Humanity data: ${error}`);
+        // Fallback to placeholder data on error
+        game.deck.blackCards = [
+          { id: 'b1', text: 'Why can\'t I sleep at night?', pick: 1 },
+          { id: 'b2', text: 'What\'s that smell?', pick: 1 },
+          { id: 'b3', text: 'I got 99 problems but _____ ain\'t one.', pick: 1 },
+        ];
+        game.deck.whiteCards = [
+          { id: 'w1', text: 'Being on fire.' },
+          { id: 'w2', text: 'Racism.' },
+          { id: 'w3', text: 'Old-people smell.' },
+          { id: 'w4', text: 'A micropenis.' },
+          { id: 'w5', text: 'Women in yogurt commercials.' },
+          { id: 'w6', text: 'Classist undertones.' },
+          { id: 'w7', text: 'Not giving a fuck.' },
+          { id: 'w8', text: 'Sexting.' },
+          { id: 'w9', text: 'Roofies.' },
+          { id: 'w10', text: 'A man on the brink of orgasm.' },
+        ];
+      }
 
       // Shuffle decks
       game.deck.blackCards = shuffleArray(game.deck.blackCards);
       game.deck.whiteCards = shuffleArray(game.deck.whiteCards);
-
-      // Deal initial hands to all connected players
-      game.players.filter(p => p.connected).forEach(player => {
-        dealCards(game, player);
-      });
 
       // Start first round if we have enough players
       if (game.players.filter(p => p.connected).length >= 3) {
@@ -245,7 +307,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         startNewRound(game);
       }
 
-      broadcastToGame(ws.data.game, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game });
     },
 
     submit_cards: async (ws, data) => {
@@ -291,7 +353,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         game.phase = 'judging';
       }
 
-      broadcastToGame(ws.data.game, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game });
     },
 
     select_winner: async (ws, data) => {
@@ -326,10 +388,10 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         } else {
           startNewRound(game);
         }
-        broadcastToGame(ws.data.game, "game_state", { game });
+        broadcastToGame(ws, "game_state", { game });
       }, 3000);
 
-      broadcastToGame(ws.data.game, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game });
     },
 
     reset_game: async (ws, data) => {
@@ -352,12 +414,12 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         player.isJudge = false;
       });
 
-      broadcastToGame(ws.data.game, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game });
     },
 
     ping: async (ws, data) => {
       // Simple ping handler
-      broadcastToGame(ws.data.game, "pong", {});
+      broadcastToGame(ws, "pong", {});
     },
   };
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import { emit, send, publish } from '../src/lib/socket';
 
 describe('Socket Utils', () => {
@@ -6,8 +6,8 @@ describe('Socket Utils', () => {
 
   beforeEach(() => {
     mockWs = {
-      publish: vi.fn(),
-      send: vi.fn(),
+      publish: mock(() => {}),
+      send: mock(() => {}),
     };
   });
 
