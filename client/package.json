@@ -49,6 +49,7 @@
 	"type": "module",
 	"dependencies": {
 		"@sveltejs/adapter-vercel": "^5.10.2",
+		"caniuse-lite": "^1.0.30001741",
 		"figlet": "^1.8.2",
 		"svelte-outside-click": "^1.1.2",
 		"uuid": "^11.1.0"

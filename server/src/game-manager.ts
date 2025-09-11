@@ -14,7 +14,7 @@ import logger from "./logger";
 
 export class GameManager {
   private games: Map<string, GameData> = new Map();
-  private readonly ROUND_TIMEOUT_MS = 30000; // 30 seconds
+  private readonly ROUND_TIMEOUT_MS = 3000; // 30 seconds
 
   // Track timeout start times for sync across clients
   private timeoutStarts: Map<string, number> = new Map();
@@ -37,6 +37,11 @@ export class GameManager {
         // ignore
       }
     }
+  }
+
+  private broadcastToGameAndClient(ws: GameSocket, op: string, data_raw: object = {}): void {
+    this.sendToClient(ws, op, data_raw);
+    this.broadcastToGame(ws.data.game, op, data_raw)
   }
 
   private publishToGame(ws: GameSocket, op: string, data_raw: object = {}): void {
@@ -180,7 +185,7 @@ export class GameManager {
       ws.subscribe("notifications");
 
       const gameState = sanitizeGameState(game);
-      this.broadcastToGame(ws.data.game, "game_state", {
+      this.broadcastToGameAndClient(ws, "game_state", {
         id: ws.data.game,
         game: gameState,
       });
@@ -202,7 +207,7 @@ export class GameManager {
       });
 
       const gameState = sanitizeGameState(game);
-      this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
+      this.broadcastToGameAndClient(ws, "game_state", { game: gameState });
     } catch (error) {
       console.error("Error in handleSelectCategories:", error);
       this.sendToClient(ws, "error", { message: "Failed to start category selection" });
@@ -232,7 +237,7 @@ export class GameManager {
       });
 
       const gameState = sanitizeGameState(game);
-      this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
+      this.broadcastToGameAndClient(ws, "game_state", { game: gameState });
     } catch (error) {
       if (error instanceof ValidationError) {
         this.sendToClient(ws, "error", { message: error.message });
@@ -260,7 +265,7 @@ export class GameManager {
         details: { selected_catagories: game.catagories },
       });
 
-      this.broadcastToGame(ws.data.game, "game_state", { game });
+      this.broadcastToGameAndClient(ws, "game_state", { game });
     } catch (error) {
       if (error instanceof ValidationError) {
         this.sendToClient(ws, "error", { message: error.message });
@@ -330,10 +335,10 @@ export class GameManager {
       // Include timeout info for waiting state
       const gameStateWithTimeout = game.waiting_for_players
         ? {
-            ...gameState,
-            timeout_start: this.timeoutStarts.get(ws.data.game) || 0,
-            timeout_duration: this.ROUND_TIMEOUT_MS
-          }
+          ...gameState,
+          timeout_start: this.timeoutStarts.get(ws.data.game) || 0,
+          timeout_duration: this.ROUND_TIMEOUT_MS
+        }
         : gameState;
 
       console.log('[DEBUG] Sending game state:', {
@@ -342,15 +347,15 @@ export class GameManager {
         timeout_duration: (gameStateWithTimeout as any).timeout_duration
       });
 
-      this.broadcastToGame(ws.data.game, "game_state", { game: gameStateWithTimeout });
-      this.broadcastToGame(ws.data.game, "new_round", {});
+      this.broadcastToGameAndClient(ws, "game_state", { game: gameStateWithTimeout });
+      this.broadcastToGameAndClient(ws, "new_round", {});
     } catch (error) {
       console.error("Error in handleNextQuestion:", error);
       this.sendToClient(ws, "error", { message: "Failed to get next question" });
     }
   }
 
-  private async advanceToNextQuestion(gameId: string): Promise<void> {
+  private async advanceToNextQuestion(gameId: string, ws: GameSocket): Promise<void> {
     const game = await this.getOrCreateGame(gameId);
 
     // Clear any existing timeout
@@ -393,10 +398,10 @@ export class GameManager {
     // Include timeout info for waiting state
     const gameStateWithTimeout = game.waiting_for_players
       ? {
-          ...gameState,
-          timeout_start: this.timeoutStarts.get(gameId) || 0,
-          timeout_duration: this.ROUND_TIMEOUT_MS
-        }
+        ...gameState,
+        timeout_start: this.timeoutStarts.get(gameId) || 0,
+        timeout_duration: this.ROUND_TIMEOUT_MS
+      }
       : gameState;
 
     console.log('[DEBUG] Broadcasting new game state after timeout:', {
@@ -406,8 +411,8 @@ export class GameManager {
     });
 
     // Broadcast to all players via topic publish using any connected socket
-    this.broadcastToGame(gameId, "game_state", { game: gameStateWithTimeout });
-    this.broadcastToGame(gameId, "new_round", {});
+    this.broadcastToGameAndClient(ws, "game_state", { game: gameStateWithTimeout });
+    this.broadcastToGameAndClient(ws, "new_round", {});
   }
 
   private broadcastToGame(gameId: string, op: string, data: any): void {
@@ -468,7 +473,7 @@ export class GameManager {
       });
 
       const gameState = sanitizeGameState(game);
-      this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
+      this.broadcastToGameAndClient(ws, "game_state", { game: gameState });
     } catch (error) {
       console.error("Error in handleResetGame:", error);
       this.sendToClient(ws, "error", { message: "Failed to reset game" });
@@ -500,7 +505,7 @@ export class GameManager {
         details: { vote: data.option, vote_str: player.this_round.vote },
       });
 
-      this.broadcastToGame(ws.data.game, "vote_cast", { player, vote: player.this_round.vote });
+      this.broadcastToGameAndClient(ws, "vote_cast", { player, vote: player.this_round.vote });
 
       // Start timeout on first vote if not already started
       if (game.waiting_for_players && !game.round_timeout) {
@@ -509,7 +514,7 @@ export class GameManager {
         this.timeoutStarts.set(ws.data.game, timeoutStart);
 
         game.round_timeout = setTimeout(async () => {
-          await this.handleRoundTimeout(ws.data.game);
+          await this.handleRoundTimeout(ws.data.game, ws);
         }, this.ROUND_TIMEOUT_MS);
 
         // Send updated game state with timeout info
@@ -523,11 +528,11 @@ export class GameManager {
           timeout_start: timeoutStart,
           timeout_duration: this.ROUND_TIMEOUT_MS
         });
-        this.broadcastToGame(ws.data.game, "game_state", { game: gameStateWithTimeout });
+        this.broadcastToGameAndClient(ws, "game_state", { game: gameStateWithTimeout });
       } else {
         console.log('[DEBUG] Vote cast, no timeout start needed');
         const gameState = sanitizeGameState(game);
-        this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
+        this.broadcastToGameAndClient(ws, "game_state", { game: gameState });
       }
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -621,7 +626,7 @@ export class GameManager {
     this.handleNextQuestion(ws, {});
   }
 
-  private async handleRoundTimeout(gameId: string): Promise<void> {
+  private async handleRoundTimeout(gameId: string, ws: GameSocket): Promise<void> {
     console.log('[DEBUG] Round timeout triggered for game:', gameId);
     const game = this.games.get(gameId);
     if (!game || !game.waiting_for_players) {
@@ -647,7 +652,7 @@ export class GameManager {
     });
 
     // Send timeout notification to all clients
-    this.broadcastToGame(gameId, "round_timeout", {
+    this.broadcastToGameAndClient(ws, "round_timeout", {
       message: "Round timed out - proceeding to next question"
     });
 
@@ -659,7 +664,7 @@ export class GameManager {
 
     // Proceed to next question without using a WebSocket
     console.log('[DEBUG] Proceeding to next question after timeout');
-    await this.advanceToNextQuestion(gameId);
+    await this.advanceToNextQuestion(gameId, ws);
   }
 
   handleDisconnect(ws: GameSocket): void {
@@ -691,7 +696,7 @@ export class GameManager {
       }
 
       const gameState = sanitizeGameState(game);
-      this.broadcastToGame(ws.data.game, "game_state", { game: gameState });
+      this.broadcastToGameAndClient(ws, "game_state", { game: gameState });
     } catch (error) {
       console.error("Error in handleDisconnect:", error);
     }
