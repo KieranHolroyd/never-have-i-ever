@@ -6,17 +6,19 @@ test.describe('End-to-End Game Flow', () => {
 		await page.goto('/');
 
 		// Navigate to game creation
-		await page.locator('text=Start New Game').click();
-
-		// Allow for client-side routing - may not change URL immediately
-		await page.waitForTimeout(1000);
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Should remain functional
 		await expect(page.locator('body')).toBeVisible();
 
 		// Go back to home
 		await page.goto('/');
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
 	});
 
 	test('should handle direct navigation to routes', async ({ page }) => {
@@ -34,8 +36,12 @@ test.describe('End-to-End Game Flow', () => {
 		await page.goto('/');
 
 		// Navigate to name page
-		await page.locator('text=Start New Game').click();
-		await page.waitForTimeout(1000);
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Page should remain functional
 		await expect(page.locator('body')).toBeVisible();

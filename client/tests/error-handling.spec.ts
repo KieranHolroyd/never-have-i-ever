@@ -4,10 +4,12 @@ test.describe('Error Handling and Edge Cases', () => {
 	test('should handle network connectivity issues', async ({ page }) => {
 		// Start game
 		await page.goto('/');
-		await page.locator('text=Start New Game').click();
-
-		// Allow time for any connection attempts
-		await page.waitForTimeout(2000);
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Should remain functional regardless of connection status
 		await expect(page.locator('body')).toBeVisible();
@@ -52,8 +54,12 @@ test.describe('Error Handling and Edge Cases', () => {
 		await page.goto('/');
 
 		// Perform some interactions
-		await page.locator('text=Start New Game').click();
-		await page.waitForTimeout(500);
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Page should handle interactions without crashing
 		await expect(page.locator('body')).toBeVisible();
@@ -61,10 +67,14 @@ test.describe('Error Handling and Edge Cases', () => {
 
 	test('should handle basic page interactions', async ({ page }) => {
 		await page.goto('/');
-		await page.locator('text=Start New Game').click();
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Allow time for any state changes
-		await page.waitForTimeout(1000);
 
 		// Page should remain functional
 		await expect(page.locator('body')).toBeVisible();
@@ -121,16 +131,20 @@ test.describe('Error Handling and Edge Cases', () => {
 		});
 
 		await page.goto('/');
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
 	});
 
 	test('should handle memory pressure scenarios', async ({ page }) => {
 		// Start game
 		await page.goto('/');
-		await page.locator('text=Start New Game').click();
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Allow time for navigation
-		await page.waitForTimeout(1000);
 
 		// Perform rapid interactions on available elements
 		const buttons = page.locator('button');
@@ -141,7 +155,7 @@ test.describe('Error Handling and Edge Cases', () => {
 			for (let i = 0; i < Math.min(buttonCount, 3); i++) {
 				try {
 					await buttons.nth(i).click();
-					await page.waitForTimeout(100);
+					await page.waitForTimeout(10);
 				} catch (error) {
 					// Button may not be clickable, continue
 				}
@@ -154,8 +168,12 @@ test.describe('Error Handling and Edge Cases', () => {
 
 	test('should handle rapid user interactions', async ({ page }) => {
 		await page.goto('/');
-		await page.locator('text=Start New Game').click();
-		await page.waitForTimeout(1000);
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Check if we're on the name page and handle accordingly
 		const nameInput = page.locator('input[name="name"]');

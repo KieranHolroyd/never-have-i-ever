@@ -14,7 +14,7 @@ export default defineConfig({
 	/* Use multiple workers for speed */
 	workers: 4,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
-	reporter: 'html',
+	reporter: 'json',
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL to use in actions like `await page.goto('/')`. */
@@ -33,38 +33,38 @@ export default defineConfig({
 	/* Configure projects for major browsers */
 	projects: process.env.CI
 		? [
-				{
-					name: 'chromium',
-					use: {
-						...devices['Desktop Chrome'],
-						navigationTimeout: 10000
-					}
-				},
-				{
-					name: 'firefox',
-					use: {
-						...devices['Desktop Firefox'],
-						navigationTimeout: 10000
-					}
-				},
-				{
-					name: 'webkit',
-					use: {
-						...devices['Desktop Safari'],
-						navigationTimeout: 10000
-					}
+			{
+				name: 'chromium',
+				use: {
+					...devices['Desktop Chrome'],
+					navigationTimeout: 10000
 				}
-			]
+			},
+			{
+				name: 'firefox',
+				use: {
+					...devices['Desktop Firefox'],
+					navigationTimeout: 10000
+				}
+			},
+			{
+				name: 'webkit',
+				use: {
+					...devices['Desktop Safari'],
+					navigationTimeout: 10000
+				}
+			}
+		]
 		: [
-				{
-					name: 'chromium',
-					use: {
-						...devices['Desktop Chrome'],
-						/* Reduce navigation timeout */
-						navigationTimeout: 10000
-					}
+			{
+				name: 'chromium',
+				use: {
+					...devices['Desktop Chrome'],
+					/* Reduce navigation timeout */
+					navigationTimeout: 10000
 				}
-			],
+			}
+		],
 
 	/* Run your local dev server before starting the tests */
 	webServer: [

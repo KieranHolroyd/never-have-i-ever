@@ -11,7 +11,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			// Both players join the same game
 			await page1.goto('/play/multi-connect-test/never-have-i-ever');
 			await page2.goto('/play/multi-connect-test/never-have-i-ever');
-			await page1.waitForTimeout(4000); // Allow WebSocket connections
 
 			// Both pages should load successfully
 			await expect(page1.locator('body')).toBeVisible();
@@ -33,7 +32,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			await page1.goto('/play/multi-context-test/never-have-i-ever');
 			await page2.goto('/play/multi-context-test/never-have-i-ever');
 			await page3.goto('/play/multi-context-test/never-have-i-ever');
-			await page1.waitForTimeout(5000); // Allow all connections
 
 			// All contexts should work independently
 			await expect(page1.locator('body')).toBeVisible();
@@ -59,7 +57,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			await page1.goto('/play/vote-broadcast-test/never-have-i-ever');
 			await page2.goto('/play/vote-broadcast-test/never-have-i-ever');
 			await page3.goto('/play/vote-broadcast-test/never-have-i-ever');
-			await page1.waitForTimeout(5000); // Allow all connections
 
 			// All pages should load
 			await expect(page1.locator('body')).toBeVisible();
@@ -86,7 +83,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			await page2.goto('/play/simultaneous-vote-test/never-have-i-ever');
 			await page3.goto('/play/simultaneous-vote-test/never-have-i-ever');
 			await page4.goto('/play/simultaneous-vote-test/never-have-i-ever');
-			await page1.waitForTimeout(6000); // Allow all connections
 
 			// All players should remain functional
 			await expect(page1.locator('body')).toBeVisible();
@@ -105,7 +101,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			const page1 = await context1.newPage();
 
 			await page1.goto('/play/timeout-progress-test/never-have-i-ever');
-			await page1.waitForTimeout(3000);
 
 			// Page should handle timeout scenarios
 			await expect(page1.locator('body')).toBeVisible();
@@ -128,15 +123,12 @@ test.describe('Multiplayer Game Interactions', () => {
 
 			// First player joins
 			await page1.goto('/play/state-sync-test/never-have-i-ever');
-			await page1.waitForTimeout(2000);
 
 			// Second player joins shortly after
 			await page2.goto('/play/state-sync-test/never-have-i-ever');
-			await page2.waitForTimeout(2000);
 
 			// Third player joins later
 			await page3.goto('/play/state-sync-test/never-have-i-ever');
-			await page3.waitForTimeout(2000);
 
 			// All should have consistent state
 			await expect(page1.locator('body')).toBeVisible();
@@ -156,7 +148,6 @@ test.describe('Multiplayer Game Interactions', () => {
 
 			await page1.goto('/play/reset-sync-test/never-have-i-ever');
 			await page2.goto('/play/reset-sync-test/never-have-i-ever');
-			await page1.waitForTimeout(4000);
 
 			// Both should see the game interface
 			await expect(page1.locator('body')).toBeVisible();
@@ -173,11 +164,9 @@ test.describe('Multiplayer Game Interactions', () => {
 			const page1 = await context1.newPage();
 
 			await page1.goto('/play/disconnect-test/never-have-i-ever');
-			await page1.waitForTimeout(2000);
 
 			// Simulate disconnection by reloading
 			await page1.reload();
-			await page1.waitForTimeout(3000);
 
 			// Should reconnect successfully
 			await expect(page1.locator('body')).toBeVisible();
@@ -193,7 +182,6 @@ test.describe('Multiplayer Game Interactions', () => {
 
 			await page1.goto('/play/temp-disconnect-test/never-have-i-ever');
 			await page2.goto('/play/temp-disconnect-test/never-have-i-ever');
-			await page1.waitForTimeout(4000);
 
 			// Both should be connected
 			await expect(page1.locator('body')).toBeVisible();
@@ -201,7 +189,6 @@ test.describe('Multiplayer Game Interactions', () => {
 
 			// Simulate one player disconnecting and reconnecting
 			await page2.reload();
-			await page2.waitForTimeout(3000);
 
 			// Both should still be functional
 			await expect(page1.locator('body')).toBeVisible();
@@ -218,7 +205,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			const page1 = await context1.newPage();
 
 			await page1.goto('/play/error-handling-test/never-have-i-ever');
-			await page1.waitForTimeout(2000);
 
 			// Should handle errors without crashing
 			await expect(page1.locator('body')).toBeVisible();
@@ -234,7 +220,6 @@ test.describe('Multiplayer Game Interactions', () => {
 
 			await page1.goto('/play/network-interrupt-test/never-have-i-ever');
 			await page2.goto('/play/network-interrupt-test/never-have-i-ever');
-			await page1.waitForTimeout(4000);
 
 			// Should handle network issues gracefully
 			await expect(page1.locator('body')).toBeVisible();
@@ -265,7 +250,6 @@ test.describe('Multiplayer Game Interactions', () => {
 				await Promise.all(joinPromises);
 
 				// Wait for all connections to establish
-				await pages[0].waitForTimeout(8000);
 
 				// All players should be functional
 				for (const page of pages) {
@@ -291,7 +275,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			await page1.goto('/play/rapid-interaction-test/never-have-i-ever');
 			await page2.goto('/play/rapid-interaction-test/never-have-i-ever');
 			await page3.goto('/play/rapid-interaction-test/never-have-i-ever');
-			await page1.waitForTimeout(5000);
 
 			// Should handle rapid interactions without performance degradation
 			await expect(page1.locator('body')).toBeVisible();
@@ -313,11 +296,9 @@ test.describe('Multiplayer Game Interactions', () => {
 
 			// First player starts the game
 			await page1.goto('/play/join-during-game-test/never-have-i-ever');
-			await page1.waitForTimeout(2000);
 
 			// Second player joins while first is active
 			await page2.goto('/play/join-during-game-test/never-have-i-ever');
-			await page2.waitForTimeout(3000);
 
 			// Both should be in sync
 			await expect(page1.locator('body')).toBeVisible();
@@ -339,7 +320,6 @@ test.describe('Multiplayer Game Interactions', () => {
 			await page1.goto('/play/simultaneous-changes-test/never-have-i-ever');
 			await page2.goto('/play/simultaneous-changes-test/never-have-i-ever');
 			await page3.goto('/play/simultaneous-changes-test/never-have-i-ever');
-			await page1.waitForTimeout(5000);
 
 			// Should handle concurrent operations
 			await expect(page1.locator('body')).toBeVisible();

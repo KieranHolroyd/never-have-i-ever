@@ -11,7 +11,7 @@
 		"lint": "prettier --plugin-search-dir . --check .",
 		"format": "prettier --plugin-search-dir . --write .",
 		"update:commit": "bun run scripts/update-version.ts",
-		"test": "./node_modules/.bin/playwright test",
+		"test": "./node_modules/.bin/playwright test --",
 		"test:ui": "./node_modules/.bin/playwright test --ui",
 		"test:headed": "./node_modules/.bin/playwright test --headed",
 		"test:debug": "./node_modules/.bin/playwright test --debug",

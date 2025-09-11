@@ -281,7 +281,8 @@
 							timeout_start: data.game.timeout_start,
 							timeout_duration: data.game.timeout_duration,
 							current_timeout_start: timeout_start,
-							current_timeout_duration: timeout_duration
+							current_timeout_duration: timeout_duration,
+							players: data.game.players
 						});
 
 						game_state.current_catagory = data.game.catagories;
@@ -765,6 +766,7 @@
 					<button
 						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-emerald-300"
 						onclick={() => vote(VoteOptions.Have)}
+						data-testid="have-button"
 					>
 						Have
 					</button>
@@ -777,6 +779,7 @@
 					<button
 						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-rose-300"
 						onclick={() => vote(VoteOptions.HaveNot)}
+						data-testid="have-not-button"
 					>
 						Have not
 					</button>

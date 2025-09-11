@@ -6,8 +6,12 @@ test.describe('Voting Functionality', () => {
 		await page.goto('/');
 
 		// Should have the basic page structure
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
-		await expect(page.locator('text=Start New Game')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
+		await expect(
+			page.locator('article', { hasText: 'Never Have I Ever' }).getByRole('button', {
+				name: 'Start New Game'
+			})
+		).toBeVisible();
 	});
 
 	test('should have proper page layout', async ({ page }) => {
@@ -15,7 +19,7 @@ test.describe('Voting Functionality', () => {
 		await page.goto('/');
 
 		// Check for main layout elements
-		await expect(page.locator('.menu-container')).toBeVisible();
+		await expect(page.locator('main')).toBeVisible();
 	});
 
 	test('should handle navigation to different routes', async ({ page }) => {

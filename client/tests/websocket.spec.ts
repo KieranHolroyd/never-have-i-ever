@@ -4,7 +4,6 @@ test.describe('WebSocket Game Functionality', () => {
 	test('should load game page without errors', async ({ page }) => {
 		await page.goto('/play/test-game-123/never-have-i-ever');
 		await expect(page.locator('body')).toBeVisible();
-		await page.waitForTimeout(1000);
 	});
 
 	test('should handle page reload on game page', async ({ page }) => {

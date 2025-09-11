@@ -6,15 +6,23 @@ test.describe('Reliable Game Functionality Tests', () => {
 	});
 
 	test('should load home page successfully', async ({ page }) => {
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
-		await expect(page.locator('text=Start New Game')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
+		await expect(
+			page.locator('article', { hasText: 'Never Have I Ever' }).getByRole('button', {
+				name: 'Start New Game'
+			})
+		).toBeVisible();
 		await expect(page).toHaveTitle('Games ~ Kieran.dev');
 	});
 
 	test('should navigate to name input page', async ({ page }) => {
-		await page.locator('text=Start New Game').click();
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 		// Should navigate (either client-side or server-side)
-		await page.waitForTimeout(1000);
 		await expect(page.locator('body')).toBeVisible();
 	});
 
@@ -34,7 +42,6 @@ test.describe('Reliable Game Functionality Tests', () => {
 		await page.goto('/play/test-game-123/never-have-i-ever');
 		await expect(page.locator('body')).toBeVisible();
 		// Should not crash on game page
-		await page.waitForTimeout(2000);
 		expect(await page.isVisible('body')).toBe(true);
 	});
 
@@ -45,7 +52,6 @@ test.describe('Reliable Game Functionality Tests', () => {
 			await page.goto(url);
 			await expect(page.locator('body')).toBeVisible();
 			// Should not crash
-			await page.waitForTimeout(1000);
 		}
 	});
 
@@ -58,8 +64,8 @@ test.describe('Reliable Game Functionality Tests', () => {
 		await page1.goto('/');
 		await page2.goto('/');
 
-		await expect(page1.locator('.menu-container h1')).toContainText('Never Have I Ever');
-		await expect(page2.locator('.menu-container h1')).toContainText('Never Have I Ever');
+		await expect(page1.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
+		await expect(page2.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
 
 		await context1.close();
 		await context2.close();
@@ -68,15 +74,19 @@ test.describe('Reliable Game Functionality Tests', () => {
 	test('should handle page refresh', async ({ page }) => {
 		await page.goto('/');
 		await page.reload();
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
 	});
 
 	test('should handle basic page functionality', async ({ page }) => {
 		await page.goto('/');
-		await page.locator('text=Start New Game').click();
+		await page
+			.locator('article', { hasText: 'Never Have I Ever' })
+			.getByRole('button', {
+				name: 'Start New Game'
+			})
+			.click();
 
 		// Wait for any navigation or state changes
-		await page.waitForTimeout(1000);
 
 		// Page should remain functional
 		await expect(page.locator('body')).toBeVisible();
@@ -85,10 +95,10 @@ test.describe('Reliable Game Functionality Tests', () => {
 	test('should handle different viewport sizes', async ({ page }) => {
 		await page.setViewportSize({ width: 375, height: 667 }); // Mobile
 		await page.goto('/');
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
 
 		await page.setViewportSize({ width: 1920, height: 1080 }); // Desktop
-		await expect(page.locator('.menu-container h1')).toContainText('Never Have I Ever');
+		await expect(page.getByRole('heading', { name: 'Multiplayer Party Games' })).toBeVisible();
 	});
 
 	test('should handle multiple interactions', async ({ page }) => {
@@ -98,11 +108,14 @@ test.describe('Reliable Game Functionality Tests', () => {
 		let clickCount = 0;
 		for (let i = 0; i < 3; i++) {
 			try {
-				const button = page.locator('text=Start New Game');
+				const button = page
+					.locator('article', { hasText: 'Never Have I Ever' })
+					.getByRole('button', {
+						name: 'Start New Game'
+					});
 				if (await button.isVisible({ timeout: 1000 })) {
 					await button.click();
 					clickCount++;
-					await page.waitForTimeout(500);
 				} else {
 					break; // Button no longer visible, stop clicking
 				}
@@ -163,6 +176,10 @@ test.describe('Reliable Game Functionality Tests', () => {
 		await page.reload();
 
 		// Page should remain functional after multiple reloads
-		await expect(page.locator('text=Start New Game')).toBeVisible();
+		await expect(
+			page.locator('article', { hasText: 'Never Have I Ever' }).getByRole('button', {
+				name: 'Start New Game'
+			})
+		).toBeVisible();
 	});
 });
