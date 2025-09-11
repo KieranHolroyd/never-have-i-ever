@@ -425,6 +425,8 @@
 				clearTimeout(connection_timeout);
 				connection_timeout = null;
 			}
+
+			reconnect_inflight = false;
 			if (event.code === 1006) {
 				scheduleReconnect();
 				return (error = 'Failed to connect to server, malformed request');
@@ -445,6 +447,8 @@
 				clearTimeout(connection_timeout);
 				connection_timeout = null;
 			}
+
+			reconnect_inflight = false;
 			// Trigger reconnect on connection errors
 			scheduleReconnect();
 		});
@@ -454,6 +458,8 @@
 			console.log('[DEBUG] Connection timeout - server unreachable');
 			if (socket && socket.readyState === WebSocket.CONNECTING) {
 				console.log('[DEBUG] Force closing stuck WebSocket');
+
+				reconnect_inflight = false;
 				socket.close();
 				scheduleReconnect();
 			} else {
