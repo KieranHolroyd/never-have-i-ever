@@ -2,7 +2,8 @@ import type { GameEngine } from "../../types";
 import type { GameSocket } from "../router";
 import { GameManager } from "../../game-manager";
 import { config } from "../../config";
-import { emit } from "../socket";
+// Socket helpers are implemented locally in this engine to avoid
+// coupling behavior with other engines
 
 // Cards Against Humanity specific types
 export type CAHGameState = {
@@ -124,9 +125,12 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
    */
   function broadcastToGame(ws: GameSocket, op: string, data: any): void {
     try {
-      emit(ws, ws.data.game, op, data);
+      const payload = JSON.stringify({ ...data, op });
+      ws.publish(ws.data.game, payload);
     } catch (_) {
-      // No-op; `emit` internally logs errors and attempts to send an error
+      try {
+        ws.send(JSON.stringify({ op: "error", message: "Error publishing message" }));
+      } catch {}
     }
   }
 
