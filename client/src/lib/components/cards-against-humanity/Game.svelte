@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { env } from '$env/dynamic/public';
-	import { LocalPlayer } from '$lib/player';
-	import { Status, type CAHGameState, type CAHPlayer } from '$lib/types';
+    import { onMount, onDestroy } from 'svelte';
+    import { env } from '$env/dynamic/public';
+    import { LocalPlayer } from '$lib/player';
+    import { Status, type CAHGameState, type CAHPlayer } from '$lib/types';
+    import { settingsStore } from '$lib/settings';
+    import { v4 as uuidv4 } from 'uuid';
 
 	interface Props {
 		id: string;
@@ -16,6 +18,128 @@
 	let currentPlayer: CAHPlayer | null = $state(null);
 	let error: string | null = $state(null);
 	let packsSelected = $state(false);
+
+    // Settings
+    let settings = settingsStore;
+
+    // --- Debug Bots ---
+    type Bot = {
+        id: string;
+        name: string;
+        socket: WebSocket | null;
+        connected: boolean;
+        lastSubmittedRound: number; // to avoid double-submit in a round
+        lastJudgedRound: number; // to avoid double-judge in a round
+    };
+
+    let bots: Bot[] = $state([]);
+
+    function createBotName(n: number) {
+        return `Bot ${n}`;
+    }
+
+    function addBot() {
+        const botNumber = bots.length + 1;
+        const bot: Bot = {
+            id: uuidv4(),
+            name: createBotName(botNumber),
+            socket: null,
+            connected: false,
+            lastSubmittedRound: -1,
+            lastJudgedRound: -1
+        };
+        bots = [...bots, bot];
+        connectBot(bot);
+    }
+
+    function addBots(count: number) {
+        for (let i = 0; i < count; i++) addBot();
+    }
+
+    function killAllBots() {
+        bots.forEach((b) => {
+            try { b.socket?.close(); } catch (_) {}
+            b.socket = null;
+            b.connected = false;
+        });
+        bots = [];
+    }
+
+    function connectBot(bot: Bot) {
+        if (bot.socket) return;
+        const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
+        const sock_params = `?playing=cards-against-humanity&game=${id}&player=${bot.id}`;
+        try {
+            bot.socket = new WebSocket(sock_url + sock_params);
+        } catch (e) {
+            return;
+        }
+
+        bot.socket.addEventListener('open', () => {
+            bot.connected = true;
+            bot.socket?.send(
+                JSON.stringify({
+                    op: 'join_game',
+                    create: true,
+                    playername: bot.name
+                })
+            );
+        });
+
+        bot.socket.addEventListener('message', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.op === 'game_state') {
+                    const g: CAHGameState = data.game;
+                    // Find this bot as a player in the game
+                    const me = g.players.find((p) => p.id === bot.id);
+                    if (!me || !me.connected) return;
+
+                    // Selecting phase: submit required number of cards if not judge
+                    if (g.phase === 'selecting' && !me.isJudge) {
+                        if (g.currentRound !== bot.lastSubmittedRound) {
+                            const pick = g.currentBlackCard?.pick ?? 1;
+                            const hand = [...(me.hand || [])];
+                            if (hand.length >= pick) {
+                                // pick random unique cards
+                                const chosenIds: string[] = [];
+                                for (let i = 0; i < pick; i++) {
+                                    const idx = Math.floor(Math.random() * hand.length);
+                                    const card = hand.splice(idx, 1)[0];
+                                    if (card) chosenIds.push(card.id);
+                                }
+                                bot.socket?.send(
+                                    JSON.stringify({ op: 'submit_cards', cardIds: chosenIds })
+                                );
+                                bot.lastSubmittedRound = g.currentRound;
+                            }
+                        }
+                    }
+
+                    // Judging phase: if judge, pick a random winner once
+                    if (g.phase === 'judging' && me.isJudge) {
+                        if (g.currentRound !== bot.lastJudgedRound) {
+                            const subs = g.submittedCards || [];
+                            if (subs.length > 0) {
+                                const winner = subs[Math.floor(Math.random() * subs.length)];
+                                bot.socket?.send(
+                                    JSON.stringify({ op: 'select_winner', winnerPlayerId: winner.playerId })
+                                );
+                                bot.lastJudgedRound = g.currentRound;
+                            }
+                        }
+                    }
+                }
+            } catch (_) {}
+        });
+
+        bot.socket.addEventListener('close', () => {
+            bot.connected = false;
+        });
+        bot.socket.addEventListener('error', () => {
+            bot.connected = false;
+        });
+    }
 
 	function connect() {
 		if (socket) return;
@@ -119,6 +243,12 @@
 			socket?.close();
 		} catch (_) {}
 		socket = null;
+        // Clean up bot sockets
+        bots.forEach((b) => {
+            try { b.socket?.close(); } catch (_) {}
+            b.socket = null;
+            b.connected = false;
+        });
 	});
 </script>
 
@@ -305,23 +435,60 @@
 			</div>
 		{/if}
 
-		<!-- Debug Controls -->
-		<div class="mt-8 pt-6 border-t border-slate-700/50">
-			<h4 class="text-sm font-semibold mb-3 opacity-70">Debug Controls</h4>
-			<div class="flex gap-2">
-				<button
-					class="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors"
-					onclick={() => sendMessage('ping')}
-				>
-					Ping
-				</button>
-				<button
-					class="px-3 py-2 bg-red-600 hover:bg-red-500 rounded text-sm font-medium transition-colors"
-					onclick={resetGame}
-				>
-					Reset Game
-				</button>
-			</div>
-		</div>
+        <!-- Debug Controls -->
+        {#if $settings?.show_debug}
+            <div class="mt-8 pt-6 border-t border-slate-700/50">
+                <h4 class="text-sm font-semibold mb-3 opacity-70">Debug Controls</h4>
+                <div class="flex flex-wrap gap-2 items-center mb-4">
+                    <button
+                        class="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors"
+                        onclick={() => sendMessage('ping')}
+                    >
+                        Ping
+                    </button>
+                    <button
+                        class="px-3 py-2 bg-red-600 hover:bg-red-500 rounded text-sm font-medium transition-colors"
+                        onclick={resetGame}
+                    >
+                        Reset Game
+                    </button>
+                    <span class="mx-2 opacity-50">|</span>
+                    <button
+                        class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors"
+                        onclick={addBot}
+                    >
+                        Add Bot
+                    </button>
+                    <button
+                        class="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 rounded text-sm font-medium transition-colors"
+                        onclick={() => addBots(2)}
+                    >
+                        Add 2 Bots
+                    </button>
+                    <button
+                        class="px-3 py-2 bg-slate-600 hover:bg-slate-500 rounded text-sm font-medium transition-colors"
+                        onclick={killAllBots}
+                    >
+                        Kill All Bots
+                    </button>
+                </div>
+
+                {#if bots.length > 0}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {#each bots as b}
+                            <div class="flex items-center justify-between bg-slate-700/40 rounded-md px-3 py-2">
+                                <div>
+                                    <div class="text-sm font-medium">{b.name}</div>
+                                    <div class="text-xs opacity-70">{b.id.slice(0, 8)}…</div>
+                                </div>
+                                <div class="text-xs {b.connected ? 'text-green-400' : 'text-red-400'}">
+                                    {b.connected ? 'connected' : 'disconnected'}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+        {/if}
 	</div>
 </div>
