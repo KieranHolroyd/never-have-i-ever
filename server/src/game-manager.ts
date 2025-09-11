@@ -14,7 +14,7 @@ import logger from "./logger";
 
 export class GameManager {
   private games: Map<string, GameData> = new Map();
-  private readonly ROUND_TIMEOUT_MS = 3000; // 30 seconds
+  private readonly ROUND_TIMEOUT_MS = 10000; // 10 seconds
 
   // Track timeout start times for sync across clients
   private timeoutStarts: Map<string, number> = new Map();
