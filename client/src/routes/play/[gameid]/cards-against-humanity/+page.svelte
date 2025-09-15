@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import CardsAgainstHumanity from '$lib/components/cards-against-humanity/Game.svelte';
-	import CardPackSelection from '$lib/components/cards-against-humanity/CardPackSelection.svelte';
+	import CahGame from '$lib/components/cah/CahGame.svelte';
+	import CahCardPackSelection from '$lib/components/cah/CahCardPackSelection.svelte';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -64,7 +64,7 @@
 </svelte:head>
 <!-- <NeverHaveIEver id={$page.params.gameid} catagories={data.catagories} /> -->
 {#if gameStarted}
-	<CardsAgainstHumanity id={$page.params.gameid as string} {selectedPackIds} />
+	<CahGame id={$page.params.gameid as string} {selectedPackIds} />
 {:else}
-	<CardPackSelection gameId={$page.params.gameid as string} onPacksSelected={handlePacksSelected} />
+	<CahCardPackSelection gameId={$page.params.gameid as string} onPacksSelected={handlePacksSelected} />
 {/if}

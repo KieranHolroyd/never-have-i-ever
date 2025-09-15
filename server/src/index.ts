@@ -106,9 +106,14 @@ const server = Bun.serve({
       }
     },
     close: (ws) => {
-      // Only invoke NHIE-specific disconnect logic for NHIE sessions
       if (ws.data.playing === "never-have-i-ever") {
         gameManager.handleDisconnect(ws);
+      } else if (ws.data.playing === "cards-against-humanity") {
+        // Handle CAH disconnections
+        const cahEngine = engineRegistry.get("cards-against-humanity");
+        if (cahEngine && cahEngine.handlers.disconnect) {
+          cahEngine.handlers.disconnect(ws, {});
+        }
       }
     },
     perMessageDeflate: true,

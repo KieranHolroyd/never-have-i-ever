@@ -87,32 +87,31 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
   // In-memory game state storage (in production, use Redis/database)
   const cahGames = new Map<string, CAHGameState>();
 
-  function getOrCreateCAHGame(gameId: string): CAHGameState {
-    let game = cahGames.get(gameId);
+  function getGame(gameId: string): CAHGameState | null {
+    return cahGames.get(gameId) || null;
+  }
 
-    if (!game) {
-      game = {
-        id: gameId,
-        players: [],
-        selectedPacks: [],
-        phase: 'waiting',
-        currentJudge: null,
-        currentBlackCard: null,
-        submittedCards: [],
-        roundWinner: null,
-        deck: {
-          blackCards: [],
-          whiteCards: [],
-        },
-        handSize: 7,
-        maxRounds: 10,
-        currentRound: 0,
-        waitingForPlayers: true,
-        gameCompleted: false,
-      };
-      cahGames.set(gameId, game);
-    }
-
+  function createCAHGame(gameId: string): CAHGameState {
+    const game: CAHGameState = {
+      id: gameId,
+      players: [],
+      selectedPacks: [],
+      phase: 'waiting' as const,
+      currentJudge: null,
+      currentBlackCard: null,
+      submittedCards: [],
+      roundWinner: null,
+      deck: {
+        blackCards: [],
+        whiteCards: [],
+      },
+      handSize: 7,
+      maxRounds: 10,
+      currentRound: 0,
+      waitingForPlayers: true,
+      gameCompleted: false,
+    };
+    cahGames.set(gameId, game);
     return game;
   }
 
@@ -130,7 +129,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     } catch (_) {
       try {
         ws.send(JSON.stringify({ op: "error", message: "Error publishing message" }));
-      } catch {}
+      } catch { }
     }
   }
 
@@ -140,6 +139,11 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       if (card) {
         player.hand.push(card);
       }
+    }
+
+    // Log warning if deck is running low
+    if (game.deck.whiteCards.length < game.players.filter(p => p.connected).length * 2) {
+      console.warn(`White card deck is running low: ${game.deck.whiteCards.length} cards remaining`);
     }
   }
 
@@ -160,12 +164,22 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     game.players.forEach(p => p.isJudge = p.id === nextJudge.id);
   }
 
+  function checkAndReassignJudge(game: CAHGameState): void {
+    if (!game.currentJudge) return;
+
+    const currentJudgePlayer = game.players.find(p => p.id === game.currentJudge);
+    if (!currentJudgePlayer || !currentJudgePlayer.connected) {
+      // Judge is disconnected, select next judge
+      selectNextJudge(game);
+    }
+  }
+
   function drawBlackCard(game: CAHGameState): CAHBlackCard | null {
     if (game.deck.blackCards.length === 0) return null;
     return game.deck.blackCards.pop() || null;
   }
 
-  function startNewRound(game: CAHGameState): void {
+  function startNewRound(ws: GameSocket, game: CAHGameState): void {
     game.currentRound++;
     game.submittedCards = [];
     game.roundWinner = null;
@@ -193,10 +207,36 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     game.phase = 'selecting';
   }
 
+  function handleDisconnect(ws: GameSocket): void {
+    const game = getGame(ws.data.game);
+    if (!game) return;
+
+    const player = game.players.find(p => p.id === ws.data.player);
+    if (player) {
+      player.connected = false;
+      console.log(`Player ${player.name} (${player.id}) disconnected from CAH game ${ws.data.game}`);
+
+      // If the disconnected player was the judge, reassign judge
+      if (player.isJudge) {
+        checkAndReassignJudge(game);
+      }
+
+      // Broadcast updated game state
+      broadcastToGame(ws, "game_state", { game });
+    }
+  }
+
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
     join_game: async (ws, data) => {
-      const game = getOrCreateCAHGame(ws.data.game);
       const { create, playername } = data;
+      let game = getGame(ws.data.game);
+
+      if (!game) {
+        if (!create) {
+          throw new Error("Game not found");
+        }
+        game = createCAHGame(ws.data.game);
+      }
 
       // Check if player already exists
       let player = game.players.find(p => p.id === ws.data.player);
@@ -217,7 +257,15 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
           dealCards(game, player);
         }
       } else {
+        const wasDisconnected = !player.connected;
         player.connected = true;
+
+        // Re-deal cards if game has started and player was disconnected
+        if (game.selectedPacks.length > 0 && game.phase !== 'waiting' && wasDisconnected) {
+          dealCards(game, player);
+        }
+
+        console.log(`Player ${player.name} (${player.id}) reconnected to CAH game ${ws.data.game}`);
       }
 
       // Subscribe this client to the game topic and notifications channel
@@ -232,15 +280,21 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       if (game.phase === 'waiting' && game.players.filter(p => p.connected).length >= 3) {
         game.waitingForPlayers = false;
         if (game.selectedPacks.length > 0) {
-          startNewRound(game);
+          startNewRound(ws, game);
         }
       }
+
+      // Check if judge needs reassignment
+      checkAndReassignJudge(game);
 
       broadcastToGame(ws, "game_state", { game });
     },
 
     select_packs: async (ws, data) => {
-      const game = getOrCreateCAHGame(ws.data.game);
+      const game = getGame(ws.data.game);
+      if (!game) {
+        throw new Error("Game not found");
+      }
       const { packIds } = data;
 
       if (game.phase !== 'waiting') {
@@ -272,6 +326,18 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
             { id: 'b1', text: 'Why can\'t I sleep at night?', pick: 1 },
             { id: 'b2', text: 'What\'s that smell?', pick: 1 },
             { id: 'b3', text: 'I got 99 problems but _____ ain\'t one.', pick: 1 },
+            { id: 'b4', text: 'What would grandma find disturbing, yet oddly charming?', pick: 1 },
+            { id: 'b5', text: '_____. It\'s a trap!', pick: 1 },
+            { id: 'b6', text: 'When I am a billionaire, _____ will be my first purchase.', pick: 1 },
+            { id: 'b7', text: 'I never truly understood _____ until I encountered _____.', pick: 2 },
+            { id: 'b8', text: 'The class field trip was completely ruined by _____.', pick: 1 },
+            { id: 'b9', text: 'In the distant future, historians will agree that _____ was humanity\'s greatest invention.', pick: 1 },
+            { id: 'b10', text: '_____. That\'s why I can\'t have nice things.', pick: 1 },
+            { id: 'b11', text: '_____. It\'s just _____ all the way down.', pick: 2 },
+            { id: 'b12', text: 'What\'s the new fad diet?', pick: 1 },
+            { id: 'b13', text: '_____. High five, bro.', pick: 1 },
+            { id: 'b14', text: '_____. That\'s how I want to die.', pick: 1 },
+            { id: 'b15', text: 'The Five Stages of Grief: Denial, Anger, Bargaining, _____, Acceptance.', pick: 1 }
           ];
           game.deck.whiteCards = [
             { id: 'w1', text: 'Being on fire.' },
@@ -284,6 +350,96 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
             { id: 'w8', text: 'Sexting.' },
             { id: 'w9', text: 'Roofies.' },
             { id: 'w10', text: 'A man on the brink of orgasm.' },
+            { id: 'w11', text: 'Being a busy adult with many important things to do.' },
+            { id: 'w12', text: 'Pretending to be happy.' },
+            { id: 'w13', text: 'A slightly shittier parallel universe.' },
+            { id: 'w14', text: 'A sad fat dragon with no friends.' },
+            { id: 'w15', text: 'Fucking up the moon landing.' },
+            { id: 'w16', text: 'Having a penis for a face.' },
+            { id: 'w17', text: 'Being paralyzed from the neck down.' },
+            { id: 'w18', text: 'A disappointing birthday party.' },
+            { id: 'w19', text: 'A windmill full of corpses.' },
+            { id: 'w20', text: 'A lifetime of sadness.' },
+            { id: 'w21', text: 'A haunted orphanage for orphaned ghosts.' },
+            { id: 'w22', text: 'An ass disaster.' },
+            { id: 'w23', text: 'Some kind of bird-man.' },
+            { id: 'w24', text: 'A horde of skeletons.' },
+            { id: 'w25', text: 'A micropig wearing a tiny raincoat and booties.' },
+            { id: 'w26', text: 'A slightly shittier parallel universe.' },
+            { id: 'w27', text: 'A sad fat dragon with no friends.' },
+            { id: 'w28', text: 'Fucking up the moon landing.' },
+            { id: 'w29', text: 'Having a penis for a face.' },
+            { id: 'w30', text: 'Being paralyzed from the neck down.' },
+            { id: 'w31', text: 'A disappointing birthday party.' },
+            { id: 'w32', text: 'A windmill full of corpses.' },
+            { id: 'w33', text: 'A lifetime of sadness.' },
+            { id: 'w34', text: 'A haunted orphanage for orphaned ghosts.' },
+            { id: 'w35', text: 'An ass disaster.' },
+            { id: 'w36', text: 'Some kind of bird-man.' },
+            { id: 'w37', text: 'A horde of skeletons.' },
+            { id: 'w38', text: 'A micropig wearing a tiny raincoat and booties.' },
+            { id: 'w39', text: 'Becoming the President of the United States.' },
+            { id: 'w40', text: 'A sad clown.' },
+            { id: 'w41', text: 'A lonely, desperate, middle-aged man.' },
+            { id: 'w42', text: 'A cloud of acid.' },
+            { id: 'w43', text: 'A tiny, adorable child.' },
+            { id: 'w44', text: 'A beautiful, radiant unicorn.' },
+            { id: 'w45', text: 'A magical, mystical, mysterious unicorn.' },
+            { id: 'w46', text: 'Being so rich that it hurts.' },
+            { id: 'w47', text: 'A lifetime of crippling debt.' },
+            { id: 'w48', text: 'Getting married, having children, and dying alone.' },
+            { id: 'w49', text: 'The entire Mormon Tabernacle Choir.' },
+            { id: 'w50', text: 'The female orgasm.' },
+            { id: 'w51', text: 'The sweet release of death.' },
+            { id: 'w52', text: 'Hot people.' },
+            { id: 'w53', text: 'The inevitable heat death of the universe.' },
+            { id: 'w54', text: 'My inner demons.' },
+            { id: 'w55', text: 'Smallpox and genocide.' },
+            { id: 'w56', text: 'A defective condom.' },
+            { id: 'w57', text: 'The chronic pain of existence.' },
+            { id: 'w58', text: 'Getting so angry that you pop a boner.' },
+            { id: 'w59', text: 'The systematic destruction of an entire people and their way of life.' },
+            { id: 'w60', text: 'Powerful thighs.' },
+            { id: 'w61', text: 'The boy who cried wolf.' },
+            { id: 'w62', text: 'An older woman who knows her way around the bedroom.' },
+            { id: 'w63', text: 'A cat with trust issues.' },
+            { id: 'w64', text: 'Being a motherfucking sorcerer.' },
+            { id: 'w65', text: 'A sad handjob.' },
+            { id: 'w66', text: 'Robots who just want to party.' },
+            { id: 'w67', text: 'A mopey zoo lion.' },
+            { id: 'w68', text: 'A magic hippie love cloud.' },
+            { id: 'w69', text: 'A killer robot sent from the future.' },
+            { id: 'w70', text: 'The government.' },
+            { id: 'w71', text: 'A time travel paradox.' },
+            { id: 'w72', text: 'Authentic Mexican cuisine.' },
+            { id: 'w73', text: 'Doing the right thing.' },
+            { id: 'w74', text: 'The Pope.' },
+            { id: 'w75', text: 'A bleached asshole.' },
+            { id: 'w76', text: 'Horse meat.' },
+            { id: 'w77', text: 'Sunshine and rainbows.' },
+            { id: 'w78', text: 'A sensible salad.' },
+            { id: 'w79', text: 'A bitch slap.' },
+            { id: 'w80', text: 'Pure, concentrated evil.' },
+            { id: 'w81', text: 'A big black dick.' },
+            { id: 'w82', text: 'A beached whale.' },
+            { id: 'w83', text: 'A bloody pacifier.' },
+            { id: 'w84', text: 'A crappy little hand.' },
+            { id: 'w85', text: 'A low standard of living.' },
+            { id: 'w86', text: 'A nuanced critique.' },
+            { id: 'w87', text: 'Panty raids.' },
+            { id: 'w88', text: 'One Ring to rule them all.' },
+            { id: 'w89', text: 'A Super Soaker full of cat pee.' },
+            { id: 'w90', text: 'Figgy pudding.' },
+            { id: 'w91', text: 'Seppuku.' },
+            { id: 'w92', text: 'An army of skeletons.' },
+            { id: 'w93', text: 'A fetus.' },
+            { id: 'w94', text: 'A sea of troubles.' },
+            { id: 'w95', text: 'A good sniff.' },
+            { id: 'w96', text: 'A dingo eating your baby.' },
+            { id: 'w97', text: 'The thin veneer of situational causality that underlies porn.' },
+            { id: 'w98', text: 'Girls that always be textin\'.' },
+            { id: 'w99', text: 'Blowing up Parliament.' },
+            { id: 'w100', text: 'A spontaneous conga line.' }
           ];
         }
       } catch (error) {
@@ -298,13 +454,6 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
           { id: 'w1', text: 'Being on fire.' },
           { id: 'w2', text: 'Racism.' },
           { id: 'w3', text: 'Old-people smell.' },
-          { id: 'w4', text: 'A micropenis.' },
-          { id: 'w5', text: 'Women in yogurt commercials.' },
-          { id: 'w6', text: 'Classist undertones.' },
-          { id: 'w7', text: 'Not giving a fuck.' },
-          { id: 'w8', text: 'Sexting.' },
-          { id: 'w9', text: 'Roofies.' },
-          { id: 'w10', text: 'A man on the brink of orgasm.' },
         ];
       }
 
@@ -315,14 +464,17 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       // Start first round if we have enough players
       if (game.players.filter(p => p.connected).length >= 3) {
         game.waitingForPlayers = false;
-        startNewRound(game);
+        startNewRound(ws, game);
       }
 
       broadcastToGame(ws, "game_state", { game });
     },
 
     submit_cards: async (ws, data) => {
-      const game = getOrCreateCAHGame(ws.data.game);
+      const game = getGame(ws.data.game);
+      if (!game) {
+        throw new Error("Game not found");
+      }
       const { cardIds } = data;
 
       if (game.phase !== 'selecting') {
@@ -374,7 +526,10 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     },
 
     select_winner: async (ws, data) => {
-      const game = getOrCreateCAHGame(ws.data.game);
+      const game = getGame(ws.data.game);
+      if (!game) {
+        throw new Error("Game not found");
+      }
       const { winnerPlayerId } = data;
 
       if (game.phase !== 'judging') {
@@ -403,7 +558,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
           game.phase = 'game_over';
           game.gameCompleted = true;
         } else {
-          startNewRound(game);
+          startNewRound(ws, game);
         }
         broadcastToGame(ws, "game_state", { game });
       }, 3000);
@@ -412,7 +567,10 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     },
 
     reset_game: async (ws, data) => {
-      const game = getOrCreateCAHGame(ws.data.game);
+      const game = getGame(ws.data.game);
+      if (!game) {
+        throw new Error("Game not found");
+      }
 
       // Reset game state
       game.phase = 'waiting';
@@ -437,6 +595,10 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     ping: async (ws, data) => {
       // Simple ping handler
       broadcastToGame(ws, "pong", {});
+    },
+
+    disconnect: async (ws, data) => {
+      handleDisconnect(ws);
     },
   };
 
