@@ -257,15 +257,8 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
           dealCards(game, player);
         }
       } else {
-        const wasDisconnected = !player.connected;
+        // Treat repeat joins idempotently without special reconnect handling
         player.connected = true;
-
-        // Re-deal cards if game has started and player was disconnected
-        if (game.selectedPacks.length > 0 && game.phase !== 'waiting' && wasDisconnected) {
-          dealCards(game, player);
-        }
-
-        console.log(`Player ${player.name} (${player.id}) reconnected to CAH game ${ws.data.game}`);
       }
 
       // Subscribe this client to the game topic and notifications channel

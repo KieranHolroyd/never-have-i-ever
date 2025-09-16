@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import CahGame from '$lib/components/cah/CahGame.svelte';
-	import CahCardPackSelection from '$lib/components/cah/CahCardPackSelection.svelte';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -10,16 +9,7 @@
 
 	let { data }: Props = $props();
 
-	// Game state management
-	let gameStarted: boolean = $state(false);
-	let selectedPackIds: string[] = $state([]);
-
-	function handlePacksSelected(packs: string[]) {
-		selectedPackIds = packs;
-		gameStarted = true;
-		// TODO: Send selected packs to server/game engine
-		console.log('Selected packs:', selectedPackIds);
-	}
+    // Selection occurs inside CahGame based on live game state
 </script>
 
 <svelte:head>
@@ -62,9 +52,4 @@
 		<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512.png" />
 	{/if}
 </svelte:head>
-<!-- <NeverHaveIEver id={$page.params.gameid} catagories={data.catagories} /> -->
-{#if gameStarted}
-	<CahGame id={$page.params.gameid as string} {selectedPackIds} />
-{:else}
-	<CahCardPackSelection gameId={$page.params.gameid as string} onPacksSelected={handlePacksSelected} />
-{/if}
+<CahGame id={$page.params.gameid as string} />

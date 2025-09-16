@@ -16,13 +16,13 @@
 	import CahJudgingPhase from './components/phases/CahJudgingPhase.svelte';
 	import CahWaitingForJudgePhase from './components/phases/CahWaitingForJudgePhase.svelte';
 	import CahScoringPhase from './components/phases/CahScoringPhase.svelte';
-	import CahGameOverPhase from './components/phases/CahGameOverPhase.svelte';
+    import CahGameOverPhase from './components/phases/CahGameOverPhase.svelte';
+    import CahCardPackSelection from './CahCardPackSelection.svelte';
 
-	interface Props {
-		id: string;
-		selectedPackIds?: string[];
-	}
-	let { id, selectedPackIds }: Props = $props();
+    interface Props {
+        id: string;
+    }
+    let { id }: Props = $props();
 
 	let wsManager: CAHWebSocketManager | null = null;
 	let connection: Status = $state(Status.CONNECTING);
@@ -180,14 +180,13 @@
 		}
 	}
 
-	function connect() {
+    function connect() {
 		if (wsManager) return;
 
 		wsManager = new CAHWebSocketManager({
 			gameId: id,
 			playerId: LocalPlayer.id,
 			playerName: LocalPlayer.name || 'Anonymous Player',
-			selectedPackIds: selectedPackIds || undefined,
 			onGameState: handleGameState,
 			onError: handleError,
 			onConnectionChange: handleConnectionChange
@@ -230,6 +229,10 @@
 			wsManager.resetGame();
 		}
 	}
+
+    function handlePacksSelected(packs: string[]) {
+        wsManager?.selectPacks(packs);
+    }
 
 	onMount(() => {
 		connect();
@@ -292,8 +295,16 @@
 			<CahBlackCard {gameState} />
 
 			<!-- Game Content Based on Phase -->
-			{#if gameState.phase === 'waiting'}
-				<CahWaitingPhase {gameState} />
+            {#if gameState.phase === 'waiting'}
+                {#if (gameState.selectedPacks?.length || 0) === 0}
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold mb-2">Select Card Packs</h3>
+                        <p class="text-slate-400 mb-4">Choose which packs to include before the game starts.</p>
+                        <CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
+                    </div>
+                {:else}
+                    <CahWaitingPhase {gameState} />
+                {/if}
 			{:else if gameState.phase === 'selecting' && currentPlayer && !currentPlayer.isJudge}
 				<!-- Card Selection Phase -->
 				<div class="mb-6">
