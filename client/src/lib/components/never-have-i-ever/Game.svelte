@@ -7,11 +7,14 @@
 	import { Status, VoteOptions, type Player, type Catagories } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
-	import Notification from '../Notification.svelte';
+	import { toast } from '$lib/toast';
 	import Tutorial from '../Tutorial.svelte';
 	import { colour_map } from '$lib/colour';
 	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';
+    import { fade, fly } from 'svelte/transition';
+    import { flip } from 'svelte/animate';
+    import { backOut, quintOut } from 'svelte/easing';
 
 	import MdiUndoVariant from '~icons/mdi/undo-variant';
 	import MdiListBox from '~icons/mdi/list-box';
@@ -25,9 +28,6 @@
 	let { id, catagories = $bindable() }: Props = $props();
 
 	let error: string | null = $state(null);
-	let show_notification = $state(false);
-	let notification_content = $state('');
-	let show_reload_button = $state(false);
 	let should_reload_on_reconnect = $state(false);
 
 	let settings = settingsStore;
@@ -95,12 +95,7 @@
 			await navigator.share(share_data);
 		} else {
 			await navigator.clipboard.writeText(share_data.url);
-			show_notification = true;
-			notification_content = 'Copied game link to clipboard';
-			setTimeout(() => {
-				show_notification = false;
-				notification_content = '';
-			}, 2500);
+			toast.success('Copied game link to clipboard');
 		}
 	}
 
@@ -211,10 +206,13 @@
 		socket?.send(JSON.stringify({ op: 'select_catagory', catagory }));
 	}
 
-	function vote(option: VoteOptions) {
-		console.log('[DEBUG] Voting:', option);
-		socket?.send(JSON.stringify({ op: 'vote', option }));
-	}
+    function vote(option: VoteOptions) {
+        console.log('[DEBUG] Voting:', option);
+        socket?.send(JSON.stringify({ op: 'vote', option }));
+        if (browser && 'vibrate' in navigator) {
+            try { (navigator as any).vibrate?.(10); } catch {}
+        }
+    }
 
 	// Debug function for browser console
 	function debugGameState() {
@@ -352,22 +350,23 @@
 						errors = [...errors, data];
 						break;
 					case 'github_push':
-						setTimeout(() => {
-							show_notification = true;
-							notification_content = data.notification;
-							show_reload_button = data.showReloadButton || false;
-						}, data.delay);
+					setTimeout(() => {
+						if (data.showReloadButton) {
+							toast.info(data.notification, {
+								action: { label: 'Reload', onClick: reload_page },
+								// Slightly longer so users can act
+								duration: 6000
+							});
+						} else {
+							toast.info(data.notification);
+						}
+					}, data.delay);
 						// Set flag to reload when we reconnect after deployment
 						should_reload_on_reconnect = true;
 						break;
 					case 'round_timeout':
 						console.log('[DEBUG] Round timeout received:', data.message);
-						show_notification = true;
-						notification_content = data.message;
-						setTimeout(() => {
-							show_notification = false;
-							notification_content = '';
-						}, 3000);
+					toast.info(data.message, { duration: 3000 });
 
 						// Clear timeout state when timeout occurs
 						if (timeout_interval) {
@@ -618,23 +617,25 @@
 >
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
-			<div class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl">
+			<div class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl" in:fade={{ duration: 260, easing: quintOut }}>
 				<h1>New Game</h1>
 			</div>
-			<div class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl">
-				<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">Select Catagories</p>
-				{#if catagories !== undefined}
-					<div class="max-h-96 overflow-auto">
-						{#each Object.entries(catagories) as [catagory_name, catagory]}
+			<div class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl" in:fade={{ duration: 260, easing: quintOut }}>
+				<div in:fly={{ y: 10, duration: 300, easing: backOut }}>
+					<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">Select Catagories</p>
+					{#if catagories !== undefined}
+						<div class="max-h-96 overflow-auto">
+							{#each Object.entries(catagories) as [catagory_name, catagory], index (catagory_name)}
 							{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
 								<span></span>
 							{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
 								<span></span>
 							{:else}
 								<label class="my-[2px]">
-									<div
-										class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-slate-700/50 duration-75"
-									>
+											<div
+												class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-slate-700/50 duration-75"
+												in:fly={{ y: 6, duration: 260, delay: Math.min(index * 18, 300), easing: quintOut }}
+											>
 										<input
 											type="checkbox"
 											class=""
@@ -650,57 +651,54 @@
 									</div>
 								</label>
 							{/if}
-						{/each}
-					</div>
-				{:else}
-					<p>Loading...</p>
-				{/if}
+							{/each}
+						</div>
+					{:else}
+						<p>Loading...</p>
+					{/if}
+				</div>
 			</div>
 			<button
 				class="rounded-none transition bg-emerald-500 text-white font-semibold py-2 px-4 hover:bg-emerald-400 w-full max-w-md mx-auto rounded-b-xl shadow hover:shadow-xl"
 				onclick={() => confirmSelections()}
+				in:fade={{ duration: 220, delay: 140, easing: quintOut }}
 			>
 				Continue
 			</button>
 			<PreGameConnection {connection} {players} />
-			<Tutorial id="welcome" title="Welcome">
-				<p>
-					Welcome to the game! This is where the fun begins. You will be presented with a question,
-					and you will have to vote on whether you have done it or not. You can also vote "Kinda" if
-					you aren't sure.
-				</p>
-				<p>
-					<b>First though</b>, you'll need to select the catagories you want to play with. You can
-					select as many as you'd like.
-				</p>
-			</Tutorial>
-			<!-- Local Error Popup -->
-			<Notification
-				show={error !== null}
-				on:closeNotification={() => {
-					error = null;
-				}}
-			>
-				{error ?? 'Unknown Error (See Javascript Console)'}
-			</Notification>
+            <Tutorial
+                id="welcome"
+                steps={[
+                    { title: 'Welcome', content: 'Play Never Have I Ever with friends in real-time. No accounts needed.' },
+                    { title: 'Pick categories', content: 'Choose one or more categories to tailor the questions to your group.' },
+                    { title: 'How rounds work', content: 'A question appears. Everyone votes: Have, Kinda, or Have Not.' },
+                    { title: 'Scoring', content: 'Have = +1, Kinda = +0.5, Have Not = 0. Highest score wins, but fun matters most.' }
+                ]}
+            />
+			<!-- Removed local overlay popup in favor of global toasts -->
 		{:else}
-			{#if current_question?.content !== undefined}
-				<div class="panel card">
-					<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">
-						Catagory: {current_question?.catagory}
-					</p>
-					<p class="relative text-lg my-1 p-1" data-testid="question-content">
-						{current_question?.content}
-					</p>
-				</div>
+            {#if current_question?.content !== undefined}
+                {#key current_question?.content}
+                <div class="panel card" in:fade={{ duration: 180, easing: quintOut }}>
+                    <div in:fly={{ y: 8, duration: 220, easing: backOut }}>
+                        <p class="m-0 text-xs uppercase font-bold" data-testid="question-category">
+                            Catagory: {current_question?.catagory}
+                        </p>
+                        <p class="relative text-lg my-1 p-1" data-testid="question-content">
+                            {current_question?.content}
+                        </p>
+                    </div>
+                </div>
+                {/key}
 				{#if error}
 					<p class="text-red-700">{error}</p>
 				{/if}
-				<div class="panel card">
+                <div class="panel card">
 					<p class="panel-heading">Players</p>
-					{#each players.filter((p) => p.connected) as player}
+                    {#each players.filter((p) => p.connected) as player, index (player.id)}
 						<div
-							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`}
+                            class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]} transition-colors duration-300 ease-out`}
+                            in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: quintOut }} animate:flip
 							data-testid={`player-${player.name}`}
 						>
 							{player.name}: {player.this_round.vote ?? 'Not Voted'}
@@ -717,9 +715,10 @@
 				<h2>Choose a question</h2>
 			{/if}
 			{#if game_state.waiting_for_players}
-				<div
-					class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600"
-				>
+                <div
+                    class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600"
+                    in:fade={{ duration: 140, easing: quintOut }}
+                >
 					<div class="text-center">
 						<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
 							Round in Progress
@@ -765,25 +764,25 @@
 			{/if}
 
 			<!-- Restyled Action Bar -->
-			<div class="fixed bottom-0 left-0 w-full z-30">
+			<div class="fixed bottom-0 left-0 w-full z-30" in:fly={{ y: 32, duration: 320, easing: quintOut }}>
 				<div
 					class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/60"
 				>
-					<button
-						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-emerald-300"
+                    <button
+                        class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)]"
 						onclick={() => vote(VoteOptions.Have)}
 						data-testid="have-button"
 					>
 						Have
 					</button>
-					<button
-						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 hover:text-sky-300"
+                    <button
+                        class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 transition-all duration-200 ease-out hover:text-sky-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-sky-400/40 hover:shadow-[0_8px_24px_-12px_rgba(56,189,248,0.6)]"
 						onclick={() => vote(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
-					<button
-						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 hover:text-rose-300"
+                    <button
+                        class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-rose-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-rose-400/40 hover:shadow-[0_8px_24px_-12px_rgba(244,63,94,0.6)]"
 						onclick={() => vote(VoteOptions.HaveNot)}
 						data-testid="have-not-button"
 					>
@@ -838,26 +837,14 @@
 					<p>Double Click</p>
 				</div>
 			{/if}
-			<Tutorial id="ingame" title="How to play">
-				<p>
-					This is an <b>online & multiplayer</b> version of the classic party game
-					<i><b>Never Have I Ever</b></i>. Your votes will be tallied up and you will be given
-					points based on your answers. The points are as follows:
-				</p>
-				<ul>
-					<li>Have: <span class="text-green-400">+1 Point</span></li>
-					<li>Kinda: <span class="text-green-400">+1/2 Point</span></li>
-					<li>Have Not: <span class="text-blue-400">No Point</span></li>
-				</ul>
-				<p>
-					<b>Remember!</b> This is a multiplayer experience, so selecting the next question,
-					resetting the game, & showing the catagory selector again can be initiated by anyone.
-					<i>so don't add the annoying group member</i>
-				</p>
-				<p>
-					<b>One last thing!</b> The goal of the game is to have fun, so don't take it too seriously.
-				</p>
-			</Tutorial>
+            <Tutorial
+                id="ingame"
+                steps={[
+                    { title: 'Vote quickly', content: 'When a question appears, tap your answer. The next round can start once everyone has voted.' },
+                    { title: 'Anyone can drive', content: 'Any player can skip to the next question, reset, or reopen category selection.' },
+                    { title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
+                ]}
+            />
 			<ConnectionInfoPanel {connection} {players} {errors} />
 		{/if}
 	{:else}
@@ -874,18 +861,7 @@
 	{#if conf_reset_display}
 		<button class="red-button mt-4" onclick={() => reset()}>Confirm Reset</button>
 	{/if}
-	<!-- Global Notifications Panel -->
-	<Notification
-		show={show_notification}
-		showReloadButton={show_reload_button}
-		on:closeNotification={() => {
-			show_notification = false;
-			notification_content = '';
-			show_reload_button = false;
-		}}
-	>
-		{notification_content}
-	</Notification>
+	<!-- Global toasts replace per-page notification overlays -->
 	{#if connection === Status.CONNECTED}
 		<div
 			class="fixed text-xs w-[3.25rem] pointer-events-none top-[11.5rem] left-2.5 rounded-full py-0.5 px-1 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
