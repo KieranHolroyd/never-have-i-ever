@@ -575,6 +575,11 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       game.waitingForPlayers = true;
       game.gameCompleted = false;
 
+      // Clear selected packs and decks so the pack selector shows again
+      game.selectedPacks = [];
+      game.deck.blackCards = [];
+      game.deck.whiteCards = [];
+
       // Reset all players
       game.players.forEach(player => {
         player.score = 0;
