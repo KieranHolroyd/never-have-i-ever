@@ -173,4 +173,45 @@ describe('Cards Against Humanity Engine', () => {
     const last = getLastMessageByOp(ws, 'pong')!;
     expect(last.op).toBe('pong');
   });
+
+  it('reset_game should return to pack selection and clear state', async () => {
+    const ws1 = createMockWs(gameId, 'p1');
+    const ws2 = createMockWs(gameId, 'p2');
+    const ws3 = createMockWs(gameId, 'p3');
+
+    // Setup a running game with 3 players and selected packs
+    await engine.handlers.join_game(ws1, { create: true, playername: 'Alice' });
+    await engine.handlers.join_game(ws2, { create: false, playername: 'Bob' });
+    await engine.handlers.join_game(ws3, { create: false, playername: 'Cara' });
+    await engine.handlers.select_packs(ws1, { packIds: ['base'] });
+
+    // Sanity check: game started
+    const started = getLastGameStateMessage(ws1)!;
+    expect(started.game.phase === 'selecting' || started.game.phase === 'waiting').toBeTrue();
+
+    // Perform reset
+    await engine.handlers.reset_game(ws1, {});
+
+    const msg = getLastGameStateMessage(ws1)!;
+    expect(msg).toBeTruthy();
+    const game = msg.game;
+
+    // Phase and control flags
+    expect(game.phase).toBe('waiting');
+    expect(game.waitingForPlayers).toBeTrue();
+    expect(Array.isArray(game.selectedPacks)).toBeTrue();
+    expect(game.selectedPacks.length).toBe(0);
+
+    // Decks cleared
+    expect(game.deck.blackCards.length).toBe(0);
+    expect(game.deck.whiteCards.length).toBe(0);
+
+    // Players reset
+    expect(game.players.length).toBe(3);
+    for (const p of game.players) {
+      expect(p.score).toBe(0);
+      expect(p.hand.length).toBe(0);
+      expect(p.isJudge).toBeFalse();
+    }
+  });
 });
