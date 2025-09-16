@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { CAHGameState } from '$lib/types';
 	import CahBadge from '../shared/CahBadge.svelte';
+    import { fade, scale } from 'svelte/transition';
 
 	interface Props {
 		gameState: CAHGameState;
@@ -19,7 +20,8 @@
 				</CahBadge>
 			{/if}
 		</div>
-		<div class="bg-gradient-to-br from-slate-900 to-black border border-slate-700 rounded-lg p-6 text-center shadow-2xl">
+		<div class="bg-gradient-to-br from-slate-900 to-black border border-slate-700 rounded-lg p-6 text-center shadow-2xl" in:fade={{ duration: 150 }}>
+			<div in:scale={{ start: 0.98, duration: 150 }}>
 			<div class="flex items-center justify-center mb-4">
 				<div class="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center">
 					<span class="text-xs font-bold text-slate-400">Q</span>
@@ -33,6 +35,7 @@
 					</p>
 				</div>
 			{/if}
+			</div>
 		</div>
 	</div>
 {/if}

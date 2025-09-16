@@ -5,6 +5,7 @@
 	import Settings from '$lib/components/Settings.svelte';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import Toaster from '$lib/components/Toaster.svelte';
 	import { UUIDv4Regex } from '$lib/regex';
 	interface Props {
 		children: import('svelte').Snippet;
@@ -42,6 +43,7 @@
 <div class="min-h-screen bg-gradient-to-b from-slate-800 to-slate-900 text-slate-100">
 	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all pl-16 lg:pl-0">
 		{@render children()}
+		<Toaster />
 		<Settings />
 		<Navbar />
 		<Footer />

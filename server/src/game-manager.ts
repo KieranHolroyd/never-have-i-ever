@@ -3,7 +3,6 @@ import { config } from "./config";
 import { client } from "./redis_client";
 import { select_question } from "./lib/questions";
 import { GameSocket } from "./lib/router";
-import { reconnectManager } from "./lib/reconnect-manager";
 
 import { ingestEvent } from "./axiom";
 import { GameNotFoundError, GameFullError, ValidationError } from "./errors";
@@ -157,10 +156,6 @@ export class GameManager {
         game.players.push(newPlayer);
       } else {
         existingPlayer.connected = true;
-
-        // Stop any ongoing reconnect attempts for this player
-        reconnectManager.stopReconnect(ws.data.game, ws.data.player);
-
         ingestEvent({
           gameID: ws.data.game,
           event: "player_reconnected",
@@ -684,14 +679,9 @@ export class GameManager {
       const player = game.players.find(p => p.id === ws.data.player);
       if (player) {
         player.connected = false;
-
-        // Start reconnect attempts for this player
-        reconnectManager.startReconnect(ws);
-
         ingestEvent({
           event: "websocket_connection_closed",
           playerID: ws.data.player,
-          reconnectStarted: true,
         });
       }
 
@@ -704,11 +694,11 @@ export class GameManager {
 
   async handleReconnectStatus(ws: GameSocket, data: any): Promise<void> {
     try {
-      const status = reconnectManager.getReconnectStatus(ws.data.game, ws.data.player);
+      // Server no longer performs reconnect attempts; always report not reconnecting
       this.sendToClient(ws, "reconnect_status", {
-        reconnecting: status?.isReconnecting || false,
-        attemptCount: status?.attemptCount || 0,
-        nextAttemptIn: status?.nextAttemptIn || 0,
+        reconnecting: false,
+        attemptCount: 0,
+        nextAttemptIn: 0,
       });
     } catch (error) {
       console.error("Error in handleReconnectStatus:", error);
@@ -875,7 +865,7 @@ export class GameManager {
 
   cleanup(): void {
     logger.info("GameManager cleanup initiated");
-    reconnectManager.cleanup();
+    // No reconnect manager to clean up anymore
     logger.info("GameManager cleanup completed");
   }
 }

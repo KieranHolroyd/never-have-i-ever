@@ -3,6 +3,8 @@
 	import CahPlayerAvatar from '../shared/CahPlayerAvatar.svelte';
 	import CahBadge from '../shared/CahBadge.svelte';
 	import { sortPlayersByScore, getPlayerInitials } from '../../utils/cah-utils';
+    import { fade, fly } from 'svelte/transition';
+    import { flip } from 'svelte/animate';
 
 	interface Props {
 		gameState: CAHGameState;
@@ -12,7 +14,7 @@
 	let { gameState, currentPlayerId }: Props = $props();
 
 	const connectedPlayers = gameState.players.filter(p => p.connected);
-	const sortedPlayers = sortPlayersByScore(connectedPlayers);
+    const sortedPlayers = sortPlayersByScore(connectedPlayers);
 	const needsMorePlayers = connectedPlayers.length < 3;
 </script>
 
@@ -31,13 +33,14 @@
 		{/if}
 	</div>
 
-	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-		{#each sortedPlayers as player, index}
-			<div class="relative bg-slate-700/50 rounded-lg p-4 transition-all duration-200 hover:bg-slate-700/70
-				{player.isJudge ? 'ring-2 ring-yellow-400/50 bg-yellow-500/10' :
-				 player.id === currentPlayerId ? 'ring-2 ring-blue-400/50 bg-blue-500/10' : ''}">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        {#each sortedPlayers as player, index (player.id)}
+            <div class="relative bg-slate-700/50 rounded-lg p-4 transition-all duration-200 hover:bg-slate-700/70
+                {player.isJudge ? 'ring-2 ring-yellow-400/50 bg-yellow-500/10' :
+                 player.id === currentPlayerId ? 'ring-2 ring-blue-400/50 bg-blue-500/10' : ''}"
+                 in:fly={{ y: 8, duration: 200 }} animate:flip>
 
-				<!-- Player Avatar -->
+                <!-- Player Avatar -->
 				<div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
 					<span class="text-lg font-bold text-white">{getPlayerInitials(player.name)}</span>
 				</div>
@@ -76,8 +79,8 @@
 							{player.hand.length} cards
 						</div>
 					</div>
-				{/if}
-			</div>
+                {/if}
+            </div>
 		{/each}
 	</div>
 </div>

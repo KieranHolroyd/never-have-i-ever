@@ -5,7 +5,7 @@
 	import MdiSave from '~icons/mdi/content-save';
 
 	import { browser } from '$app/environment';
-	import Notification from './Notification.svelte';
+	import { toast } from '$lib/toast';
 	import { settingsStore } from '$lib/settings';
 
 	let show = $state(false);
@@ -17,9 +17,11 @@
 		try {
 			if (browser) {
 				localStorage.setItem('settings', JSON.stringify($settings));
+                toast.success('Settings saved');
 			}
 		} catch (e) {
-			error = e as any;
+			error = String(e ?? 'Failed to save settings');
+			toast.error(error);
 		}
 	}
 </script>
@@ -114,11 +116,4 @@
 		</label>
 	</div>
 </div>
-<Notification
-	show={error !== null}
-	on:closeNotification={() => {
-		error = null;
-	}}
->
-	{error ?? 'Unknown Error (See Javascript Console)'}
-</Notification>
+
