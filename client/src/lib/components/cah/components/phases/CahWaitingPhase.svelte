@@ -12,7 +12,7 @@
 	const isReady = connectedPlayers.length >= 3;
 </script>
 
-<div class="text-center py-12">
+<div class="text-center py-12" data-testid="cah-waiting">
 	<div class="mb-6">
 		<div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
 			<svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">

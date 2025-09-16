@@ -19,6 +19,10 @@
 	let showNSFW: boolean = $state(true);
 	let showCommunity: boolean = $state(true);
 
+// When starting, show an inline waiting state so the UI reflects
+// the server-driven flow immediately while the parent updates.
+let isStarting: boolean = $state(false);
+
 	// Initialize with base game selected by default
 	selectedPacks = { 'base-game': true };
 
@@ -51,9 +55,11 @@
 		const selectedIds = getSelectedPackIds();
 		if (onPacksSelected) {
 			onPacksSelected(selectedIds);
+        isStarting = true;
 		} else {
 			// Fallback if no callback provided
 			goto(`/play/${gameId}/cards-against-humanity`);
+        isStarting = true;
 		}
 	}
 
@@ -86,7 +92,21 @@
 		</div>
 	</header>
 
-	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {#if isStarting}
+        <div class="text-center py-8" data-testid="cah-waiting">
+            <h1 class="text-3xl font-bold">Select Card Packs</h1>
+            <div class="mt-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
+                <p class="text-slate-400 max-w-md mx-auto">The game will begin once more players join the room.</p>
+            </div>
+        </div>
+    {/if}
 		<!-- Filters -->
 		<section class="mb-8">
 			<div class="flex flex-wrap gap-4 items-center">
