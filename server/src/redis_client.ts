@@ -1,20 +1,10 @@
-import { GlideClient } from "@valkey/valkey-glide";
+import { getRedisPool } from "./redis-pool";
+import logger from "./logger";
 
-// Lazy client initialization to avoid issues during testing
-let clientInstance: any = null;
-
+// Get client from the connection pool
 export const getClient = async () => {
-  if (clientInstance) return clientInstance;
-
-  // Parse VALKEY_URI (format: valkey://host:port)
-  const valkeyUri = (Bun?.env?.VALKEY_URI as string) || "valkey://localhost:6379";
-  const url = new URL(valkeyUri);
-
-  clientInstance = await GlideClient.createClient({
-    addresses: [{ host: url.hostname, port: parseInt(url.port) }],
-  });
-
-  return clientInstance;
+  const pool = getRedisPool();
+  return await pool.getClient();
 };
 
 // For backward compatibility, provide a default client
@@ -24,7 +14,7 @@ export const client = new Proxy({}, {
       // Return mock functions during testing
       return () => Promise.resolve(null);
     }
-    // For non-test environments, delegate to the real client
+    // For non-test environments, delegate to the real client from pool
     return async (...args: any[]) => {
       const realClient = await getClient();
       return (realClient as any)[prop](...args);

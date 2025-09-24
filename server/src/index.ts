@@ -6,6 +6,7 @@ import { GameManager } from "./game-manager";
 import { engineRegistry } from "./lib/engine-registry";
 import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
 import { createCardsAgainstHumanityEngine } from "./lib/engines/cards-against-humanity";
+import { initializeRedisPool, closeRedisPool } from "./redis-pool";
 import logger from "./logger";
 
 // Validate environment variables
@@ -18,6 +19,15 @@ if (missingRequired.length > 0) {
 const missingOptional = OPTIONAL_ENV_VARS.filter(envVar => !Bun.env[envVar]);
 if (missingOptional.length > 0) {
   logger.warn(`Missing optional environment variables: ${missingOptional.join(", ")}`);
+}
+
+// Initialize Redis connection pool
+try {
+  await initializeRedisPool();
+  logger.info("Redis connection pool initialized successfully");
+} catch (error) {
+  logger.error(`Failed to initialize Redis pool: ${(error as Error).message}`);
+  logger.warn("Continuing with fallback mode");
 }
 
 // Initialize game manager
@@ -139,14 +149,16 @@ if (logger.isFileLoggingEnabled()) {
 }
 
 // Cleanup on shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('Shutting down server...');
   gameManager.cleanup();
+  await closeRedisPool();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('Shutting down server...');
   gameManager.cleanup();
+  await closeRedisPool();
   process.exit(0);
 });
