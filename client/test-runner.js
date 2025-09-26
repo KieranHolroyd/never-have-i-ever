@@ -7,8 +7,12 @@
  * Now simplified since Playwright handles server startup automatically
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const clientDir = path.join(__dirname);
 
@@ -60,8 +64,8 @@ process.on('SIGTERM', () => {
 	process.exit(0);
 });
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
 	main().catch(console.error);
 }
 
-module.exports = { runTests };
+export { runTests };

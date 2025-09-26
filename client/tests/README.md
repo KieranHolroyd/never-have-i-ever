@@ -1,10 +1,38 @@
 # Automated Browser Testing
 
-This directory contains automated browser tests for the Never Have I Ever game using Playwright.
+This directory contains automated browser tests for the Never Have I Ever game using Playwright with a focus on reliability and maintainability.
+
+## Testing Strategy
+
+After extensive analysis, we've implemented a realistic testing strategy that acknowledges the limitations of testing real-time, WebSocket-dependent applications:
+
+### Test Types
+
+1. **Smoke Tests** (`minimal-smoke.spec.ts`): Basic functionality verification
+   - Fast, reliable tests that verify the application loads and basic interactions work
+   - No server dependencies - test client-side resilience
+   - Examples: page loading, browser compatibility, basic navigation
+
+2. **Integration Tests** (`integration/`): Server-dependent functionality
+   - Test actual API calls and WebSocket connections when server is available
+   - Require server running, may be flaky due to network/server issues
+   - Examples: API responses, WebSocket connectivity
+
+3. **Unit Tests** (`unit/`): Component isolation (limited scope)
+   - Test individual components with heavy mocking
+   - Complex to implement due to WebSocket/real-time dependencies
+   - Currently limited due to client-side navigation complexities
+
+### Test Reliability Principles
+
+- **No false expectations**: Tests don't assume client-side navigation or WebSocket behavior works in test environment
+- **Focus on fundamentals**: Verify application loads, basic UI works, and handles errors gracefully
+- **Minimize flakiness**: Avoid tests that depend on timing, network, or complex state management
+- **Fast feedback**: Smoke tests run quickly to catch basic issues
 
 ## Local Playwright Setup
 
-For security reasons (command allowlisting), this project uses local Playwright binaries instead of `npx`:
+For security reasons (command allowlisting), this project uses local Playwright binaries:
 
 ```bash
 # Install Playwright browsers locally
@@ -17,19 +45,31 @@ npm run test:install-deps  # Install system dependencies if needed
 
 ## Test Structure
 
-### Core Test Files
+### Test Categories
 
-- `game.spec.ts` - Basic game functionality tests
-- `multiplayer.spec.ts` - Multiplayer synchronization tests
-- `voting.spec.ts` - Voting mechanism tests
-- `e2e.spec.ts` - End-to-end test scenarios
-- `helpers.ts` - Test utilities and helper functions
+1. **`unit/`** - Fast, reliable tests that work without server
+   - Test basic application loading and UI structure
+   - Test client-side logic that doesn't require server state
+   - Examples: page loading, basic navigation, form presence
+
+2. **`integration/`** - Tests requiring server connectivity
+   - Test actual API calls and WebSocket connections
+   - Require server running, may be flaky due to network/server issues
+   - Examples: API responses, WebSocket connectivity, multi-user scenarios
+
+3. **`e2e/`** - Complete user journey tests (limited scope)
+   - Test critical user flows that must work
+   - Most comprehensive but also most fragile
+   - Examples: basic game setup flow
+
+4. **`utils/`** - Test utilities and shared code
+   - Mock implementations, test helpers, setup utilities
 
 ## Running Tests
 
 ### Prerequisites
 
-Make sure you have the server running:
+For integration and E2E tests, ensure the server is running:
 
 ```bash
 cd ../server
@@ -42,28 +82,39 @@ bun run dev
 npm run test
 ```
 
-### Run Tests in UI Mode (Interactive)
+### Run Tests by Category
 
 ```bash
+# Smoke tests (fastest, no server required, recommended for CI)
+npm run test:smoke
+
+# Unit tests (fastest, no server required)
+npm run test:unit
+
+# Integration tests (requires server)
+npm run test:integration
+
+# E2E tests (requires server, most comprehensive)
+npm run test:e2e
+```
+
+### Run Tests in Different Modes
+
+```bash
+# Interactive UI mode
 npm run test:ui
-```
 
-### Run Tests in Headed Mode (Visible Browser)
-
-```bash
+# Headed mode (visible browser)
 npm run test:headed
-```
 
-### Debug Tests
-
-```bash
+# Debug mode (step through tests)
 npm run test:debug
 ```
 
 ### Run Specific Test File
 
 ```bash
-npx playwright test voting.spec.ts
+npx playwright test unit/navigation.spec.ts
 ```
 
 ## Test Categories
