@@ -353,21 +353,14 @@ describe('GameManager', () => {
     beforeEach(async () => {
       await gameManager.handleJoinGame(mockGameSocket, { create: true, playername: 'Test Player' });
       const game = await gameManager.getOrCreateGame('test-game');
-      game.catagories = ['test-category'];
+      game.catagories = ['food'];
       game.catagory_select = false;
     });
 
     it('should select new question and reset player votes', async () => {
       const game = await gameManager.getOrCreateGame('test-game');
-      game.catagories = ['test-category'];
+      game.catagories = ['food'];
       game.catagory_select = false;
-      // Add proper game data structure
-      game.data = {
-        'test-category': {
-          flags: { is_nsfw: false },
-          questions: ['Test question?']
-        }
-      };
 
       // Add a player to the game
       game.players = [{
@@ -377,6 +370,13 @@ describe('GameManager', () => {
         connected: true,
         this_round: { vote: 'Have', voted: true }
       }];
+
+      // Ensure game has data loaded (should be loaded by createGame)
+      if (!game.data || !game.data['food']) {
+        // Load data manually for test
+        const questionsList = await (gameManager as any).getQuestionsList();
+        game.data = (gameManager as any).deepCopy(questionsList);
+      }
 
       const data = {};
 
@@ -394,16 +394,15 @@ describe('GameManager', () => {
 
     it('should add current round to history before selecting new question', async () => {
       const game = await gameManager.getOrCreateGame('test-game');
-      game.catagories = ['test-category'];
+      game.catagories = ['food'];
       game.catagory_select = false;
       game.current_question = { catagory: 'old-category', content: 'Old question?' };
-      // Add proper game data structure
-      game.data = {
-        'test-category': {
-          flags: { is_nsfw: false },
-          questions: ['Test question?']
-        }
-      };
+
+      // Ensure game has data loaded
+      if (!game.data || !game.data['food']) {
+        const questionsList = await (gameManager as any).getQuestionsList();
+        game.data = (gameManager as any).deepCopy(questionsList);
+      }
 
       // Add a player with a vote
       game.players = [{
@@ -429,10 +428,10 @@ describe('GameManager', () => {
       const data = {};
       await gameManager.handleNextQuestion(mockGameSocket, data);
 
-      // When all players have voted, it should proceed to next question
-      // which sets waiting_for_players back to true
-      // Note: This test might need adjustment based on actual game logic
-      expect(game.players[0].this_round.voted).toBe(true);
+      // handleNextQuestion always resets player votes for the new round
+      // regardless of previous voting status
+      expect(game.players[0].this_round.voted).toBe(false);
+      expect(game.players[0].this_round.vote).toBe(null);
     });
   });
 

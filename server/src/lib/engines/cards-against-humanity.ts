@@ -2,6 +2,7 @@ import type { GameEngine } from "../../types";
 import type { GameSocket } from "../router";
 import { GameManager } from "../../game-manager";
 import { config } from "../../config";
+import Database from "bun:sqlite";
 // Socket helpers are implemented locally in this engine to avoid
 // coupling behavior with other engines
 
@@ -296,158 +297,47 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
 
       game.selectedPacks = packIds;
 
-      // TODO: Load actual card data from selected packs
-      // For now, we'll use placeholder data
-      // Define a type for the CAH card data file
-      type CAHCardData = {
-        blackCards: CAHBlackCard[];
-        whiteCards: CAHWhiteCard[];
-      };
+      // Load card data from SQLite database based on selected packs
+      const dbPath = `${config.GAME_DATA_DIR}db.sqlite`;
+      const db = new Database(dbPath);
 
-      // Load actual card data from the JSON file
-      const filePath = `${config.GAME_DATA_DIR}cards-against-humanity.json`;
       try {
-        const cardFile = Bun.file(filePath);
-        if (await cardFile.exists()) {
-          const cardData = await cardFile.json() as CAHCardData;
-          game.deck.blackCards = cardData.blackCards;
-          game.deck.whiteCards = cardData.whiteCards;
-        } else {
-          console.warn(`Cards Against Humanity data file not found at: ${filePath}. Using placeholder data.`);
-          // Fallback to placeholder data if file not found
-          game.deck.blackCards = [
-            { id: 'b1', text: 'Why can\'t I sleep at night?', pick: 1 },
-            { id: 'b2', text: 'What\'s that smell?', pick: 1 },
-            { id: 'b3', text: 'I got 99 problems but _____ ain\'t one.', pick: 1 },
-            { id: 'b4', text: 'What would grandma find disturbing, yet oddly charming?', pick: 1 },
-            { id: 'b5', text: '_____. It\'s a trap!', pick: 1 },
-            { id: 'b6', text: 'When I am a billionaire, _____ will be my first purchase.', pick: 1 },
-            { id: 'b7', text: 'I never truly understood _____ until I encountered _____.', pick: 2 },
-            { id: 'b8', text: 'The class field trip was completely ruined by _____.', pick: 1 },
-            { id: 'b9', text: 'In the distant future, historians will agree that _____ was humanity\'s greatest invention.', pick: 1 },
-            { id: 'b10', text: '_____. That\'s why I can\'t have nice things.', pick: 1 },
-            { id: 'b11', text: '_____. It\'s just _____ all the way down.', pick: 2 },
-            { id: 'b12', text: 'What\'s the new fad diet?', pick: 1 },
-            { id: 'b13', text: '_____. High five, bro.', pick: 1 },
-            { id: 'b14', text: '_____. That\'s how I want to die.', pick: 1 },
-            { id: 'b15', text: 'The Five Stages of Grief: Denial, Anger, Bargaining, _____, Acceptance.', pick: 1 }
-          ];
-          game.deck.whiteCards = [
-            { id: 'w1', text: 'Being on fire.' },
-            { id: 'w2', text: 'Racism.' },
-            { id: 'w3', text: 'Old-people smell.' },
-            { id: 'w4', text: 'A micropenis.' },
-            { id: 'w5', text: 'Women in yogurt commercials.' },
-            { id: 'w6', text: 'Classist undertones.' },
-            { id: 'w7', text: 'Not giving a fuck.' },
-            { id: 'w8', text: 'Sexting.' },
-            { id: 'w9', text: 'Roofies.' },
-            { id: 'w10', text: 'A man on the brink of orgasm.' },
-            { id: 'w11', text: 'Being a busy adult with many important things to do.' },
-            { id: 'w12', text: 'Pretending to be happy.' },
-            { id: 'w13', text: 'A slightly shittier parallel universe.' },
-            { id: 'w14', text: 'A sad fat dragon with no friends.' },
-            { id: 'w15', text: 'Fucking up the moon landing.' },
-            { id: 'w16', text: 'Having a penis for a face.' },
-            { id: 'w17', text: 'Being paralyzed from the neck down.' },
-            { id: 'w18', text: 'A disappointing birthday party.' },
-            { id: 'w19', text: 'A windmill full of corpses.' },
-            { id: 'w20', text: 'A lifetime of sadness.' },
-            { id: 'w21', text: 'A haunted orphanage for orphaned ghosts.' },
-            { id: 'w22', text: 'An ass disaster.' },
-            { id: 'w23', text: 'Some kind of bird-man.' },
-            { id: 'w24', text: 'A horde of skeletons.' },
-            { id: 'w25', text: 'A micropig wearing a tiny raincoat and booties.' },
-            { id: 'w26', text: 'A slightly shittier parallel universe.' },
-            { id: 'w27', text: 'A sad fat dragon with no friends.' },
-            { id: 'w28', text: 'Fucking up the moon landing.' },
-            { id: 'w29', text: 'Having a penis for a face.' },
-            { id: 'w30', text: 'Being paralyzed from the neck down.' },
-            { id: 'w31', text: 'A disappointing birthday party.' },
-            { id: 'w32', text: 'A windmill full of corpses.' },
-            { id: 'w33', text: 'A lifetime of sadness.' },
-            { id: 'w34', text: 'A haunted orphanage for orphaned ghosts.' },
-            { id: 'w35', text: 'An ass disaster.' },
-            { id: 'w36', text: 'Some kind of bird-man.' },
-            { id: 'w37', text: 'A horde of skeletons.' },
-            { id: 'w38', text: 'A micropig wearing a tiny raincoat and booties.' },
-            { id: 'w39', text: 'Becoming the President of the United States.' },
-            { id: 'w40', text: 'A sad clown.' },
-            { id: 'w41', text: 'A lonely, desperate, middle-aged man.' },
-            { id: 'w42', text: 'A cloud of acid.' },
-            { id: 'w43', text: 'A tiny, adorable child.' },
-            { id: 'w44', text: 'A beautiful, radiant unicorn.' },
-            { id: 'w45', text: 'A magical, mystical, mysterious unicorn.' },
-            { id: 'w46', text: 'Being so rich that it hurts.' },
-            { id: 'w47', text: 'A lifetime of crippling debt.' },
-            { id: 'w48', text: 'Getting married, having children, and dying alone.' },
-            { id: 'w49', text: 'The entire Mormon Tabernacle Choir.' },
-            { id: 'w50', text: 'The female orgasm.' },
-            { id: 'w51', text: 'The sweet release of death.' },
-            { id: 'w52', text: 'Hot people.' },
-            { id: 'w53', text: 'The inevitable heat death of the universe.' },
-            { id: 'w54', text: 'My inner demons.' },
-            { id: 'w55', text: 'Smallpox and genocide.' },
-            { id: 'w56', text: 'A defective condom.' },
-            { id: 'w57', text: 'The chronic pain of existence.' },
-            { id: 'w58', text: 'Getting so angry that you pop a boner.' },
-            { id: 'w59', text: 'The systematic destruction of an entire people and their way of life.' },
-            { id: 'w60', text: 'Powerful thighs.' },
-            { id: 'w61', text: 'The boy who cried wolf.' },
-            { id: 'w62', text: 'An older woman who knows her way around the bedroom.' },
-            { id: 'w63', text: 'A cat with trust issues.' },
-            { id: 'w64', text: 'Being a motherfucking sorcerer.' },
-            { id: 'w65', text: 'A sad handjob.' },
-            { id: 'w66', text: 'Robots who just want to party.' },
-            { id: 'w67', text: 'A mopey zoo lion.' },
-            { id: 'w68', text: 'A magic hippie love cloud.' },
-            { id: 'w69', text: 'A killer robot sent from the future.' },
-            { id: 'w70', text: 'The government.' },
-            { id: 'w71', text: 'A time travel paradox.' },
-            { id: 'w72', text: 'Authentic Mexican cuisine.' },
-            { id: 'w73', text: 'Doing the right thing.' },
-            { id: 'w74', text: 'The Pope.' },
-            { id: 'w75', text: 'A bleached asshole.' },
-            { id: 'w76', text: 'Horse meat.' },
-            { id: 'w77', text: 'Sunshine and rainbows.' },
-            { id: 'w78', text: 'A sensible salad.' },
-            { id: 'w79', text: 'A bitch slap.' },
-            { id: 'w80', text: 'Pure, concentrated evil.' },
-            { id: 'w81', text: 'A big black dick.' },
-            { id: 'w82', text: 'A beached whale.' },
-            { id: 'w83', text: 'A bloody pacifier.' },
-            { id: 'w84', text: 'A crappy little hand.' },
-            { id: 'w85', text: 'A low standard of living.' },
-            { id: 'w86', text: 'A nuanced critique.' },
-            { id: 'w87', text: 'Panty raids.' },
-            { id: 'w88', text: 'One Ring to rule them all.' },
-            { id: 'w89', text: 'A Super Soaker full of cat pee.' },
-            { id: 'w90', text: 'Figgy pudding.' },
-            { id: 'w91', text: 'Seppuku.' },
-            { id: 'w92', text: 'An army of skeletons.' },
-            { id: 'w93', text: 'A fetus.' },
-            { id: 'w94', text: 'A sea of troubles.' },
-            { id: 'w95', text: 'A good sniff.' },
-            { id: 'w96', text: 'A dingo eating your baby.' },
-            { id: 'w97', text: 'The thin veneer of situational causality that underlies porn.' },
-            { id: 'w98', text: 'Girls that always be textin\'.' },
-            { id: 'w99', text: 'Blowing up Parliament.' },
-            { id: 'w100', text: 'A spontaneous conga line.' }
-          ];
-        }
+        // Load black cards from selected packs
+        const placeholders = packIds.map(() => '?').join(',');
+        const blackCardsQuery = `
+          SELECT id, text, pick
+          FROM cah_cards
+          WHERE card_type = 'black' AND pack_name IN (${placeholders})
+        `;
+        const blackCardRows = db.prepare(blackCardsQuery).all(...packIds) as Array<{ id: string; text: string; pick: number }>;
+
+        game.deck.blackCards = blackCardRows.map(row => ({
+          id: row.id,
+          text: row.text,
+          pick: row.pick
+        }));
+
+        // Load white cards from selected packs
+        const whiteCardsQuery = `
+          SELECT id, text
+          FROM cah_cards
+          WHERE card_type = 'white' AND pack_name IN (${placeholders})
+        `;
+        const whiteCardRows = db.prepare(whiteCardsQuery).all(...packIds) as Array<{ id: string; text: string }>;
+
+        game.deck.whiteCards = whiteCardRows.map(row => ({
+          id: row.id,
+          text: row.text
+        }));
+
+        console.log(`Loaded ${game.deck.blackCards.length} black cards and ${game.deck.whiteCards.length} white cards from packs: ${packIds.join(', ')}`);
       } catch (error) {
-        console.error(`Error loading Cards Against Humanity data: ${error}`);
-        // Fallback to placeholder data on error
-        game.deck.blackCards = [
-          { id: 'b1', text: 'Why can\'t I sleep at night?', pick: 1 },
-          { id: 'b2', text: 'What\'s that smell?', pick: 1 },
-          { id: 'b3', text: 'I got 99 problems but _____ ain\'t one.', pick: 1 },
-        ];
-        game.deck.whiteCards = [
-          { id: 'w1', text: 'Being on fire.' },
-          { id: 'w2', text: 'Racism.' },
-          { id: 'w3', text: 'Old-people smell.' },
-        ];
+        console.error(`Error loading Cards Against Humanity data from database: ${error}`);
+        // Fallback to empty decks if database loading fails
+        game.deck.blackCards = [];
+        game.deck.whiteCards = [];
+      } finally {
+        db.close();
       }
 
       // Shuffle decks

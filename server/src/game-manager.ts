@@ -3,6 +3,7 @@ import { config } from "./config";
 import { client } from "./redis_client";
 import { select_question } from "./lib/questions";
 import { GameSocket } from "./lib/router";
+import Database from "bun:sqlite";
 
 import { ingestEvent } from "./axiom";
 import { GameNotFoundError, GameFullError, ValidationError } from "./errors";
@@ -115,13 +116,44 @@ export class GameManager {
   }
 
   private async getQuestionsList(): Promise<Catagories> {
+    // First check Valkey cache
     let questionsList = await ValkeyJSON.get(client, "shared:questions_list", CatagoriesSchema);
 
     if (!questionsList) {
-      const questionsFile = Bun.file(`${import.meta.dir}/../assets/data.json`);
-      const questionsData = await questionsFile.json() as Catagories;
-      await ValkeyJSON.set(client, "shared:questions_list", questionsData, CatagoriesSchema);
-      questionsList = questionsData;
+      // Load from database if not in cache (categories are in main assets directory)
+      const dbPath = `${import.meta.dir}/../assets/db.sqlite`;
+      const db = new Database(dbPath);
+
+      try {
+        const categoryRows = db.prepare("SELECT name, questions, is_nsfw FROM categories").all() as Array<{
+          name: string;
+          questions: string;
+          is_nsfw: number;
+        }>;
+
+        const categoriesData: Catagories = {};
+
+        for (const row of categoryRows) {
+          categoriesData[row.name] = {
+            flags: {
+              is_nsfw: Boolean(row.is_nsfw)
+            },
+            questions: JSON.parse(row.questions)
+          };
+        }
+
+        // Cache in Valkey for performance
+        await ValkeyJSON.set(client, "shared:questions_list", categoriesData, CatagoriesSchema);
+        questionsList = categoriesData;
+
+        logger.info(`Loaded ${Object.keys(categoriesData).length} categories from database`);
+      } catch (error) {
+        logger.error("Failed to load categories from database:", error);
+        // Fallback to empty object if database fails
+        questionsList = {};
+      } finally {
+        db.close();
+      }
     }
 
     return questionsList as Catagories;

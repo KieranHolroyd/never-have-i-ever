@@ -237,8 +237,8 @@ build_and_deploy() {
     log_success "Server deployed successfully"
 }
 
-verify_data_loading() {
-    log_info "Verifying data loading and Valkey storage..."
+setup_and_verify_database() {
+    log_info "Setting up database and verifying data loading..."
 
     cd "$SERVER_DIR/server"
 
@@ -253,10 +253,20 @@ verify_data_loading() {
         exit 1
     fi
 
-    # Run load_data.ts to ensure SQLite database is populated
-    log_info "Running load_data.ts to populate SQLite database..."
-    if ! docker compose exec -T web bun run src/load_data.ts; then
-        log_error "Failed to run load_data.ts"
+    # Run ingest scripts to populate SQLite database with migrations and data
+    log_info "Running database migrations and data ingestion..."
+
+    # Run categories ingest script
+    log_info "Ingesting Never Have I Ever categories..."
+    if ! docker compose exec -T web bun run src/utils/ingest/categories.ts; then
+        log_error "Failed to ingest categories"
+        exit 1
+    fi
+
+    # Run CAH cards ingest script
+    log_info "Ingesting Cards Against Humanity cards..."
+    if ! docker compose exec -T web bun run src/utils/ingest/cah_cards.ts; then
+        log_error "Failed to ingest CAH cards"
         exit 1
     fi
 
@@ -365,7 +375,7 @@ main() {
     clone_or_update_repository
     setup_environment
     build_and_deploy
-    # verify_data_loading
+    setup_and_verify_database
     setup_firewall
     show_status
     cleanup
@@ -401,9 +411,9 @@ case "${1:-}" in
         log_success "Cleanup completed"
         ;;
     "verify-data")
-        log_info "Running data verification..."
+        log_info "Running database setup and data verification..."
         cd "$SERVER_DIR/server" 2>/dev/null || { log_error "Server not found at $SERVER_DIR"; exit 1; }
-        verify_data_loading
+        setup_and_verify_database
         ;;
     *)
         main

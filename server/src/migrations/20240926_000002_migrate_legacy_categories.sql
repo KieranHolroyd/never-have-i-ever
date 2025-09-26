@@ -1,0 +1,5 @@
+-- Migration: Migrate legacy categories data
+-- Description: Migrates data from the old 'catagories' table to the new 'categories' table
+-- Note: This migration is not reversible as it drops the legacy table
+-- Check if legacy table exists and migrate data
+-- This will be handled programmatically since SQLite doesn't support conditional execution in pure SQL

@@ -68,7 +68,7 @@ The script will automatically load variables from the `.env` file in its working
 3. **Code Deployment**: Clones or updates the repository
 4. **Environment Setup**: Creates `.env` file for configuration
 5. **Docker Deployment**: Builds and starts the containers (with BuildKit optimizations for faster builds)
-6. **Data Verification**: Ensures `load_data.ts` has run and data is stored in Valkey
+6. **Database Setup**: Runs database migrations and ingests game data (categories and CAH cards), then verifies data is stored in Valkey
 7. **Firewall Configuration**: Opens necessary ports
 8. **Status Check**: Shows deployment status and logs
 

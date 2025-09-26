@@ -79,7 +79,7 @@ describe('Cards Against Humanity Engine', () => {
     await engine.handlers.join_game(ws2, { create: false, playername: 'Bob' });
     await engine.handlers.join_game(ws3, { create: false, playername: 'Cara' });
 
-    await engine.handlers.select_packs(ws1, { packIds: ['base'] });
+    await engine.handlers.select_packs(ws1, { packIds: ['CAH Base Set'] });
 
     const msg = getLastGameStateMessage(ws1)!;
     expect(msg).toBeTruthy();
@@ -110,7 +110,7 @@ describe('Cards Against Humanity Engine', () => {
     await engine.handlers.join_game(ws2, { create: false, playername: 'Bob' });
     await engine.handlers.join_game(ws3, { create: false, playername: 'Cara' });
 
-    await engine.handlers.select_packs(ws1, { packIds: ['base'] });
+    await engine.handlers.select_packs(ws1, { packIds: ['CAH Base Set'] });
 
     // Refresh player-specific state by re-sending join (idempotent) so ws2/ws3 have latest state snapshots
     await engine.handlers.join_game(ws2, { create: false, playername: 'Bob' });
@@ -142,7 +142,7 @@ describe('Cards Against Humanity Engine', () => {
     await engine.handlers.join_game(ws2, { create: false, playername: 'Bob' });
     await engine.handlers.join_game(ws3, { create: false, playername: 'Cara' });
 
-    await engine.handlers.select_packs(ws1, { packIds: ['base'] });
+    await engine.handlers.select_packs(ws1, { packIds: ['CAH Base Set'] });
 
     // Submit from both non-judges to enter judging phase
     // Refresh each player's state as above to pick valid cards
@@ -183,7 +183,7 @@ describe('Cards Against Humanity Engine', () => {
     await engine.handlers.join_game(ws1, { create: true, playername: 'Alice' });
     await engine.handlers.join_game(ws2, { create: false, playername: 'Bob' });
     await engine.handlers.join_game(ws3, { create: false, playername: 'Cara' });
-    await engine.handlers.select_packs(ws1, { packIds: ['base'] });
+    await engine.handlers.select_packs(ws1, { packIds: ['CAH Base Set'] });
 
     // Sanity check: game started
     const started = getLastGameStateMessage(ws1)!;
