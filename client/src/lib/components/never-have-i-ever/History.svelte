@@ -9,7 +9,7 @@
 	let { history }: Props = $props();
 </script>
 
-{#each history as round, idx}
+{#each history as round, idx (idx)}
 	<div class="relative prose-panel panel mx-auto my-6 max-w-md pt-8 pb-2 px-3">
 		<span class="absolute left-2 top-2 uppercase text-xs">
 			<b>Round</b>
@@ -19,7 +19,7 @@
 			><b>Catagory</b>: {round.question.catagory}</span
 		>
 		<p class="mb-2 mt-0">{round.question.content}</p>
-		{#each round.players.filter((p) => p.connected) as player}
+		{#each round.players.filter((p) => p.connected) as player (player.id)}
 			<div class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]}`}>
 				{player.name}: {player.this_round.vote ?? 'Not Voted'}
 				<div

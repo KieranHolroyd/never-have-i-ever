@@ -849,7 +849,7 @@
 		{/if}
 	{:else}
 		<h1 class="text-2xl font-semibold dark:text-white">There are no more questions</h1>
-		{#each players as player}
+		{#each players as player (player.id)}
 			<p class="mx-auto max-w-lg p-3">
 				<b>{player.name}</b> has {player.score} points
 			</p>

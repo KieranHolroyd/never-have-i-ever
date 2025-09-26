@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import keywords from '$lib/assets/keywords.json';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import Settings from '$lib/components/Settings.svelte';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
@@ -13,7 +13,7 @@
 
 	let { children }: Props = $props();
 
-	let isPlayingGame = $derived(UUIDv4Regex.test($page.url.pathname.split('/').pop() ?? ''));
+	let isPlayingGame = $derived(UUIDv4Regex.test(page.url.pathname.split('/').pop() ?? ''));
 </script>
 
 <svelte:head>
@@ -36,7 +36,7 @@
 	<meta property="twitter:card" content="app" />
 	<meta property="twitter:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
 	<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
-	<meta property="og:url" content={$page.url.href} />
+	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 
 <!-- Global background + container -->

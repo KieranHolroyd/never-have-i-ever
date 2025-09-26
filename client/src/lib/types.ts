@@ -78,19 +78,10 @@ export type GameData = {
 export type CardPack = {
 	id: string;
 	name: string;
-	description: string;
-	author: string;
-	version: string;
+	blackCards: number;
+	whiteCards: number;
 	isOfficial: boolean;
 	isNSFW: boolean;
-	blackCards: BlackCard[];
-	whiteCards: WhiteCard[];
-	metadata: {
-		totalBlackCards: number;
-		totalWhiteCards: number;
-		createdAt: string;
-		updatedAt: string;
-	};
 };
 
 export type BlackCard = {

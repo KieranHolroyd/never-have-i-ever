@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import CahGame from '$lib/components/cah/CahGame.svelte';
 	import type { PageData } from './$types';
 
@@ -52,4 +52,4 @@
 		<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512.png" />
 	{/if}
 </svelte:head>
-<CahGame id={$page.params.gameid as string} />
+<CahGame id={page.params.gameid as string} />

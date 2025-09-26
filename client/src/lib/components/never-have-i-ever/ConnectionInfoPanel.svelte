@@ -25,7 +25,7 @@
 			<div class="mt-1">
 				<p class="uppercase text-[10px] opacity-70 mb-1">Players</p>
 				<ul class="space-y-0.5">
-					{#each players as player}
+					{#each players as player (player.id)}
 						<li
 							class={`${!player.connected ? 'line-through opacity-60' : ''} flex justify-between`}
 						>
@@ -38,7 +38,7 @@
 			<details class="mt-2">
 				<summary class="cursor-pointer font-semibold">Debug</summary>
 				<ul class="mt-1 space-y-0.5 text-[10px] opacity-80">
-					{#each errors as error}
+					{#each errors as error, index (index)}
 						<li>{error.message}</li>
 					{/each}
 				</ul>

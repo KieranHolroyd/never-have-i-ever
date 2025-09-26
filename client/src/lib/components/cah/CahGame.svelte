@@ -316,54 +316,56 @@
 			<CahBlackCard {gameState} />
 
 			<!-- Game Content Based on Phase -->
-			{#if gameState.phase === 'waiting'}
-				{#if optimisticPhase === 'waiting'}
-					<!-- Optimistic waiting overlay until server acknowledges pack selection -->
-					<div class="text-center py-12" data-testid="cah-waiting">
-						<div class="mb-6">
-							<div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
-								<svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd"/>
-								</svg>
+			{#key gameState.phase}
+				{#if gameState.phase === 'waiting'}
+					{#if optimisticPhase === 'waiting'}
+						<!-- Optimistic waiting overlay until server acknowledges pack selection -->
+						<div class="text-center py-12" data-testid="cah-waiting">
+							<div class="mb-6">
+								<div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
+									<svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd"/>
+									</svg>
+								</div>
+								<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
+								<p class="text-slate-400 max-w-md mx-auto">The game will begin once more players join the room.</p>
 							</div>
-							<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
-							<p class="text-slate-400 max-w-md mx-auto">The game will begin once more players join the room.</p>
 						</div>
-					</div>
-				{:else if (gameState.selectedPacks?.length || 0) === 0}
-					<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
-				{:else}
-					<CahWaitingPhase {gameState} />
-				{/if}
-            {:else if gameState.phase === 'selecting' && currentPlayer && !currentPlayer.isJudge}
-                <CahSelectingPhase
-                    {currentPlayer}
-                    selectedCardIds={selectedCardIds}
-                    onCardSelect={toggleSelectCard}
-                    onSubmitCards={(ids) => submitCards(ids)}
-                    onClearSelection={clearSelected}
-                    requiredCards={gameState.currentBlackCard?.pick ?? 1}
-                />
-			{:else if gameState.phase === 'judging' && currentPlayer?.isJudge}
-				<CahJudgingPhase
-					submissions={gameState.submittedCards}
-					onSelectWinner={selectWinner}
-				/>
-			{:else if gameState.phase === 'judging' && !currentPlayer?.isJudge}
-				<CahWaitingForJudgePhase
-					submissions={gameState.submittedCards}
-				/>
+					{:else if (gameState.selectedPacks?.length || 0) === 0}
+						<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
+					{:else}
+						<CahWaitingPhase {gameState} />
+					{/if}
+	            {:else if gameState.phase === 'selecting' && currentPlayer && !currentPlayer.isJudge}
+	                <CahSelectingPhase
+	                    {currentPlayer}
+	                    selectedCardIds={selectedCardIds}
+	                    onCardSelect={toggleSelectCard}
+	                    onSubmitCards={(ids) => submitCards(ids)}
+	                    onClearSelection={clearSelected}
+	                    requiredCards={gameState.currentBlackCard?.pick ?? 1}
+	                />
+				{:else if gameState.phase === 'judging' && currentPlayer?.isJudge}
+					<CahJudgingPhase
+						submissions={gameState.submittedCards}
+						onSelectWinner={selectWinner}
+					/>
+				{:else if gameState.phase === 'judging' && !currentPlayer?.isJudge}
+					<CahWaitingForJudgePhase
+						submissions={gameState.submittedCards}
+					/>
 
-			{:else if gameState.phase === 'scoring'}
-				{@const winnerPlayer = gameState!.players.find((p) => p.id === gameState!.roundWinner) || null}
-				<CahScoringPhase {winnerPlayer} />
-			{:else if gameState.phase === 'game_over'}
-				<CahGameOverPhase
-					{gameState}
-					currentPlayerId={LocalPlayer.id}
-					onResetGame={resetGame}
-				/>
-			{/if}
+				{:else if gameState.phase === 'scoring'}
+					{@const winnerPlayer = gameState!.players.find((p) => p.id === gameState!.roundWinner) || null}
+					<CahScoringPhase {winnerPlayer} />
+				{:else if gameState.phase === 'game_over'}
+					<CahGameOverPhase
+						{gameState}
+						currentPlayerId={LocalPlayer.id}
+						onResetGame={resetGame}
+					/>
+				{/if}
+			{/key}
 		{:else}
 			<!-- Optimistic fallback UI while awaiting first server state -->
             {#if optimisticPhase === 'pack_selection'}
@@ -427,7 +429,7 @@
 
 				{#if bots.length > 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-						{#each bots as b}
+						{#each bots as b (b.id)}
 							<div class="flex items-center justify-between bg-slate-700/40 rounded-md px-3 py-2">
 								<div>
 									<div class="text-sm font-medium">{b.name}</div>

@@ -2,7 +2,7 @@
 	import IcRoundAccountCircle from '~icons/ic/round-account-circle';
 
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { LocalPlayer } from '$lib/player';
 
 	let nickname: string = $state(LocalPlayer.name ?? '');
@@ -14,7 +14,7 @@
 		}
 		LocalPlayer.name = nickname;
 
-		const redirect_url = $page.url.searchParams.get('redirect');
+		const redirect_url = page.url.searchParams.get('redirect');
 		if (redirect_url !== null) {
 			return goto(redirect_url);
 		} else {

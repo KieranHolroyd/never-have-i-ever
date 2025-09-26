@@ -39,7 +39,7 @@
 	</div>
 
 	<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-		{#each currentPlayer.hand as card, index}
+		{#each currentPlayer.hand as card, index (card.id)}
 			<button
 				class="group relative rounded-lg p-4 transition-all duration-200 text-left w-full border-2 overflow-hidden
 				{selectedCardIds.includes(card.id)

@@ -26,7 +26,7 @@
 	</div>
 
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-		{#each submissions as submission, index}
+		{#each submissions as submission, index (submission.playerId)}
 			<button
 				class="group relative bg-white text-black rounded-lg p-6 hover:bg-gray-50 border-2 border-gray-300 hover:border-purple-400 transition-all duration-200 text-left w-full shadow-md hover:shadow-lg transform hover:scale-102"
 				onclick={() => onSelectWinner(submission.playerId)}
@@ -40,7 +40,7 @@
 
 				<!-- Card Content -->
 				<div class="space-y-3">
-					{#each submission.cards as card}
+					{#each submission.cards as card (card.id)}
 						<div class="bg-slate-100 rounded p-3 border-l-4 border-purple-400">
 							<p class="text-sm leading-relaxed">{card.text}</p>
 						</div>

@@ -25,7 +25,7 @@
 	<div class="max-w-4xl mx-auto">
 		<h3 class="text-lg font-semibold text-white mb-4">All Submissions</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			{#each submissions as submission, index}
+			{#each submissions as submission, index (submission.playerId)}
 				<div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600/50">
 					<!-- Submission Header -->
 					<div class="flex items-center gap-3 mb-3">
@@ -42,7 +42,7 @@
 
 					<!-- Cards -->
 					<div class="space-y-2">
-						{#each submission.cards as card}
+						{#each submission.cards as card (card.id)}
 							<div class="bg-white text-black rounded p-3 border-l-4 border-slate-400">
 								<p class="text-sm leading-relaxed">{card.text}</p>
 							</div>

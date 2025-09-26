@@ -754,6 +754,117 @@ export class GameManager {
     }
   }
 
+  async handleCAHPacks(): Promise<Response> {
+    try {
+      const dbPath = `${config.GAME_DATA_DIR}db.sqlite`;
+      const db = new Database(dbPath);
+
+      // Query to get pack information with card counts
+      const packsQuery = `
+        SELECT
+          pack_name,
+          card_type,
+          COUNT(*) as card_count
+        FROM cah_cards
+        GROUP BY pack_name, card_type
+        ORDER BY pack_name, card_type
+      `;
+
+      const packRows = db.prepare(packsQuery).all() as Array<{
+        pack_name: string;
+        card_type: string;
+        card_count: number;
+      }>;
+
+      // Group by pack_name and create pack objects
+      const packsMap = new Map<string, {
+        id: string;
+        name: string;
+        blackCards: number;
+        whiteCards: number;
+        isOfficial: boolean;
+        isNSFW: boolean;
+      }>();
+
+      for (const row of packRows) {
+        const pack = packsMap.get(row.pack_name) || {
+          id: row.pack_name,
+          name: row.pack_name,
+          blackCards: 0,
+          whiteCards: 0,
+          isOfficial: this.isOfficialPack(row.pack_name),
+          isNSFW: this.isNSFWPack(row.pack_name),
+        };
+
+        if (row.card_type === 'black') {
+          pack.blackCards = row.card_count;
+        } else if (row.card_type === 'white') {
+          pack.whiteCards = row.card_count;
+        }
+
+        packsMap.set(row.pack_name, pack);
+      }
+
+      const packs = Array.from(packsMap.values());
+
+      const response = Response.json(packs);
+      response.headers.set("Access-Control-Allow-Origin", "*");
+      response.headers.set("Cache-Control", "max-age=3600"); // Cache for 1 hour
+      db.close();
+      return response;
+    } catch (error) {
+      console.error("Error fetching CAH packs:", error);
+      return new Response(JSON.stringify({ error: "Internal server error" }), {
+        status: 500,
+      });
+    }
+  }
+
+  private isOfficialPack(packName: string): boolean {
+    // Official packs are those from Cards Against Humanity LLC
+    const officialPacks = [
+      'CAH Base Set',
+      'CAH: First Expansion',
+      'CAH: Second Expansion',
+      'CAH: Third Expansion',
+      'CAH: Fourth Expansion',
+      'CAH: Fifth Expansion',
+      'CAH: Sixth Expansion',
+      'CAH Base Set',
+      'CAH: Box Expansion',
+      'CAH: Red Box Expansion',
+      'CAH: Blue Box Expansion',
+      'CAH: Green Box Expansion',
+      'CAH: Main Deck',
+      'CAH: College Pack',
+      'CAH: 2000s Nostalgia Pack',
+      'CAH: A.I. Pack',
+      'CAH: Ass Pack',
+      'CAH: Human Pack',
+      'CAH: Procedurally-Generated Cards',
+      'CAH: Canadian Conversion Kit',
+      'CAH: UK Conversion Kit',
+      'CAH: Family Edition (Free Print & Play Public Beta)',
+      'CAH: Hidden Gems Bundle: A Few New Cards We Crammed Into This Bundle Pack (Amazon Exclusive)',
+    ];
+    return officialPacks.some(official => packName.startsWith(official.split(':')[0]));
+  }
+
+  private isNSFWPack(packName: string): boolean {
+    // Most CAH packs are NSFW, but some are marked as family-friendly
+    const cleanPacks = [
+      'CAH: Family Edition (Free Print & Play Public Beta)',
+      'Kids Against Maturity',
+      'Kids Create Absurdity',
+      'KinderPerfect',
+      'KinderPerfect: A Timeout For Parents (Kickstarter Set)',
+      'KinderPerfect: More Expansion Pack',
+      'KinderPerfect: Naughty Expansion Pack',
+      'KinderPerfect: Tween Expansion Pack',
+    ];
+    return !cleanPacks.some(clean => packName.includes(clean));
+  }
+
   async handleGame(request: Request): Promise<Response> {
     try {
       const url = new URL(request.url);

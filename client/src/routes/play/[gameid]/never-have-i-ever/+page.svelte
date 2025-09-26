@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import NeverHaveIEver from '$lib/components/never-have-i-ever/Game.svelte';
 	import type { PageData } from './$types';
 
@@ -50,4 +50,4 @@
 		<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512.png" />
 	{/if}
 </svelte:head>
-<NeverHaveIEver id={$page.params.gameid ?? ''} catagories={data.catagories} />
+<NeverHaveIEver id={page.params.gameid ?? ''} catagories={data.catagories} />

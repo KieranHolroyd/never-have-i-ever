@@ -32,7 +32,7 @@
 	<div class="max-w-2xl mx-auto">
 		<h3 class="text-xl font-semibold text-white mb-6">Final Leaderboard</h3>
 		<div class="space-y-3">
-			{#each sortedPlayers as player, i}
+			{#each sortedPlayers as player, i (player.id)}
 				<div class="relative bg-slate-700/50 rounded-lg p-4 transition-all duration-200
 					{i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30' :
 					 i === 1 ? 'bg-gradient-to-r from-slate-400/20 to-slate-500/20 border border-slate-400/30' :

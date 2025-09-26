@@ -37,6 +37,7 @@ export const ROUTES = {
   WEBSOCKET: "/ws",
   CATEGORIES_API: "/api/catagories",
   GAME_API: "/api/game",
+  CAH_PACKS_API: "/api/cah-packs",
   GITHUB_WEBHOOK: "/hook/github",
 } as const;
 

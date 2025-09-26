@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import MdiCheck from '~icons/mdi/check';
 	import MdiClose from '~icons/mdi/close';
 	import MdiCrown from '~icons/mdi/crown';
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import type { CardPack, SelectedPacks } from '$lib/types';
-	import { FAKE_CARD_PACKS, calculateTotalCards } from '$lib/card-packs';
+	import { getCardPacks, getCachedCardPacks, calculateTotalCards } from '$lib/card-packs';
 
 	interface Props {
 		gameId: string;
@@ -18,29 +17,56 @@
 	let selectedPacks: SelectedPacks = $state({});
 	let showNSFW: boolean = $state(true);
 	let showCommunity: boolean = $state(true);
+	let cardPacks: CardPack[] = $state([]);
+	let isLoadingPacks: boolean = $state(true);
+	let loadError: string | null = $state(null);
 
 // When starting, show an inline waiting state so the UI reflects
 // the server-driven flow immediately while the parent updates.
 let isStarting: boolean = $state(false);
 
-	// Initialize with base game selected by default
-	selectedPacks = { 'base-game': true };
+	// Load card packs on component mount
+	$effect(() => {
+		loadCardPacks();
+	});
+
+	async function loadCardPacks() {
+		try {
+			isLoadingPacks = true;
+			loadError = null;
+			const packs = await getCardPacks();
+			cardPacks = packs;
+
+			// Initialize with CAH Base Set selected by default if available
+			const basePack = packs.find(pack => pack.id === 'CAH Base Set');
+			if (basePack) {
+				selectedPacks[basePack.id] = true;
+			}
+		} catch (error) {
+			console.error('Failed to load card packs:', error);
+			loadError = 'Failed to load card packs. Please refresh the page.';
+		} finally {
+			isLoadingPacks = false;
+		}
+	}
 
 	$effect(() => {
 		// Ensure base game is always selected (can't be deselected)
-		if (!selectedPacks['base-game']) {
-			selectedPacks['base-game'] = true;
+		const basePack = cardPacks.find(pack => pack.id === 'CAH Base Set');
+		if (basePack && !selectedPacks[basePack.id]) {
+			selectedPacks[basePack.id] = true;
 		}
 	});
 
 	function togglePack(packId: string) {
-		if (packId === 'base-game') return; // Base game cannot be deselected
+		const basePack = cardPacks.find(pack => pack.id === 'CAH Base Set');
+		if (basePack && packId === basePack.id) return; // Base game cannot be deselected
 
 		selectedPacks[packId] = !selectedPacks[packId];
 	}
 
 	function getFilteredPacks(): CardPack[] {
-		return FAKE_CARD_PACKS.filter((pack) => {
+		return cardPacks.filter((pack) => {
 			if (!showNSFW && pack.isNSFW) return false;
 			if (!showCommunity && !pack.isOfficial) return false;
 			return true;
@@ -133,12 +159,45 @@ let isStarting: boolean = $state(false);
 			</div>
 		</section>
 
-		<!-- Card Packs Grid -->
-		<section class="mb-8">
-			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-				{#each filteredPacks as pack}
-					{@const isSelected = selectedPacks[pack.id]}
-					{@const isBaseGame = pack.id === 'base-game'}
+		<!-- Loading/Error States -->
+		{#if isLoadingPacks}
+			<section class="mb-8">
+				<div class="text-center py-12">
+					<div class="inline-flex items-center justify-center w-12 h-12 bg-slate-800 rounded-full mb-4">
+						<svg class="w-6 h-6 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+						</svg>
+					</div>
+					<h3 class="text-xl font-bold text-white mb-2">Loading Card Packs</h3>
+					<p class="text-slate-400">Fetching available card packs from the server...</p>
+				</div>
+			</section>
+		{:else if loadError}
+			<section class="mb-8">
+				<div class="text-center py-12">
+					<div class="inline-flex items-center justify-center w-12 h-12 bg-red-900/20 rounded-full mb-4">
+						<svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+						</svg>
+					</div>
+					<h3 class="text-xl font-bold text-white mb-2">Failed to Load Card Packs</h3>
+					<p class="text-red-400 mb-4">{loadError}</p>
+					<button
+						class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-white font-semibold hover:bg-slate-600 transition"
+						onclick={loadCardPacks}
+					>
+						Try Again
+					</button>
+				</div>
+			</section>
+		{:else}
+			<!-- Card Packs Grid -->
+			<section class="mb-8">
+				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+					{#each filteredPacks as pack (pack.id)}
+						{@const isSelected = selectedPacks[pack.id]}
+						{@const isBaseGame = pack.id === 'CAH Base Set'}
 
 					<button
 						class="relative rounded-2xl border transition-all duration-200 cursor-pointer text-left w-full
@@ -157,7 +216,9 @@ let isStarting: boolean = $state(false);
 											<MdiCrown class="h-5 w-5 text-yellow-500" />
 										{/if}
 									</div>
-									<p class="text-sm text-slate-300">by {pack.author}</p>
+									<p class="text-sm text-slate-300">
+										{pack.isOfficial ? 'Official' : 'Community'}
+									</p>
 								</div>
 								{#if isSelected}
 									<div class="flex-shrink-0 ml-3">
@@ -172,13 +233,13 @@ let isStarting: boolean = $state(false);
 
 							<!-- Pack Description -->
 							<p class="text-sm text-slate-400 mb-4 leading-relaxed">
-								{pack.description}
+								{pack.isOfficial ? 'Official Cards Against Humanity pack' : 'Community-created card pack'}
 							</p>
 
 							<!-- Pack Stats -->
 							<div class="flex items-center justify-between text-xs text-slate-500 mb-4">
-								<span>{pack.metadata.totalBlackCards} black cards</span>
-								<span>{pack.metadata.totalWhiteCards} white cards</span>
+								<span>{pack.blackCards} black cards</span>
+								<span>{pack.whiteCards} white cards</span>
 								{#if pack.isNSFW}
 									<span class="text-red-400 font-medium">NSFW</span>
 								{:else}
@@ -204,6 +265,7 @@ let isStarting: boolean = $state(false);
 				{/each}
 			</div>
 		</section>
+		{/if}
 
 		<!-- Game Summary & Start -->
 		<section class="bg-slate-800/50 rounded-2xl border border-slate-700/70 p-6">
