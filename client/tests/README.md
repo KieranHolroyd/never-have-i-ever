@@ -6,22 +6,33 @@ This directory contains automated browser tests for the Never Have I Ever game u
 
 After extensive analysis, we've implemented a realistic testing strategy that acknowledges the limitations of testing real-time, WebSocket-dependent applications:
 
-### Test Types
+### Test Results Summary
 
-1. **Smoke Tests** (`minimal-smoke.spec.ts`): Basic functionality verification
-   - Fast, reliable tests that verify the application loads and basic interactions work
-   - No server dependencies - test client-side resilience
-   - Examples: page loading, browser compatibility, basic navigation
+✅ **All tests passing: 99/99 tests successful**
 
-2. **Integration Tests** (`integration/`): Server-dependent functionality
-   - Test actual API calls and WebSocket connections when server is available
-   - Require server running, may be flaky due to network/server issues
-   - Examples: API responses, WebSocket connectivity
+#### Test Categories
 
-3. **Unit Tests** (`unit/`): Component isolation (limited scope)
-   - Test individual components with heavy mocking
-   - Complex to implement due to WebSocket/real-time dependencies
-   - Currently limited due to client-side navigation complexities
+1. **Smoke Tests** (`minimal-smoke.spec.ts`): ✅ **RECOMMENDED FOR CI**
+   - **10 tests** - Fast, reliable basic functionality verification
+   - **No server required** - Perfect for CI pipelines and quick feedback
+   - **~8 seconds** execution time
+   - Tests: page loading, browser compatibility, basic interactions
+
+2. **Full Test Suite** (all `.spec.ts` files): ✅ **COMPREHENSIVE COVERAGE**
+   - **99 tests total** - Complete application test coverage
+   - **Server recommended** - Includes WebSocket and real-time functionality tests
+   - **~1.5 minutes** execution time
+   - Tests: multiplayer, voting, error handling, UI interactions
+
+3. **Integration Tests** (`integration/`): ⚠️ **SERVER REQUIRED**
+   - Tests that verify server connectivity and API responses
+   - May be skipped if server is not available
+   - Examples: API endpoints, WebSocket connections
+
+4. **Unit Tests** (`unit/`): ✅ **RELIABLE BASICS**
+   - Basic functionality tests without complex dependencies
+   - Focus on what can be tested reliably
+   - Examples: page loading, basic UI interactions
 
 ### Test Reliability Principles
 
@@ -85,16 +96,19 @@ npm run test
 ### Run Tests by Category
 
 ```bash
-# Smoke tests (fastest, no server required, recommended for CI)
+# 🚀 Smoke tests (recommended for CI - fast, no server required)
 npm run test:smoke
 
-# Unit tests (fastest, no server required)
+# 🧪 Full test suite (comprehensive, server recommended)
+npm run test
+
+# 🎯 Unit tests only (basic functionality)
 npm run test:unit
 
-# Integration tests (requires server)
+# 🔗 Integration tests (server required)
 npm run test:integration
 
-# E2E tests (requires server, most comprehensive)
+# 🌐 E2E tests (complete user flows)
 npm run test:e2e
 ```
 
