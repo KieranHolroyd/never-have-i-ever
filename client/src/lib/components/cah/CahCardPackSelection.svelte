@@ -37,8 +37,8 @@ let isStarting: boolean = $state(false);
 			const packs = await getCardPacks();
 			cardPacks = packs;
 
-			// Initialize with CAH Base Set selected by default if available
-			const basePack = packs.find(pack => pack.id === 'CAH Base Set');
+			// Initialize with Base Set selected by default if available
+			const basePack = packs.find(pack => pack.id === 'Base Set');
 			if (basePack) {
 				selectedPacks[basePack.id] = true;
 			}
@@ -52,14 +52,14 @@ let isStarting: boolean = $state(false);
 
 	$effect(() => {
 		// Ensure base game is always selected (can't be deselected)
-		const basePack = cardPacks.find(pack => pack.id === 'CAH Base Set');
+		const basePack = cardPacks.find(pack => pack.id === 'Base Set');
 		if (basePack && !selectedPacks[basePack.id]) {
 			selectedPacks[basePack.id] = true;
 		}
 	});
 
 	function togglePack(packId: string) {
-		const basePack = cardPacks.find(pack => pack.id === 'CAH Base Set');
+		const basePack = cardPacks.find(pack => pack.id === 'Base Set');
 		if (basePack && packId === basePack.id) return; // Base game cannot be deselected
 
 		selectedPacks[packId] = !selectedPacks[packId];
@@ -197,7 +197,7 @@ let isStarting: boolean = $state(false);
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{#each filteredPacks as pack (pack.id)}
 						{@const isSelected = selectedPacks[pack.id]}
-						{@const isBaseGame = pack.id === 'CAH Base Set'}
+						{@const isBaseGame = pack.id === 'Base Set'}
 
 					<button
 						class="relative rounded-2xl border transition-all duration-200 cursor-pointer text-left w-full

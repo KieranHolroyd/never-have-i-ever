@@ -115,7 +115,7 @@ export const test = base.extend<{
  * Test utilities for common operations
  */
 export class TestUtils {
-  constructor(private page: Page) {}
+  constructor(private page: Page) { }
 
   /**
    * Wait for component to be ready (not loading)

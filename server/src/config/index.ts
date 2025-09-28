@@ -18,7 +18,7 @@ const rawConfig = {
 export const config = configSchema.parse(rawConfig);
 
 export const SERVER_CONFIG = {
-  PORT: 3000,
+  PORT: parseInt(Bun.env.PORT || process.env.PORT || '3000'),
   CLIENT_UPDATE_DELAY: 30000, // 30 seconds
   GAME_SAVE_INTERVAL: 5000, // 5 seconds
   MAX_PLAYERS_PER_GAME: 12,
