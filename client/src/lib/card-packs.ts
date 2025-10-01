@@ -1,3 +1,4 @@
+import { env } from '$env/dynamic/public';
 import type { CardPack } from './types';
 
 // Cache for card packs to avoid repeated API calls
@@ -12,7 +13,7 @@ export async function getCardPacks(): Promise<CardPack[]> {
 	}
 
 	try {
-		const response = await fetch('/api/cah-packs');
+		const response = await fetch(env.PUBLIC_API_URL + '/cah-packs');
 		if (!response.ok) {
 			throw new Error(`Failed to fetch card packs: ${response.status}`);
 		}
