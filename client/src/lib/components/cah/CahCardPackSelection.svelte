@@ -20,6 +20,8 @@
 	let cardPacks: CardPack[] = $state([]);
 	let isLoadingPacks: boolean = $state(true);
 	let loadError: string | null = $state(null);
+	let searchQuery: string = $state('');
+	let showAllPacks: boolean = $state(false);
 
 	// When starting, show an inline waiting state so the UI reflects
 	// the server-driven flow immediately while the parent updates.
@@ -28,6 +30,13 @@
 	// Load card packs on component mount
 	$effect(() => {
 		loadCardPacks();
+	});
+
+	// Reset showAllPacks when search query changes
+	$effect(() => {
+		if (searchQuery.trim()) {
+			showAllPacks = true;
+		}
 	});
 
 	async function loadCardPacks() {
@@ -66,18 +75,52 @@
 	}
 
 	function getFilteredPacks(): CardPack[] {
-		return cardPacks
-			.filter((pack) => {
-				if (!showNSFW && pack.isNSFW) return false;
-				if (!showCommunity && !pack.isOfficial) return false;
-				return true;
-			})
-			.sort((a, b) => a.name.localeCompare(b.name))
-			.sort((a, b) => (a.isOfficial ? -1 : 1));
+		let filtered = cardPacks.filter((pack) => {
+			if (!showNSFW && pack.isNSFW) return false;
+			if (!showCommunity && !pack.isOfficial) return false;
+			
+			// Apply search filter
+			if (searchQuery.trim()) {
+				return pack.name.toLowerCase().includes(searchQuery.toLowerCase());
+			}
+			
+			return true;
+		});
+
+		// Sort: official first, then alphabetically within each group
+		filtered = filtered.sort((a, b) => {
+			// First sort by official status (official packs first)
+			if (a.isOfficial !== b.isOfficial) {
+				return a.isOfficial ? -1 : 1;
+			}
+			// Then sort alphabetically within each group
+			return a.name.localeCompare(b.name);
+		});
+
+		// Limit to 6 packs initially unless searching or showAllPacks is true
+		if (!searchQuery.trim() && !showAllPacks) {
+			filtered = filtered.slice(0, 6);
+		}
+
+		return filtered;
 	}
 
 	function getSelectedPackIds(): string[] {
 		return Object.keys(selectedPacks).filter((id) => selectedPacks[id]);
+	}
+
+	function getTotalFilteredPacks(): number {
+		return cardPacks.filter((pack) => {
+			if (!showNSFW && pack.isNSFW) return false;
+			if (!showCommunity && !pack.isOfficial) return false;
+			
+			// Apply search filter
+			if (searchQuery.trim()) {
+				return pack.name.toLowerCase().includes(searchQuery.toLowerCase());
+			}
+			
+			return true;
+		}).length;
 	}
 
 	function startGame() {
@@ -99,6 +142,8 @@
 	let filteredPacks = $derived(getFilteredPacks());
 	let selectedIds = $derived(getSelectedPackIds());
 	let totals = $derived(calculateTotalCards(selectedIds));
+	let totalFilteredPacks = $derived(getTotalFilteredPacks());
+	let shouldShowMoreButton = $derived(totalFilteredPacks > 6 && !searchQuery.trim() && !showAllPacks);
 </script>
 
 <div class="min-h-screen bg-slate-900 text-white">
@@ -150,26 +195,52 @@
 		{/if}
 		<!-- Filters -->
 		<section class="mb-8">
-			<div class="flex flex-wrap gap-4 items-center">
-				<div class="flex items-center gap-3">
-					<label class="flex items-center gap-2 cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={showNSFW}
-							class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+			<div class="flex flex-col gap-4">
+				<!-- Search Bar -->
+				<div class="relative">
+					<input
+						type="text"
+						bind:value={searchQuery}
+						placeholder="Search card packs..."
+						class="w-full px-4 py-3 pl-10 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+					/>
+					<svg
+						class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 						/>
-						<span class="text-sm font-medium">Show NSFW packs</span>
-					</label>
+					</svg>
 				</div>
-				<div class="flex items-center gap-3">
-					<label class="flex items-center gap-2 cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={showCommunity}
-							class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-						/>
-						<span class="text-sm font-medium">Show community packs</span>
-					</label>
+				
+				<!-- Filter Checkboxes -->
+				<div class="flex flex-wrap gap-4 items-center">
+					<div class="flex items-center gap-3">
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={showNSFW}
+								class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+							/>
+							<span class="text-sm font-medium">Show NSFW packs</span>
+						</label>
+					</div>
+					<div class="flex items-center gap-3">
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={showCommunity}
+								class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+							/>
+							<span class="text-sm font-medium">Show community packs</span>
+						</label>
+					</div>
 				</div>
 			</div>
 		</section>
@@ -301,6 +372,21 @@
 						</button>
 					{/each}
 				</div>
+				
+				<!-- Show More Button -->
+				{#if shouldShowMoreButton}
+					<div class="flex justify-center mt-6">
+						<button
+							class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-6 py-3 text-white font-semibold hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
+							onclick={() => showAllPacks = true}
+						>
+							<span>Show More ({totalFilteredPacks - 6} more)</span>
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					</div>
+				{/if}
 			</section>
 		{/if}
 
