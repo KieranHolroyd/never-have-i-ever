@@ -123,10 +123,13 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
    * The SocketRouter gives us the `ws` that initiated the operation;
    * we rely on that to publish. All clients are subscribed in `join_game`.
    */
-  function broadcastToGame(ws: GameSocket, op: string, data: any): void {
+  function broadcastToGame(ws: GameSocket, op: string, data: any, toClient: boolean = false): void {
     try {
       const payload = JSON.stringify({ ...data, op });
       ws.publish(ws.data.game, payload);
+      if (toClient) {
+        ws.send(payload);
+      }
     } catch (_) {
       try {
         ws.send(JSON.stringify({ op: "error", message: "Error publishing message" }));
@@ -284,10 +287,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       checkAndReassignJudge(game);
 
       // Broadcast updated game state
-      console.log(`Game state for CAH game ${ws.data.game}:`);
-
-      broadcastToGame(ws, "game_state", { game });
-      ws.send(JSON.stringify({ op: "game_state", game }));
+      broadcastToGame(ws, "game_state", { game }, true);
     },
 
     select_packs: async (ws, data) => {
@@ -452,7 +452,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         broadcastToGame(ws, "game_state", { game });
       }, 3000);
 
-      broadcastToGame(ws, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game }, true);
     },
 
     reset_game: async (ws, data) => {
@@ -483,7 +483,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         player.isJudge = false;
       });
 
-      broadcastToGame(ws, "game_state", { game });
+      broadcastToGame(ws, "game_state", { game }, true);
     },
 
     ping: async (ws, data) => {
