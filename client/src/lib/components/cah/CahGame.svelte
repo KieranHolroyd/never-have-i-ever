@@ -12,17 +12,17 @@
 	import CahPlayerList from './components/game/CahPlayerList.svelte';
 	import CahBlackCard from './components/game/CahBlackCard.svelte';
 	import CahWaitingPhase from './components/phases/CahWaitingPhase.svelte';
-    import CahSelectingPhase from './components/phases/CahSelectingPhase.svelte';
+	import CahSelectingPhase from './components/phases/CahSelectingPhase.svelte';
 	import CahJudgingPhase from './components/phases/CahJudgingPhase.svelte';
 	import CahWaitingForJudgePhase from './components/phases/CahWaitingForJudgePhase.svelte';
 	import CahScoringPhase from './components/phases/CahScoringPhase.svelte';
-    import CahGameOverPhase from './components/phases/CahGameOverPhase.svelte';
-    import CahCardPackSelection from './CahCardPackSelection.svelte';
+	import CahGameOverPhase from './components/phases/CahGameOverPhase.svelte';
+	import CahCardPackSelection from './CahCardPackSelection.svelte';
 
-    interface Props {
-        id: string;
-    }
-    let { id }: Props = $props();
+	interface Props {
+		id: string;
+	}
+	let { id }: Props = $props();
 
 	let wsManager: CAHWebSocketManager | null = null;
 	let connection: Status = $state(Status.CONNECTING);
@@ -161,23 +161,23 @@
 		});
 	}
 
-    function handleGameState(newGameState: CAHGameState) {
-        gameState = newGameState;
-        currentPlayer = gameState?.players.find((p) => p.id === LocalPlayer.id) || null;
-        console.log('Game state:', newGameState);
-        // Server is authoritative with a small grace window: if we're optimistically
-        // in 'waiting' right after selecting packs, keep showing it until the server
-        // acknowledges pack selection (selectedPacks > 0) or transitions phase.
-        if (optimisticPhase === 'waiting') {
-            const serverHasPacks = (newGameState.selectedPacks?.length || 0) > 0;
-            const serverPhaseChanged = newGameState.phase !== 'waiting';
-            if (serverHasPacks || serverPhaseChanged) {
-                optimisticPhase = null;
-            }
-        } else {
-            // For any other case, default to clearing optimistic overlay
-            optimisticPhase = null;
-        }
+	function handleGameState(newGameState: CAHGameState) {
+		gameState = newGameState;
+		currentPlayer = gameState?.players.find((p) => p.id === LocalPlayer.id) || null;
+		console.log('Game state:', newGameState);
+		// Server is authoritative with a small grace window: if we're optimistically
+		// in 'waiting' right after selecting packs, keep showing it until the server
+		// acknowledges pack selection (selectedPacks > 0) or transitions phase.
+		if (optimisticPhase === 'waiting') {
+			const serverHasPacks = (newGameState.selectedPacks?.length || 0) > 0;
+			const serverPhaseChanged = newGameState.phase !== 'waiting';
+			if (serverHasPacks || serverPhaseChanged) {
+				optimisticPhase = null;
+			}
+		} else {
+			// For any other case, default to clearing optimistic overlay
+			optimisticPhase = null;
+		}
 		// Guard: if round advanced, clear local selection to avoid stale UI
 		if (gameState && gameState.currentRound !== lastRound) {
 			selectedCardIds = [];
@@ -197,7 +197,7 @@
 		}
 	}
 
-    function connect() {
+	function connect() {
 		if (wsManager) return;
 
 		wsManager = new CAHWebSocketManager({
@@ -211,7 +211,6 @@
 
 		wsManager.connect();
 	}
-
 
 	let selectedCardIds: string[] = $state([]);
 
@@ -249,11 +248,11 @@
 		optimisticPhase = 'pack_selection';
 	}
 
-    function handlePacksSelected(packs: string[]) {
+	function handlePacksSelected(packs: string[]) {
 		// Optimistically transition to waiting while server processes selection
 		optimisticPhase = 'waiting';
 		wsManager?.selectPacks(packs);
-    }
+	}
 
 	onMount(() => {
 		connect();
@@ -293,7 +292,9 @@
 				>
 					{connection}
 					{#if isReconnecting}
-						<span class="text-yellow-400 animate-pulse">(Reconnecting... {reconnectAttempts}/10)</span>
+						<span class="text-yellow-400 animate-pulse"
+							>(Reconnecting... {reconnectAttempts}/10)</span
+						>
 					{/if}
 				</span>
 			</div>
@@ -322,13 +323,25 @@
 						<!-- Optimistic waiting overlay until server acknowledges pack selection -->
 						<div class="text-center py-12" data-testid="cah-waiting">
 							<div class="mb-6">
-								<div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
-									<svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd"/>
+								<div
+									class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
+								>
+									<svg
+										class="w-8 h-8 text-slate-400 animate-pulse"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
+											clip-rule="evenodd"
+										/>
 									</svg>
 								</div>
 								<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
-								<p class="text-slate-400 max-w-md mx-auto">The game will begin once more players join the room.</p>
+								<p class="text-slate-400 max-w-md mx-auto">
+									The game will begin once more players join the room.
+								</p>
 							</div>
 						</div>
 					{:else if (gameState.selectedPacks?.length || 0) === 0}
@@ -336,50 +349,53 @@
 					{:else}
 						<CahWaitingPhase {gameState} />
 					{/if}
-	            {:else if gameState.phase === 'selecting' && currentPlayer && !currentPlayer.isJudge}
-	                <CahSelectingPhase
-	                    {currentPlayer}
-	                    selectedCardIds={selectedCardIds}
-	                    onCardSelect={toggleSelectCard}
-	                    onSubmitCards={(ids) => submitCards(ids)}
-	                    onClearSelection={clearSelected}
-	                    requiredCards={gameState.currentBlackCard?.pick ?? 1}
-	                />
+				{:else if gameState.phase === 'selecting' && currentPlayer && !currentPlayer.isJudge}
+					<CahSelectingPhase
+						{currentPlayer}
+						{selectedCardIds}
+						onCardSelect={toggleSelectCard}
+						onSubmitCards={(ids) => submitCards(ids)}
+						onClearSelection={clearSelected}
+						requiredCards={gameState.currentBlackCard?.pick ?? 1}
+					/>
 				{:else if gameState.phase === 'judging' && currentPlayer?.isJudge}
-					<CahJudgingPhase
-						submissions={gameState.submittedCards}
-						onSelectWinner={selectWinner}
-					/>
+					<CahJudgingPhase submissions={gameState.submittedCards} onSelectWinner={selectWinner} />
 				{:else if gameState.phase === 'judging' && !currentPlayer?.isJudge}
-					<CahWaitingForJudgePhase
-						submissions={gameState.submittedCards}
-					/>
-
+					<CahWaitingForJudgePhase submissions={gameState.submittedCards} />
 				{:else if gameState.phase === 'scoring'}
-					{@const winnerPlayer = gameState!.players.find((p) => p.id === gameState!.roundWinner) || null}
+					{@const winnerPlayer =
+						gameState!.players.find((p) => p.id === gameState!.roundWinner) || null}
 					<CahScoringPhase {winnerPlayer} />
 				{:else if gameState.phase === 'game_over'}
-					<CahGameOverPhase
-						{gameState}
-						currentPlayerId={LocalPlayer.id}
-						onResetGame={resetGame}
-					/>
+					<CahGameOverPhase {gameState} currentPlayerId={LocalPlayer.id} onResetGame={resetGame} />
 				{/if}
 			{/key}
 		{:else}
 			<!-- Optimistic fallback UI while awaiting first server state -->
-            {#if optimisticPhase === 'pack_selection'}
-                <CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
+			{#if optimisticPhase === 'pack_selection'}
+				<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
 			{:else if optimisticPhase === 'waiting'}
 				<div class="text-center py-12">
 					<div class="mb-6">
-						<div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
-							<svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd"/>
+						<div
+							class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
+						>
+							<svg
+								class="w-8 h-8 text-slate-400 animate-pulse"
+								fill="currentColor"
+								viewBox="0 0 20 20"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
+									clip-rule="evenodd"
+								/>
 							</svg>
 						</div>
 						<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
-						<p class="text-slate-400 max-w-md mx-auto">The game will begin once more players join the room.</p>
+						<p class="text-slate-400 max-w-md mx-auto">
+							The game will begin once more players join the room.
+						</p>
 					</div>
 				</div>
 			{:else}

@@ -232,6 +232,8 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       const { create, playername } = data;
       let game = getGame(ws.data.game);
 
+      console.log(`Player ${playername} (${ws.data.player}) joined CAH game ${ws.data.game}`);
+
       if (!game) {
         if (!create) {
           throw new Error("Game not found");
@@ -281,7 +283,11 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       // Check if judge needs reassignment
       checkAndReassignJudge(game);
 
+      // Broadcast updated game state
+      console.log(`Game state for CAH game ${ws.data.game}:`);
+
       broadcastToGame(ws, "game_state", { game });
+      ws.send(JSON.stringify({ op: "game_state", game }));
     },
 
     select_packs: async (ws, data) => {

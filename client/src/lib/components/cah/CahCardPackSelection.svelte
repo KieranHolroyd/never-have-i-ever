@@ -16,14 +16,14 @@
 
 	let selectedPacks: SelectedPacks = $state({});
 	let showNSFW: boolean = $state(true);
-	let showCommunity: boolean = $state(true);
+	let showCommunity: boolean = $state(false);
 	let cardPacks: CardPack[] = $state([]);
 	let isLoadingPacks: boolean = $state(true);
 	let loadError: string | null = $state(null);
 
-// When starting, show an inline waiting state so the UI reflects
-// the server-driven flow immediately while the parent updates.
-let isStarting: boolean = $state(false);
+	// When starting, show an inline waiting state so the UI reflects
+	// the server-driven flow immediately while the parent updates.
+	let isStarting: boolean = $state(false);
 
 	// Load card packs on component mount
 	$effect(() => {
@@ -37,8 +37,8 @@ let isStarting: boolean = $state(false);
 			const packs = await getCardPacks();
 			cardPacks = packs;
 
-			// Initialize with Base Set selected by default if available
-			const basePack = packs.find(pack => pack.id === 'Base Set');
+			// Initialize with CAH Base Set selected by default if available
+			const basePack = packs.find((pack) => pack.id === 'CAH Base Set');
 			if (basePack) {
 				selectedPacks[basePack.id] = true;
 			}
@@ -52,25 +52,28 @@ let isStarting: boolean = $state(false);
 
 	$effect(() => {
 		// Ensure base game is always selected (can't be deselected)
-		const basePack = cardPacks.find(pack => pack.id === 'Base Set');
+		const basePack = cardPacks.find((pack) => pack.id === 'CAH Base Set');
 		if (basePack && !selectedPacks[basePack.id]) {
 			selectedPacks[basePack.id] = true;
 		}
 	});
 
 	function togglePack(packId: string) {
-		const basePack = cardPacks.find(pack => pack.id === 'Base Set');
+		const basePack = cardPacks.find((pack) => pack.id === 'CAH Base Set');
 		if (basePack && packId === basePack.id) return; // Base game cannot be deselected
 
 		selectedPacks[packId] = !selectedPacks[packId];
 	}
 
 	function getFilteredPacks(): CardPack[] {
-		return cardPacks.filter((pack) => {
-			if (!showNSFW && pack.isNSFW) return false;
-			if (!showCommunity && !pack.isOfficial) return false;
-			return true;
-		});
+		return cardPacks
+			.filter((pack) => {
+				if (!showNSFW && pack.isNSFW) return false;
+				if (!showCommunity && !pack.isOfficial) return false;
+				return true;
+			})
+			.sort((a, b) => a.name.localeCompare(b.name))
+			.sort((a, b) => (a.isOfficial ? -1 : 1));
 	}
 
 	function getSelectedPackIds(): string[] {
@@ -81,11 +84,11 @@ let isStarting: boolean = $state(false);
 		const selectedIds = getSelectedPackIds();
 		if (onPacksSelected) {
 			onPacksSelected(selectedIds);
-        isStarting = true;
+			isStarting = true;
 		} else {
 			// Fallback if no callback provided
 			goto(`/play/${gameId}/cards-against-humanity`);
-        isStarting = true;
+			isStarting = true;
 		}
 	}
 
@@ -118,21 +121,33 @@ let isStarting: boolean = $state(false);
 		</div>
 	</header>
 
-<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {#if isStarting}
-        <div class="text-center py-8" data-testid="cah-waiting">
-            <h1 class="text-3xl font-bold">Select Card Packs</h1>
-            <div class="mt-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4">
-                    <svg class="w-8 h-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
-                <p class="text-slate-400 max-w-md mx-auto">The game will begin once more players join the room.</p>
-            </div>
-        </div>
-    {/if}
+	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		{#if isStarting}
+			<div class="text-center py-8" data-testid="cah-waiting">
+				<h1 class="text-3xl font-bold">Select Card Packs</h1>
+				<div class="mt-6">
+					<div
+						class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
+					>
+						<svg
+							class="w-8 h-8 text-slate-400 animate-pulse"
+							fill="currentColor"
+							viewBox="0 0 20 20"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					</div>
+					<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
+					<p class="text-slate-400 max-w-md mx-auto">
+						The game will begin once more players join the room.
+					</p>
+				</div>
+			</div>
+		{/if}
 		<!-- Filters -->
 		<section class="mb-8">
 			<div class="flex flex-wrap gap-4 items-center">
@@ -163,10 +178,23 @@ let isStarting: boolean = $state(false);
 		{#if isLoadingPacks}
 			<section class="mb-8">
 				<div class="text-center py-12">
-					<div class="inline-flex items-center justify-center w-12 h-12 bg-slate-800 rounded-full mb-4">
+					<div
+						class="inline-flex items-center justify-center w-12 h-12 bg-slate-800 rounded-full mb-4"
+					>
 						<svg class="w-6 h-6 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							/>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							/>
 						</svg>
 					</div>
 					<h3 class="text-xl font-bold text-white mb-2">Loading Card Packs</h3>
@@ -176,9 +204,16 @@ let isStarting: boolean = $state(false);
 		{:else if loadError}
 			<section class="mb-8">
 				<div class="text-center py-12">
-					<div class="inline-flex items-center justify-center w-12 h-12 bg-red-900/20 rounded-full mb-4">
+					<div
+						class="inline-flex items-center justify-center w-12 h-12 bg-red-900/20 rounded-full mb-4"
+					>
 						<svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+							/>
 						</svg>
 					</div>
 					<h3 class="text-xl font-bold text-white mb-2">Failed to Load Card Packs</h3>
@@ -199,72 +234,74 @@ let isStarting: boolean = $state(false);
 						{@const isSelected = selectedPacks[pack.id]}
 						{@const isBaseGame = pack.id === 'Base Set'}
 
-					<button
-						class="relative rounded-2xl border transition-all duration-200 cursor-pointer text-left w-full
+						<button
+							class="relative rounded-2xl border transition-all duration-200 cursor-pointer text-left w-full
 							{isSelected
-							? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
-							: 'border-slate-700/70 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800/70'}"
-						onclick={() => togglePack(pack.id)}
-					>
-						<div class="p-6">
-							<!-- Pack Header -->
-							<div class="flex items-start justify-between mb-3">
-								<div class="flex-1">
-									<div class="flex items-center gap-2 mb-1">
-										<h3 class="text-xl font-bold">{pack.name}</h3>
-										{#if pack.isOfficial}
-											<MdiCrown class="h-5 w-5 text-yellow-500" />
-										{/if}
-									</div>
-									<p class="text-sm text-slate-300">
-										{pack.isOfficial ? 'Official' : 'Community'}
-									</p>
-								</div>
-								{#if isSelected}
-									<div class="flex-shrink-0 ml-3">
-										<div
-											class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center"
-										>
-											<MdiCheck class="h-4 w-4 text-white" />
+								? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+								: 'border-slate-700/70 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800/70'}"
+							onclick={() => togglePack(pack.id)}
+						>
+							<div class="p-6">
+								<!-- Pack Header -->
+								<div class="flex items-start justify-between mb-3">
+									<div class="flex-1">
+										<div class="flex items-center gap-2 mb-1">
+											<h3 class="text-xl font-bold">{pack.name}</h3>
+											{#if pack.isOfficial}
+												<MdiCrown class="h-5 w-5 text-yellow-500" />
+											{/if}
 										</div>
+										<p class="text-sm text-slate-300">
+											{pack.isOfficial ? 'Official' : 'Community'}
+										</p>
 									</div>
+									{#if isSelected}
+										<div class="flex-shrink-0 ml-3">
+											<div
+												class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center"
+											>
+												<MdiCheck class="h-4 w-4 text-white" />
+											</div>
+										</div>
+									{/if}
+								</div>
+
+								<!-- Pack Description -->
+								<p class="text-sm text-slate-400 mb-4 leading-relaxed">
+									{pack.isOfficial
+										? 'Official Cards Against Humanity pack'
+										: 'Community-created card pack'}
+								</p>
+
+								<!-- Pack Stats -->
+								<div class="flex items-center justify-between text-xs text-slate-500 mb-4">
+									<span>{pack.blackCards} black cards</span>
+									<span>{pack.whiteCards} white cards</span>
+									{#if pack.isNSFW}
+										<span class="text-red-400 font-medium">NSFW</span>
+									{:else}
+										<span class="text-green-400 font-medium">Clean</span>
+									{/if}
+								</div>
+
+								<!-- Selection Indicator -->
+								{#if isBaseGame}
+									<div class="text-xs text-emerald-400 font-medium">Required pack</div>
 								{/if}
 							</div>
 
-							<!-- Pack Description -->
-							<p class="text-sm text-slate-400 mb-4 leading-relaxed">
-								{pack.isOfficial ? 'Official Cards Against Humanity pack' : 'Community-created card pack'}
-							</p>
-
-							<!-- Pack Stats -->
-							<div class="flex items-center justify-between text-xs text-slate-500 mb-4">
-								<span>{pack.blackCards} black cards</span>
-								<span>{pack.whiteCards} white cards</span>
-								{#if pack.isNSFW}
-									<span class="text-red-400 font-medium">NSFW</span>
-								{:else}
-									<span class="text-green-400 font-medium">Clean</span>
-								{/if}
-							</div>
-
-							<!-- Selection Indicator -->
-							{#if isBaseGame}
-								<div class="text-xs text-emerald-400 font-medium">Required pack</div>
+							<!-- Hover overlay for non-selected packs -->
+							{#if !isSelected && !isBaseGame}
+								<div
+									class="absolute inset-0 rounded-2xl bg-slate-900/80 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+								>
+									<span class="text-sm font-medium text-white">Click to select</span>
+								</div>
 							{/if}
-						</div>
-
-						<!-- Hover overlay for non-selected packs -->
-						{#if !isSelected && !isBaseGame}
-							<div
-								class="absolute inset-0 rounded-2xl bg-slate-900/80 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
-							>
-								<span class="text-sm font-medium text-white">Click to select</span>
-							</div>
-						{/if}
-					</button>
-				{/each}
-			</div>
-		</section>
+						</button>
+					{/each}
+				</div>
+			</section>
 		{/if}
 
 		<!-- Game Summary & Start -->
