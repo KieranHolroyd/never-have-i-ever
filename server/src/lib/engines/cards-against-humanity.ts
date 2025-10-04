@@ -3,65 +3,10 @@ import type { GameSocket } from "../router";
 import { GameManager } from "../../game-manager";
 import { config } from "../../config";
 import Database from "bun:sqlite";
+import type { IGameStateService } from "../../services/game-state-service";
+import type { CAHGameState, CAHPlayer, CAHBlackCard, CAHWhiteCard, CAHSubmission } from "../../types";
 // Socket helpers are implemented locally in this engine to avoid
 // coupling behavior with other engines
-
-// Cards Against Humanity specific types
-export type CAHGameState = {
-  id: string;
-  players: CAHPlayer[];
-  selectedPacks: string[];
-
-  // Game phases
-  phase: 'waiting' | 'selecting' | 'judging' | 'scoring' | 'game_over';
-
-  // Current round state
-  currentJudge: string | null;
-  currentBlackCard: CAHBlackCard | null;
-  submittedCards: CAHSubmission[];
-  roundWinner: string | null;
-
-  // Deck state
-  deck: {
-    blackCards: CAHBlackCard[];
-    whiteCards: CAHWhiteCard[];
-  };
-
-  // Game settings
-  handSize: number;
-  maxRounds: number;
-  currentRound: number;
-
-  // Control states
-  waitingForPlayers: boolean;
-  gameCompleted: boolean;
-};
-
-export type CAHPlayer = {
-  id: string;
-  name: string;
-  score: number;
-  connected: boolean;
-  hand: CAHWhiteCard[];
-  isJudge: boolean;
-};
-
-export type CAHBlackCard = {
-  id: string;
-  text: string;
-  pick: number;
-};
-
-export type CAHWhiteCard = {
-  id: string;
-  text: string;
-};
-
-export type CAHSubmission = {
-  playerId: string;
-  cards: CAHWhiteCard[];
-  playerName: string;
-};
 
 // Helper function to shuffle array
 function shuffleArray<T>(array: T[]): T[] {
@@ -77,24 +22,26 @@ function shuffleArray<T>(array: T[]): T[] {
  * Factory to create the Cards Against Humanity engine.
  *
  * Notes on architecture:
- * - This engine maintains its own in-memory game state per `gameId`.
+ * - This engine uses Redis-based game state storage via GameStateService
  * - Broadcasting is handled via the WebSocket instance provided by the router
  *   and uses topic-based pub/sub on the `gameId` channel (ws.publish).
  * - Clients are subscribed to the `gameId` topic on join so that publishes
  *   reach all players in the same game. We also send the message directly to
  *   the initiating client (ws.send) via `emit` for immediate feedback.
  */
-export function createCardsAgainstHumanityEngine(gameManager: GameManager): GameEngine {
-  // In-memory game state storage (in production, use Redis/database)
-  const cahGames = new Map<string, CAHGameState>();
-
-  function getGame(gameId: string): CAHGameState | null {
-    return cahGames.get(gameId) || null;
+export function createCardsAgainstHumanityEngine(
+  gameManager: GameManager,
+  gameStateService: IGameStateService
+): GameEngine {
+  async function getGame(gameId: string): Promise<CAHGameState | null> {
+    const game = await gameStateService.getGame(gameId);
+    return game && 'selectedPacks' in game ? game as CAHGameState : null;
   }
 
-  function createCAHGame(gameId: string): CAHGameState {
+  async function createCAHGame(gameId: string): Promise<CAHGameState> {
     const game: CAHGameState = {
       id: gameId,
+      gameType: 'cards-against-humanity' as const,
       players: [],
       selectedPacks: [],
       phase: 'waiting' as const,
@@ -112,7 +59,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       waitingForPlayers: true,
       gameCompleted: false,
     };
-    cahGames.set(gameId, game);
+    await gameStateService.setGame(gameId, game);
     return game;
   }
 
@@ -211,8 +158,8 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     game.phase = 'selecting';
   }
 
-  function handleDisconnect(ws: GameSocket): void {
-    const game = getGame(ws.data.game);
+  async function handleDisconnect(ws: GameSocket): Promise<void> {
+    const game = await getGame(ws.data.game);
     if (!game) return;
 
     const player = game.players.find(p => p.id === ws.data.player);
@@ -225,6 +172,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         checkAndReassignJudge(game);
       }
 
+      await gameStateService.setGame(ws.data.game, game);
       // Broadcast updated game state
       broadcastToGame(ws, "game_state", { game });
     }
@@ -233,7 +181,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
     join_game: async (ws, data) => {
       const { create, playername } = data;
-      let game = getGame(ws.data.game);
+      let game = await getGame(ws.data.game);
 
       console.log(`Player ${playername} (${ws.data.player}) joined CAH game ${ws.data.game}`);
 
@@ -241,7 +189,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         if (!create) {
           throw new Error("Game not found");
         }
-        game = createCAHGame(ws.data.game);
+        game = await createCAHGame(ws.data.game);
       }
 
       // Check if player already exists
@@ -286,12 +234,13 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       // Check if judge needs reassignment
       checkAndReassignJudge(game);
 
+      await gameStateService.setGame(ws.data.game, game);
       // Broadcast updated game state
       broadcastToGame(ws, "game_state", { game }, true);
     },
 
     select_packs: async (ws, data) => {
-      const game = getGame(ws.data.game);
+      const game = await getGame(ws.data.game);
       if (!game) {
         throw new Error("Game not found");
       }
@@ -356,11 +305,12 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         startNewRound(ws, game);
       }
 
+      await gameStateService.setGame(ws.data.game, game);
       broadcastToGame(ws, "game_state", { game });
     },
 
     submit_cards: async (ws, data) => {
-      const game = getGame(ws.data.game);
+      const game = await getGame(ws.data.game);
       if (!game) {
         throw new Error("Game not found");
       }
@@ -411,11 +361,12 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         game.phase = 'judging';
       }
 
+      await gameStateService.setGame(ws.data.game, game);
       broadcastToGame(ws, "game_state", { game });
     },
 
     select_winner: async (ws, data) => {
-      const game = getGame(ws.data.game);
+      const game = await getGame(ws.data.game);
       if (!game) {
         throw new Error("Game not found");
       }
@@ -442,21 +393,23 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
       game.phase = 'scoring';
 
       // Auto-advance to next round after a brief delay
-      setTimeout(() => {
+      setTimeout(async () => {
         if (game.currentRound >= game.maxRounds) {
           game.phase = 'game_over';
           game.gameCompleted = true;
         } else {
           startNewRound(ws, game);
         }
+        await gameStateService.setGame(ws.data.game, game);
         broadcastToGame(ws, "game_state", { game });
       }, 3000);
 
+      await gameStateService.setGame(ws.data.game, game);
       broadcastToGame(ws, "game_state", { game }, true);
     },
 
     reset_game: async (ws, data) => {
-      const game = getGame(ws.data.game);
+      const game = await getGame(ws.data.game);
       if (!game) {
         throw new Error("Game not found");
       }
@@ -483,6 +436,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
         player.isJudge = false;
       });
 
+      await gameStateService.setGame(ws.data.game, game);
       broadcastToGame(ws, "game_state", { game }, true);
     },
 
@@ -492,7 +446,7 @@ export function createCardsAgainstHumanityEngine(gameManager: GameManager): Game
     },
 
     disconnect: async (ws, data) => {
-      handleDisconnect(ws);
+      await handleDisconnect(ws);
     },
   };
 

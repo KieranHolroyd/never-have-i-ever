@@ -4,8 +4,14 @@
 	import { LocalPlayer } from '$lib/player';
 	import { Status, type CAHGameState, type CAHPlayer } from '$lib/types';
 	import { settingsStore } from '$lib/settings';
-	import { CAHWebSocketManager } from '$lib/cah-websocket-manager';
+	import { WebSocketManager } from '$lib/websocket-manager';
+	import { gameStore, connectionStore, currentPlayerStore, errorStore, setError, updateConnection } from '$lib/stores/game-store';
+	import { validateCardSelection, handleValidationError } from '$lib/validation';
 	import { v4 as uuidv4 } from 'uuid';
+
+	// Import shared components
+	import ConnectionStatus from '../shared/ConnectionStatus.svelte';
+	import ErrorDisplay from '../shared/ErrorDisplay.svelte';
 
 	// Import our refactored components
 	import CahGameHeader from './components/game/CahGameHeader.svelte';
@@ -24,14 +30,12 @@
 	}
 	let { id }: Props = $props();
 
-	let wsManager: CAHWebSocketManager | null = null;
-	let connection: Status = $state(Status.CONNECTING);
-	let gameState: CAHGameState | null = $state(null);
-	let currentPlayer: CAHPlayer | null = $state(null);
+	let wsManager: WebSocketManager | null = null;
+	let gameState = $gameStore;
+	let connection = $connectionStore;
+	let currentPlayer = $currentPlayerStore;
+	let error = $errorStore;
 	let lastRound: number = $state(0);
-	let error: string | null = $state(null);
-	let isReconnecting = $state(false);
-	let reconnectAttempts = $state(0);
 
 	// Optimistic UI: keep client thin but provide immediate UX while waiting
 	// for the first server state or during in-flight actions.
@@ -162,8 +166,8 @@
 	}
 
 	function handleGameState(newGameState: CAHGameState) {
-		gameState = newGameState;
-		currentPlayer = gameState?.players.find((p) => p.id === LocalPlayer.id) || null;
+		gameStore.set(newGameState);
+		currentPlayerStore.set(newGameState?.players.find((p) => p.id === LocalPlayer.id) || null);
 		console.log('Game state:', newGameState);
 		// Server is authoritative with a small grace window: if we're optimistically
 		// in 'waiting' right after selecting packs, keep showing it until the server
@@ -179,31 +183,33 @@
 			optimisticPhase = null;
 		}
 		// Guard: if round advanced, clear local selection to avoid stale UI
-		if (gameState && gameState.currentRound !== lastRound) {
+		if (newGameState && newGameState.currentRound !== lastRound) {
 			selectedCardIds = [];
-			lastRound = gameState.currentRound;
+			lastRound = newGameState.currentRound || 0;
 		}
 	}
 
 	function handleError(newError: string) {
-		error = newError;
+		setError(newError);
 	}
 
 	function handleConnectionChange(status: Status, reconnecting?: boolean, attempts?: number) {
-		connection = status;
-		isReconnecting = reconnecting || false;
-		if (attempts !== undefined) {
-			reconnectAttempts = attempts;
-		}
+		updateConnection(
+			status === Status.CONNECTED ? 'connected' :
+			status === Status.CONNECTING ? 'connecting' : 'disconnected',
+			reconnecting,
+			attempts
+		);
 	}
 
 	function connect() {
 		if (wsManager) return;
 
-		wsManager = new CAHWebSocketManager({
+		wsManager = new WebSocketManager({
 			gameId: id,
 			playerId: LocalPlayer.id,
 			playerName: LocalPlayer.name || 'Anonymous Player',
+			gameType: 'cards-against-humanity',
 			onGameState: handleGameState,
 			onError: handleError,
 			onConnectionChange: handleConnectionChange
@@ -282,39 +288,20 @@
 	>
 		<div class="flex items-center justify-between mb-6">
 			<h1 class="text-3xl font-bold">Cards Against Humanity</h1>
-			<div class="text-sm opacity-70">
-				Status: <span
-					class={connection === Status.CONNECTED
-						? 'text-green-400'
-						: connection === Status.CONNECTING
-							? 'text-yellow-400'
-							: 'text-red-400'}
-				>
-					{connection}
-					{#if isReconnecting}
-						<span class="text-yellow-400 animate-pulse"
-							>(Reconnecting... {reconnectAttempts}/10)</span
-						>
-					{/if}
-				</span>
-			</div>
+			<ConnectionStatus showPing={true} />
 		</div>
 
-		{#if error}
-			<div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
-				<p class="text-red-400">{error}</p>
-			</div>
-		{/if}
+		<ErrorDisplay />
 
 		{#if gameState}
 			<!-- Game Header -->
-			<CahGameHeader {gameState} />
+			<CahGameHeader gameState={gameState as CAHGameState} />
 
 			<!-- Players List -->
-			<CahPlayerList {gameState} currentPlayerId={LocalPlayer.id} />
+			<CahPlayerList gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} />
 
 			<!-- Current Black Card -->
-			<CahBlackCard {gameState} />
+			<CahBlackCard gameState={gameState as CAHGameState} />
 
 			<!-- Game Content Based on Phase -->
 			{#key gameState.phase}
@@ -344,30 +331,30 @@
 								</p>
 							</div>
 						</div>
-					{:else if (gameState.selectedPacks?.length || 0) === 0}
+					{:else if ((gameState as CAHGameState).selectedPacks?.length || 0) === 0}
 						<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
 					{:else}
-						<CahWaitingPhase {gameState} />
+						<CahWaitingPhase gameState={gameState as CAHGameState} />
 					{/if}
-				{:else if gameState.phase === 'selecting' && currentPlayer && !currentPlayer.isJudge}
+				{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && !(currentPlayer as CAHPlayer).isJudge}
 					<CahSelectingPhase
-						{currentPlayer}
+						currentPlayer={currentPlayer as CAHPlayer}
 						{selectedCardIds}
 						onCardSelect={toggleSelectCard}
 						onSubmitCards={(ids) => submitCards(ids)}
 						onClearSelection={clearSelected}
-						requiredCards={gameState.currentBlackCard?.pick ?? 1}
+						requiredCards={(gameState as CAHGameState).currentBlackCard?.pick ?? 1}
 					/>
-				{:else if gameState.phase === 'judging' && currentPlayer?.isJudge}
-					<CahJudgingPhase submissions={gameState.submittedCards} onSelectWinner={selectWinner} />
-				{:else if gameState.phase === 'judging' && !currentPlayer?.isJudge}
-					<CahWaitingForJudgePhase submissions={gameState.submittedCards} />
-				{:else if gameState.phase === 'scoring'}
+				{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge}
+					<CahJudgingPhase submissions={(gameState as CAHGameState).submittedCards || []} onSelectWinner={selectWinner} />
+				{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
+					<CahWaitingForJudgePhase submissions={(gameState as CAHGameState).submittedCards || []} />
+				{:else if (gameState as CAHGameState).phase === 'scoring'}
 					{@const winnerPlayer =
-						gameState!.players.find((p) => p.id === gameState!.roundWinner) || null}
+						(gameState as CAHGameState)!.players.find((p) => p.id === (gameState as CAHGameState)!.roundWinner) || null}
 					<CahScoringPhase {winnerPlayer} />
-				{:else if gameState.phase === 'game_over'}
-					<CahGameOverPhase {gameState} currentPlayerId={LocalPlayer.id} onResetGame={resetGame} />
+				{:else if (gameState as CAHGameState).phase === 'game_over'}
+					<CahGameOverPhase gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} onResetGame={resetGame} />
 				{/if}
 			{/key}
 		{:else}

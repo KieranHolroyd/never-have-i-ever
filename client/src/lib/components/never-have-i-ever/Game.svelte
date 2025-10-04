@@ -12,6 +12,11 @@
 	import { colour_map } from '$lib/colour';
 	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';
+	import { WebSocketManager } from '$lib/websocket-manager';
+	import { gameStore, connectionStore, currentPlayerStore, errorStore, setError, updateConnection } from '$lib/stores/game-store';
+	import { validateCategorySelection, handleValidationError } from '$lib/validation';
+	import ConnectionStatus from '../shared/ConnectionStatus.svelte';
+	import ErrorDisplay from '../shared/ErrorDisplay.svelte';
     import { fade, fly } from 'svelte/transition';
     import { flip } from 'svelte/animate';
     import { backOut, quintOut } from 'svelte/easing';
@@ -27,12 +32,14 @@
 
 	let { id, catagories = $bindable() }: Props = $props();
 
-	let error: string | null = $state(null);
 	let should_reload_on_reconnect = $state(false);
 
 	let settings = settingsStore;
 
-	let connection: Status = $state(Status.CONNECTING);
+	let gameState = $gameStore;
+	let connection = $connectionStore;
+	let currentPlayer = $currentPlayerStore;
+	let error = $errorStore;
 	let player_id: string | null = null;
 	let errors: any[] = $state([]);
 	let players: Player[] = $state([]);

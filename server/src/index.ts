@@ -7,6 +7,12 @@ import { engineRegistry } from "./lib/engine-registry";
 import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
 import { createCardsAgainstHumanityEngine } from "./lib/engines/cards-against-humanity";
 import { initializeRedisPool, closeRedisPool } from "./redis-pool";
+import { WebSocketService, IWebSocketService } from "./services/websocket-service";
+import { HttpService, IHttpService } from "./services/http-service";
+import { PersistenceService, IPersistenceService } from "./services/persistence-service";
+import { GameStateService, IGameStateService } from "./services/game-state-service";
+import { createDefaultMiddlewarePipeline } from "./middleware";
+import { container, SERVICE_TOKENS } from "./di";
 import logger from "./logger";
 
 // Validate environment variables
@@ -30,8 +36,33 @@ try {
   logger.warn("Continuing with fallback mode");
 }
 
-// Initialize game manager
-const gameManager = new GameManager();
+// Register services with dependency injection container
+container.registerClass(SERVICE_TOKENS.WebSocketService, WebSocketService, 'singleton');
+container.registerClass(SERVICE_TOKENS.HttpService, HttpService, 'singleton');
+container.registerClass(
+  SERVICE_TOKENS.PersistenceService,
+  PersistenceService,
+  'singleton',
+  [SERVICE_TOKENS.HttpService]
+);
+container.registerClass(SERVICE_TOKENS.GameStateService, GameStateService, 'singleton');
+container.registerClass(
+  SERVICE_TOKENS.GameManager,
+  GameManager,
+  'singleton',
+  [SERVICE_TOKENS.WebSocketService, SERVICE_TOKENS.HttpService, SERVICE_TOKENS.PersistenceService]
+);
+
+// Resolve services from container
+const webSocketService = container.resolve<IWebSocketService>(SERVICE_TOKENS.WebSocketService);
+const httpService = container.resolve<IHttpService>(SERVICE_TOKENS.HttpService);
+const persistenceService = container.resolve<IPersistenceService>(SERVICE_TOKENS.PersistenceService);
+const gameStateService = container.resolve<IGameStateService>(SERVICE_TOKENS.GameStateService);
+const gameManager = container.resolve<GameManager>(SERVICE_TOKENS.GameManager);
+
+// Set up WebSocket middleware pipeline
+const middlewarePipeline = createDefaultMiddlewarePipeline(gameManager);
+SocketRouter.setMiddlewarePipeline(middlewarePipeline);
 
 // Note: Do not register NHIE handlers globally here.
 // Each engine must register its own operations to avoid cross-engine leakage.
@@ -98,17 +129,18 @@ const server = Bun.serve({
     }
   },
   websocket: {
-    message: handle_incoming_message,
+    message: (ws, message) => handle_incoming_message(ws as GameSocket, message, gameManager),
     open: (ws) => {
+      const gameSocket = ws as GameSocket;
       ingestEvent({
         event: "websocket_connection_opened",
-        playerID: ws.data.player,
+        playerID: gameSocket.data.player,
       });
 
       // Check if this is a reconnection after deployment
       const isPostDeploymentReconnect = gameManager.isDeploymentInProgress();
 
-      send(ws, "open", {
+      send(gameSocket, "open", {
         message: "WebSocket connection opened",
         postDeploymentReconnect: isPostDeploymentReconnect
       });
@@ -119,13 +151,18 @@ const server = Bun.serve({
       }
     },
     close: (ws) => {
-      if (ws.data.playing === "never-have-i-ever") {
-        gameManager.handleDisconnect(ws);
-      } else if (ws.data.playing === "cards-against-humanity") {
+      const gameSocket = ws as GameSocket;
+      if (gameSocket.data.playing === "never-have-i-ever") {
+        // Handle NHIE disconnections using the engine
+        const nhieEngine = engineRegistry.get("never-have-i-ever");
+        if (nhieEngine && nhieEngine.handlers.disconnect) {
+          nhieEngine.handlers.disconnect(gameSocket, {});
+        }
+      } else if (gameSocket.data.playing === "cards-against-humanity") {
         // Handle CAH disconnections
         const cahEngine = engineRegistry.get("cards-against-humanity");
         if (cahEngine && cahEngine.handlers.disconnect) {
-          cahEngine.handlers.disconnect(ws, {});
+          cahEngine.handlers.disconnect(gameSocket, {});
         }
       }
     },
@@ -134,11 +171,11 @@ const server = Bun.serve({
   port: SERVER_CONFIG.PORT,
 });
 
-// Register the default engine backed by current GameManager handlers
-engineRegistry.register(createNeverHaveIEverEngine(gameManager));
+// Register the Never Have I Ever engine with dependency injection
+engineRegistry.register(createNeverHaveIEverEngine(webSocketService, httpService, persistenceService, gameStateService));
 
 // Register Cards Against Humanity engine
-engineRegistry.register(createCardsAgainstHumanityEngine(gameManager));
+engineRegistry.register(createCardsAgainstHumanityEngine(gameManager, gameStateService));
 
 // Auto-save games periodically
 setInterval(async () => {

@@ -5,6 +5,38 @@ import { SafeJSON } from '../src/utils/json';
 import { z } from 'zod';
 import './setup';
 
+// Mock services
+const mockWebSocketService = {
+  sendToClient: mock(() => {}),
+  broadcastToGameAndClient: mock(() => {}),
+  publishToGame: mock(() => {}),
+  getTimeoutStart: mock(() => 0),
+  getRoundTimeoutMs: mock(() => 30000),
+  setTimeoutStart: mock(() => {}),
+  deleteTimeoutStart: mock(() => {}),
+};
+
+const mockHttpService = {
+  getQuestionsList: mock(() => Promise.resolve({})),
+};
+
+const mockPersistenceService = {
+  loadGame: mock(() => Promise.resolve(null)),
+  createGame: mock((gameId: string) => Promise.resolve({
+    id: gameId,
+    players: [],
+    catagories: [],
+    catagory_select: true,
+    game_completed: false,
+    waiting_for_players: false,
+    current_question: { catagory: '', content: '' },
+    history: [],
+    data: {},
+  })),
+  saveGame: mock(() => Promise.resolve()),
+  saveActiveGames: mock(() => Promise.resolve()),
+};
+
 // Access the mocked Bun file from global
 const mockBunFile = (global as any).Bun?.file;
 
@@ -14,7 +46,7 @@ describe('GameManager', () => {
   let mockGameSocket: any;
 
   beforeEach(() => {
-    gameManager = new GameManager();
+    gameManager = new GameManager(mockWebSocketService as any, mockHttpService as any, mockPersistenceService as any);
 
     // Mock WebSocket
     mockWs = {

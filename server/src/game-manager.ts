@@ -1,68 +1,51 @@
-import { GameData, Player, Catagories, CatagoriesSchema } from "./types";
+import { GameData, Player } from "./types";
 import { config } from "./config";
-import { client } from "./redis_client";
 import { select_question } from "./lib/questions";
 import { GameSocket } from "./lib/router";
-import Database from "bun:sqlite";
 
 import { ingestEvent } from "./axiom";
 import { GameNotFoundError, GameFullError, ValidationError } from "./errors";
 import { deepCopy, sanitizeGameState, requirePlayer } from "./utils";
-import { ValkeyJSON } from "./utils/json";
-import { PushEvent } from "@octokit/webhooks-types";
+import { IWebSocketService, WebSocketService } from "./services/websocket-service";
+import { IHttpService, HttpService } from "./services/http-service";
+import { IPersistenceService } from "./services/persistence-service";
 import logger from "./logger";
 
 export class GameManager {
   private games: Map<string, GameData> = new Map();
-  private readonly ROUND_TIMEOUT_MS = 10000; // 10 seconds
-
-  // Track timeout start times for sync across clients
-  private timeoutStarts: Map<string, number> = new Map();
-
-  // Store WebSocket instances for broadcasting
-  private gameWebSockets: Map<string, Set<GameSocket>> = new Map();
 
   // Track if a deployment is in progress
   private deploymentInProgress = false;
 
+  // Store WebSocket instances for broadcasting
+  private gameWebSockets: Map<string, Set<GameSocket>> = new Map();
+
+  constructor(private webSocketService: IWebSocketService, private httpService: IHttpService, private persistenceService: IPersistenceService) {}
+
   // NHIE-specific socket helpers to avoid cross-engine coupling
   private sendToClient(ws: GameSocket, op: string, data_raw: object = {}): void {
-    try {
-      const data = JSON.stringify({ ...data_raw, op });
-      ws.send(data);
-    } catch (err) {
-      try {
-        ws.send(JSON.stringify({ err, message: "Error sending message", op: "error" }));
-      } catch (_) {
-        // ignore
-      }
-    }
+    this.webSocketService.sendToClient(ws, op, data_raw);
   }
 
   private broadcastToGameAndClient(ws: GameSocket, op: string, data_raw: object = {}): void {
-    this.sendToClient(ws, op, data_raw);
-    this.broadcastToGame(ws.data.game, op, data_raw)
+    this.webSocketService.broadcastToGameAndClient(ws, op, data_raw);
   }
 
   private publishToGame(ws: GameSocket, op: string, data_raw: object = {}): void {
-    try {
-      const data = JSON.stringify({ ...data_raw, op });
-      ws.publish(ws.data.game, data);
-    } catch (err) {
-      this.sendToClient(ws, "error", { message: "Error publishing message", err });
-    }
+    this.webSocketService.publishToGame(ws, op, data_raw);
   }
+  // NHIE-specific socket helpers to avoid cross-engine coupling
 
   async getOrCreateGame(gameId: string): Promise<GameData> {
     let game = this.games.get(gameId);
 
     if (!game) {
       // Try to load from filesystem
-      game = await this.loadGame(gameId);
+      game = await this.persistenceService.loadGame(gameId);
 
       if (!game) {
         // Create new game
-        game = await this.createGame(gameId);
+        game = await this.persistenceService.createGame(gameId);
       }
 
       this.games.set(gameId, game);
@@ -71,93 +54,11 @@ export class GameManager {
     return game;
   }
 
-  private async loadGame(gameId: string): Promise<GameData | null> {
-    const filePath = `${config.GAME_DATA_DIR}${gameId}.json`;
-
-    try {
-      const gameFile = Bun.file(filePath);
-      if (await gameFile.exists()) {
-        const gameData = await gameFile.json() as GameData;
-        return gameData;
-      }
-    } catch (error) {
-      logger.error(`Error loading game ${gameId}:`, error);
-    }
-
-    return null;
-  }
-
-  private async createGame(gameId: string): Promise<GameData> {
-    const questionsList = await this.getQuestionsList();
-
-    const game: GameData = {
-      id: gameId,
-      players: [],
-      catagories: [],
-      catagory_select: true,
-      game_completed: false,
-      waiting_for_players: false,
-      current_question: { catagory: "", content: "" },
-      history: [],
-      data: deepCopy(questionsList),
-    };
-
-    ingestEvent({
-      gameID: gameId,
-      event: "game_created",
-      loaded_from_filesystem: false,
-    });
-
-    return game;
-  }
 
   private getGame(gameId: string): GameData | undefined {
     return this.games.get(gameId);
   }
 
-  private async getQuestionsList(): Promise<Catagories> {
-    // First check Valkey cache
-    let questionsList = await ValkeyJSON.get(client, "shared:questions_list", CatagoriesSchema);
-
-    if (!questionsList) {
-      // Load from database if not in cache (categories are in main assets directory)
-      const dbPath = `${import.meta.dir}/../assets/db.sqlite`;
-      const db = new Database(dbPath);
-
-      try {
-        const categoryRows = db.prepare("SELECT name, questions, is_nsfw FROM categories").all() as Array<{
-          name: string;
-          questions: string;
-          is_nsfw: number;
-        }>;
-
-        const categoriesData: Catagories = {};
-
-        for (const row of categoryRows) {
-          categoriesData[row.name] = {
-            flags: {
-              is_nsfw: Boolean(row.is_nsfw)
-            },
-            questions: JSON.parse(row.questions)
-          };
-        }
-
-        // Cache in Valkey for performance
-        await ValkeyJSON.set(client, "shared:questions_list", categoriesData, CatagoriesSchema);
-        questionsList = categoriesData;
-
-        logger.info(`Loaded ${Object.keys(categoriesData).length} categories from database`);
-      } catch (error) {
-        logger.error("Failed to load categories from database:", error);
-        // Fallback to empty object if database fails
-        questionsList = {};
-      } finally {
-        db.close();
-      }
-    }
-
-    return questionsList as Catagories;
-  }
 
   // WebSocket handlers
   async handleJoinGame(ws: GameSocket, data: any): Promise<void> {
@@ -327,7 +228,7 @@ export class GameManager {
         clearTimeout(game.round_timeout);
         game.round_timeout = undefined;
       }
-      this.timeoutStarts.delete(ws.data.game);
+      this.webSocketService.deleteTimeoutStart(ws.data.game);
 
       // Add current round to history if there's an active question
       if (game.history && game.current_question.catagory !== "") {
@@ -363,8 +264,8 @@ export class GameManager {
       const gameStateWithTimeout = game.waiting_for_players
         ? {
           ...gameState,
-          timeout_start: this.timeoutStarts.get(ws.data.game) || 0,
-          timeout_duration: this.ROUND_TIMEOUT_MS
+          timeout_start: this.webSocketService.getTimeoutStart(ws.data.game) || 0,
+          timeout_duration: this.webSocketService.getRoundTimeoutMs()
         }
         : gameState;
 
@@ -390,7 +291,7 @@ export class GameManager {
       clearTimeout(game.round_timeout);
       game.round_timeout = undefined;
     }
-    this.timeoutStarts.delete(gameId);
+    this.webSocketService.deleteTimeoutStart(gameId);
 
     // Add current round to history if there's an active question
     if (game.history && game.current_question.catagory !== "") {
@@ -426,8 +327,8 @@ export class GameManager {
     const gameStateWithTimeout = game.waiting_for_players
       ? {
         ...gameState,
-        timeout_start: this.timeoutStarts.get(gameId) || 0,
-        timeout_duration: this.ROUND_TIMEOUT_MS
+        timeout_start: this.webSocketService.getTimeoutStart(gameId) || 0,
+        timeout_duration: this.webSocketService.getRoundTimeoutMs()
       }
       : gameState;
 
@@ -468,14 +369,14 @@ export class GameManager {
   async handleResetGame(ws: GameSocket, data: any): Promise<void> {
     try {
       const game = await this.getOrCreateGame(ws.data.game);
-      const questionsList = await this.getQuestionsList();
+      const questionsList = await this.httpService.getQuestionsList();
 
       // Clear any existing timeout
       if (game.round_timeout) {
         clearTimeout(game.round_timeout);
         game.round_timeout = undefined;
       }
-      this.timeoutStarts.delete(ws.data.game);
+      this.webSocketService.deleteTimeoutStart(ws.data.game);
 
       // Reset game state
       game.catagories = [];
@@ -538,22 +439,22 @@ export class GameManager {
       if (game.waiting_for_players && !game.round_timeout) {
         console.log('[DEBUG] Starting timeout on first vote');
         const timeoutStart = Date.now();
-        this.timeoutStarts.set(ws.data.game, timeoutStart);
+        this.webSocketService.setTimeoutStart(ws.data.game, timeoutStart);
 
         game.round_timeout = setTimeout(async () => {
           await this.handleRoundTimeout(ws.data.game, ws);
-        }, this.ROUND_TIMEOUT_MS);
+        }, this.webSocketService.getRoundTimeoutMs());
 
         // Send updated game state with timeout info
         const gameState = sanitizeGameState(game);
         const gameStateWithTimeout = {
           ...gameState,
           timeout_start: timeoutStart,
-          timeout_duration: this.ROUND_TIMEOUT_MS
+          timeout_duration: this.webSocketService.getRoundTimeoutMs()
         };
         console.log('[DEBUG] Sending timeout start game state:', {
           timeout_start: timeoutStart,
-          timeout_duration: this.ROUND_TIMEOUT_MS
+          timeout_duration: this.webSocketService.getRoundTimeoutMs()
         });
         this.broadcastToGameAndClient(ws, "game_state", { game: gameStateWithTimeout });
       } else {
@@ -616,7 +517,7 @@ export class GameManager {
       clearTimeout(game.round_timeout);
       game.round_timeout = undefined;
     }
-    this.timeoutStarts.delete(game.id);
+    this.webSocketService.deleteTimeoutStart(game.id);
 
     // Reset waiting state
     game.waiting_for_players = false;
@@ -637,7 +538,7 @@ export class GameManager {
       clearTimeout(game.round_timeout);
       game.round_timeout = undefined;
     }
-    this.timeoutStarts.delete(game.id);
+    this.webSocketService.deleteTimeoutStart(game.id);
 
     // Reset waiting state
     game.waiting_for_players = false;
@@ -663,7 +564,7 @@ export class GameManager {
 
     // Clear the timeout
     game.round_timeout = undefined;
-    this.timeoutStarts.delete(gameId);
+    this.webSocketService.deleteTimeoutStart(gameId);
 
     // Reset waiting state
     game.waiting_for_players = false;
@@ -740,262 +641,28 @@ export class GameManager {
 
   // HTTP handlers
   async handleCategories(): Promise<Response> {
-    try {
-      const categories = await this.getQuestionsList();
-      const response = Response.json(categories);
-      response.headers.set("Access-Control-Allow-Origin", "*");
-      response.headers.set("Cache-Control", "max-age=86400");
-      return response;
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
-        status: 500,
-      });
-    }
+    return await this.httpService.handleCategories();
   }
 
   async handleCAHPacks(): Promise<Response> {
-    try {
-      const dbPath = `${config.GAME_DATA_DIR}db.sqlite`;
-      const db = new Database(dbPath);
-
-      // Query to get pack information with card counts
-      const packsQuery = `
-        SELECT
-          pack_name,
-          card_type,
-          COUNT(*) as card_count
-        FROM cah_cards
-        GROUP BY pack_name, card_type
-        ORDER BY pack_name, card_type
-      `;
-
-      const packRows = db.prepare(packsQuery).all() as Array<{
-        pack_name: string;
-        card_type: string;
-        card_count: number;
-      }>;
-
-      // Group by pack_name and create pack objects
-      const packsMap = new Map<string, {
-        id: string;
-        name: string;
-        blackCards: number;
-        whiteCards: number;
-        isOfficial: boolean;
-        isNSFW: boolean;
-      }>();
-
-      for (const row of packRows) {
-        const pack = packsMap.get(row.pack_name) || {
-          id: row.pack_name,
-          name: row.pack_name,
-          blackCards: 0,
-          whiteCards: 0,
-          isOfficial: this.isOfficialPack(row.pack_name),
-          isNSFW: this.isNSFWPack(row.pack_name),
-        };
-
-        if (row.card_type === 'black') {
-          pack.blackCards = row.card_count;
-        } else if (row.card_type === 'white') {
-          pack.whiteCards = row.card_count;
-        }
-
-        packsMap.set(row.pack_name, pack);
-      }
-
-      const packs = Array.from(packsMap.values());
-
-      const response = Response.json(packs);
-      response.headers.set("Access-Control-Allow-Origin", "*");
-      response.headers.set("Cache-Control", "max-age=3600"); // Cache for 1 hour
-      db.close();
-      return response;
-    } catch (error) {
-      console.error("Error fetching CAH packs:", error);
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
-        status: 500,
-      });
-    }
+    return await this.httpService.handleCAHPacks();
   }
 
-  private isOfficialPack(packName: string): boolean {
-    // Official packs are those from Cards Against Humanity LLC
-    const officialPacks = [
-      'CAH Base Set',
-      'CAH: First Expansion',
-      'CAH: Second Expansion',
-      'CAH: Third Expansion',
-      'CAH: Fourth Expansion',
-      'CAH: Fifth Expansion',
-      'CAH: Sixth Expansion',
-      'CAH Base Set',
-      'CAH: Box Expansion',
-      'CAH: Red Box Expansion',
-      'CAH: Blue Box Expansion',
-      'CAH: Green Box Expansion',
-      'CAH: Main Deck',
-      'CAH: College Pack',
-      'CAH: 2000s Nostalgia Pack',
-      'CAH: A.I. Pack',
-      'CAH: Ass Pack',
-      'CAH: Human Pack',
-      'CAH: Procedurally-Generated Cards',
-      'CAH: Canadian Conversion Kit',
-      'CAH: UK Conversion Kit',
-      'CAH: Family Edition (Free Print & Play Public Beta)',
-      'CAH: Hidden Gems Bundle: A Few New Cards We Crammed Into This Bundle Pack (Amazon Exclusive)',
-    ];
-    return officialPacks.some(official => packName.startsWith(official.split(':')[0]));
-  }
-
-  private isNSFWPack(packName: string): boolean {
-    // Most CAH packs are NSFW, but some are marked as family-friendly
-    const cleanPacks = [
-      'CAH: Family Edition (Free Print & Play Public Beta)',
-      'Kids Against Maturity',
-      'Kids Create Absurdity',
-      'KinderPerfect',
-      'KinderPerfect: A Timeout For Parents (Kickstarter Set)',
-      'KinderPerfect: More Expansion Pack',
-      'KinderPerfect: Naughty Expansion Pack',
-      'KinderPerfect: Tween Expansion Pack',
-    ];
-    return !cleanPacks.some(clean => packName.includes(clean));
-  }
 
   async handleGame(request: Request): Promise<Response> {
-    try {
-      const url = new URL(request.url);
-      const gameId = url.searchParams.get("id");
-
-      if (!gameId) {
-        return new Response(JSON.stringify({ error: "no_gameid" }), {
-          status: 400,
-        });
-      }
-
-      const game = this.games.get(gameId);
-      if (!game) {
-        return new Response(JSON.stringify({ error: "game_not_found" }), {
-          status: 404,
-        });
-      }
-
-      const gameState = {
-        ...sanitizeGameState(game),
-        active: game.players.filter((p) => p.connected).length > 0,
-      };
-
-      return new Response(JSON.stringify(gameState), { status: 200 });
-    } catch (error) {
-      console.error("Error fetching game:", error);
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
-        status: 500,
-      });
-    }
+    return await this.httpService.handleGame(this.games, request);
   }
 
   async handleGithubWebhook(request: Request, server: any): Promise<Response> {
-    try {
-      const body = (await request.json()) as PushEvent;
-
-      if (body.ref !== "refs/heads/master") {
-        return new Response("Not main branch, ignoring", { status: 200 });
-      }
-
-      // Auto-deploy the server
-      logger.info("Starting automatic deployment...");
-      try {
-        const { spawn } = await import("child_process");
-        const { resolve } = await import("path");
-        const projectRoot = '/opt/never-have-i-ever-server/';
-        const scriptPath = resolve(projectRoot, "deploy-server.sh");
-
-        logger.info(`Running deployment script at: ${scriptPath}`);
-        logger.info(`Working directory: ${projectRoot}`);
-
-        const deployProcess = spawn(scriptPath, [], {
-          cwd: projectRoot,
-          stdio: "inherit",
-          shell: true,
-          env: { ...process.env, USER: process.env.USER || "nginx" }
-        });
-
-        deployProcess.on("close", (code) => {
-          if (code === 0) {
-            logger.info("Deployment completed successfully");
-          } else {
-            logger.error(`Deployment failed with exit code ${code}`);
-          }
-        });
-
-        deployProcess.on("error", (error) => {
-          logger.error("Failed to start deployment:", error);
-        });
-
-      } catch (deployError) {
-        logger.error("Error initiating deployment:", deployError);
-      }
-
-      // Set deployment flag and notify users about the automatic deployment
-      this.deploymentInProgress = true;
-      server.publish(
-        "notifications",
-        JSON.stringify({
-          delay: 5000,
-          notification: "🚀 Auto-deploying latest version... Server will restart automatically!",
-          op: "github_push",
-        })
-      );
-
-      return new Response("Auto-deployment initiated", { status: 200 });
-    } catch (error) {
-      logger.error("Error handling GitHub webhook:", error);
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    this.deploymentInProgress = true;
+    return await this.httpService.handleGithubWebhook(request, server, this.deploymentInProgress);
   }
 
   // Game saving
   async saveActiveGames(): Promise<void> {
-    for (const [gameId, game] of this.games) {
-      const activePlayers = game.players.filter(p => p.connected).length;
-      if (activePlayers === 0) continue;
-
-      try {
-        await this.saveGame(game);
-        ingestEvent({
-          event: "game_state_saved",
-          gameID: gameId,
-        });
-      } catch (error) {
-        logger.error(`Error saving game ${gameId}:`, error);
-      }
-    }
+    await this.persistenceService.saveActiveGames(this.games);
   }
 
-  private async saveGame(game: GameData): Promise<void> {
-    const filename = `${game.id}.json`;
-    const filePath = `${config.GAME_DATA_DIR}${filename}`;
-
-    try {
-      const currentFile = Bun.file(filePath);
-      if (await currentFile.exists()) {
-        const currentGame = await currentFile.text();
-        if (currentGame === JSON.stringify(game)) {
-          return; // No changes
-        }
-      }
-
-      await Bun.write(filePath, JSON.stringify(game));
-    } catch (error) {
-      throw error;
-    }
-  }
 
   // Deployment tracking methods
   isDeploymentInProgress(): boolean {

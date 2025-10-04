@@ -4,6 +4,8 @@ import { ingestEvent } from "../axiom";
 import { SafeJSON } from "../utils/json";
 import { z } from "zod";
 import { engineRegistry } from "./engine-registry";
+import { createDefaultMiddlewarePipeline, WebSocketContext, WebSocketMiddlewarePipeline } from "../middleware";
+import { GameManager } from "../game-manager";
 
 export type GameSocketMetadata = {
   game: string;
@@ -25,8 +27,19 @@ const WebSocketMessageSchema = z.object({
 
 export class SocketRouter {
   private static handlers: SocketRouteHandlers = {};
+  private static middlewarePipeline: WebSocketMiddlewarePipeline | null = null;
 
-  static async handle(ws: GameSocket, op: string, data: any) {
+  static setMiddlewarePipeline(pipeline: WebSocketMiddlewarePipeline) {
+    this.middlewarePipeline = pipeline;
+  }
+
+  static async handle(ws: GameSocket, op: string, data: any, gameManager?: GameManager) {
+    // Run middleware pipeline if configured
+    if (this.middlewarePipeline && gameManager) {
+      const context: WebSocketContext = { ws, data, gameManager };
+      await this.middlewarePipeline.execute(context);
+    }
+
     // First try to find engine-specific handler
     const engine = engineRegistry.get(ws.data.playing);
     if (engine && engine.handlers[op]) {
@@ -41,8 +54,15 @@ export class SocketRouter {
       ingestEvent({
         gameID: ws.data.game,
         event: "invalid_operation",
+        details: { operation: op }
       });
-      send(ws, "error", { message: "Invalid operation" });
+      send(ws, "error", {
+        error: {
+          code: "INVALID_OPERATION",
+          message: `Unknown operation: ${op}`,
+          timestamp: new Date().toISOString()
+        }
+      });
     }
   }
 
@@ -53,7 +73,8 @@ export class SocketRouter {
 
 export async function handle_incoming_message(
   ws: GameSocket,
-  message: string | Buffer
+  message: string | Buffer,
+  gameManager?: GameManager
 ) {
   if (typeof message !== "string") {
     send(ws, "error", { message: "Invalid message" });
@@ -73,7 +94,7 @@ export async function handle_incoming_message(
       });
     }
 
-    await SocketRouter.handle(ws, op, data);
+    await SocketRouter.handle(ws, op, data, gameManager);
   } catch (err) {
     ingestEvent({
       gameID: ws.data.game,
@@ -81,9 +102,17 @@ export async function handle_incoming_message(
       playerID: ws.data.player,
       details: {
         message: message,
+        error: err.message
       },
       errors: err,
     });
-    send(ws, "error", { message: err.message, err });
+    send(ws, "error", {
+      error: {
+        code: "MESSAGE_PARSE_ERROR",
+        message: "Failed to parse WebSocket message",
+        details: { originalMessage: message.substring(0, 200) },
+        timestamp: new Date().toISOString()
+      }
+    });
   }
 }

@@ -83,3 +83,88 @@ export interface GameEngineRegistry {
   get(type: string): GameEngine | undefined;
   has(type: string): boolean;
 }
+
+// Unified game state interfaces
+
+export interface IPlayer {
+  id: string;
+  name: string;
+  score: number;
+  connected: boolean;
+}
+
+export interface ICAHPlayer extends IPlayer {
+  hand: CAHWhiteCard[];
+  isJudge: boolean;
+}
+
+export interface INHIEPlayer extends IPlayer {
+  this_round: {
+    vote: string | null;
+    voted: boolean;
+  };
+}
+
+// CAH specific types
+export type CAHBlackCard = {
+  id: string;
+  text: string;
+  pick: number;
+};
+
+export type CAHWhiteCard = {
+  id: string;
+  text: string;
+};
+
+export type CAHSubmission = {
+  playerId: string;
+  cards: CAHWhiteCard[];
+  playerName: string;
+};
+
+// Unified game state
+export interface IGameState {
+  id: string;
+  gameType: 'cards-against-humanity' | 'never-have-i-ever';
+  players: IPlayer[];
+  phase: string;
+  waitingForPlayers: boolean;
+  gameCompleted: boolean;
+}
+
+export interface ICAHGameState extends IGameState {
+  gameType: 'cards-against-humanity';
+  players: ICAHPlayer[];
+  selectedPacks: string[];
+  currentJudge: string | null;
+  currentBlackCard: CAHBlackCard | null;
+  submittedCards: CAHSubmission[];
+  roundWinner: string | null;
+  deck: {
+    blackCards: CAHBlackCard[];
+    whiteCards: CAHWhiteCard[];
+  };
+  handSize: number;
+  maxRounds: number;
+  currentRound: number;
+}
+
+export interface INHIEGameState extends IGameState {
+  gameType: 'never-have-i-ever';
+  players: INHIEPlayer[];
+  current_question: Question;
+  catagories: string[];
+  data: Catagories;
+  history: {
+    question: Question;
+    players: INHIEPlayer[];
+  }[];
+  round_timeout?: NodeJS.Timeout;
+}
+
+// Aliases for backward compatibility
+export type CAHGameState = ICAHGameState;
+export type NHIEGameState = INHIEGameState;
+export type CAHPlayer = ICAHPlayer;
+export type NHIEPlayer = INHIEPlayer;
