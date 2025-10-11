@@ -17,7 +17,34 @@ const mockWebSocketService = {
 };
 
 const mockHttpService = {
-  getQuestionsList: mock(() => Promise.resolve({})),
+  getQuestionsList: mock(() => Promise.resolve({
+    'food': { flags: { is_nsfw: false }, questions: ['What is your favorite food?', 'Do you like pizza?'] },
+    'travel': { flags: { is_nsfw: false }, questions: ['Have you been to Europe?', 'Do you like traveling?'] }
+  })),
+  handleCategories: mock((/* games, request */) => {
+    const response = new Response(JSON.stringify({ food: {}, travel: {} }), { status: 200 });
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Cache-Control', 'max-age=86400');
+    return Promise.resolve(response);
+  }),
+  handleCAHPacks: mock(() => Promise.resolve(new Response('{}', { status: 200 }))),
+  handleGame: mock((games: Map<string, any>, request: Request) => {
+    const url = new URL(request.url);
+    const gameId = url.searchParams.get('id');
+    if (!gameId) {
+      return Promise.resolve(new Response(JSON.stringify({ error: 'no_gameid' }), { status: 400 }));
+    }
+    const game = games.get(gameId);
+    if (!game) {
+      return Promise.resolve(new Response(JSON.stringify({ error: 'game_not_found' }), { status: 404 }));
+    }
+    const gameState = {
+      ...game,
+      active: game.players.filter((p: any) => p.connected).length > 0
+    };
+    return Promise.resolve(new Response(JSON.stringify(gameState), { status: 200 }));
+  }),
+  handleGithubWebhook: mock(() => Promise.resolve(new Response('{}', { status: 200 }))),
 };
 
 const mockPersistenceService = {
@@ -46,6 +73,23 @@ describe('GameManager', () => {
   let mockGameSocket: any;
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    mockWebSocketService.sendToClient.mockClear();
+    mockWebSocketService.broadcastToGameAndClient.mockClear();
+    mockWebSocketService.publishToGame.mockClear();
+    mockWebSocketService.getTimeoutStart.mockClear();
+    mockWebSocketService.setTimeoutStart.mockClear();
+    mockWebSocketService.deleteTimeoutStart.mockClear();
+    mockHttpService.getQuestionsList.mockClear();
+    mockHttpService.handleCategories.mockClear();
+    mockHttpService.handleCAHPacks.mockClear();
+    mockHttpService.handleGame.mockClear();
+    mockHttpService.handleGithubWebhook.mockClear();
+    mockPersistenceService.loadGame.mockClear();
+    mockPersistenceService.createGame.mockClear();
+    mockPersistenceService.saveGame.mockClear();
+    mockPersistenceService.saveActiveGames.mockClear();
+    
     gameManager = new GameManager(mockWebSocketService as any, mockHttpService as any, mockPersistenceService as any);
 
     // Mock WebSocket
@@ -201,9 +245,11 @@ describe('GameManager', () => {
 
       await gameManager.handleSelectCategory(mockGameSocket, data);
 
-      expect(mockWs.send).toHaveBeenCalledWith(
-        JSON.stringify({ message: 'Category is required', op: 'error' })
-      );
+      expect(mockWebSocketService.sendToClient).toHaveBeenCalled();
+      const calls = (mockWebSocketService.sendToClient as any).mock.calls;
+      const errorCall = calls.find((call: any[]) => call[1] === 'error');
+      expect(errorCall).toBeDefined();
+      expect(errorCall[2].message).toBe('Category is required');
     });
 
     it('should send validation error for empty category string', async () => {
@@ -211,9 +257,11 @@ describe('GameManager', () => {
 
       await gameManager.handleSelectCategory(mockGameSocket, data);
 
-      expect(mockWs.send).toHaveBeenCalledWith(
-        JSON.stringify({ message: 'Category is required', op: 'error' })
-      );
+      expect(mockWebSocketService.sendToClient).toHaveBeenCalled();
+      const calls = (mockWebSocketService.sendToClient as any).mock.calls;
+      const errorCall = calls.find((call: any[]) => call[1] === 'error');
+      expect(errorCall).toBeDefined();
+      expect(errorCall[2].message).toBe('Category is required');
     });
 
     it('should send validation error for null category', async () => {
@@ -221,9 +269,11 @@ describe('GameManager', () => {
 
       await gameManager.handleSelectCategory(mockGameSocket, data);
 
-      expect(mockWs.send).toHaveBeenCalledWith(
-        JSON.stringify({ message: 'Category is required', op: 'error' })
-      );
+      expect(mockWebSocketService.sendToClient).toHaveBeenCalled();
+      const calls = (mockWebSocketService.sendToClient as any).mock.calls;
+      const errorCall = calls.find((call: any[]) => call[1] === 'error');
+      expect(errorCall).toBeDefined();
+      expect(errorCall[2].message).toBe('Category is required');
     });
 
     it('should send validation error for undefined category', async () => {
@@ -231,9 +281,11 @@ describe('GameManager', () => {
 
       await gameManager.handleSelectCategory(mockGameSocket, data);
 
-      expect(mockWs.send).toHaveBeenCalledWith(
-        JSON.stringify({ message: 'Category is required', op: 'error' })
-      );
+      expect(mockWebSocketService.sendToClient).toHaveBeenCalled();
+      const calls = (mockWebSocketService.sendToClient as any).mock.calls;
+      const errorCall = calls.find((call: any[]) => call[1] === 'error');
+      expect(errorCall).toBeDefined();
+      expect(errorCall[2].message).toBe('Category is required');
     });
 
     it('should handle category selection with additional WebSocket fields', async () => {
@@ -296,9 +348,11 @@ describe('GameManager', () => {
 
       await gameManager.handleConfirmSelections(mockGameSocket, data);
 
-      expect(mockWs.send).toHaveBeenCalledWith(
-        JSON.stringify({ message: 'At least one category must be selected', op: 'error' })
-      );
+      expect(mockWebSocketService.sendToClient).toHaveBeenCalled();
+      const calls = (mockWebSocketService.sendToClient as any).mock.calls;
+      const errorCall = calls.find((call: any[]) => call[1] === 'error');
+      expect(errorCall).toBeDefined();
+      expect(errorCall[2].message).toBe('At least one category must be selected');
     });
   });
 
@@ -366,9 +420,11 @@ describe('GameManager', () => {
 
       await gameManager.handleVote(mockGameSocket, data);
 
-      expect(mockWs.send).toHaveBeenCalledWith(
-        JSON.stringify({ message: 'Invalid vote option', op: 'error' })
-      );
+      expect(mockWebSocketService.sendToClient).toHaveBeenCalled();
+      const calls = (mockWebSocketService.sendToClient as any).mock.calls;
+      const errorCall = calls.find((call: any[]) => call[1] === 'error');
+      expect(errorCall).toBeDefined();
+      expect(errorCall[2].message).toBe('Invalid vote option');
     });
 
     it('should start timeout on first vote', async () => {
@@ -405,9 +461,9 @@ describe('GameManager', () => {
 
       // Ensure game has data loaded (should be loaded by createGame)
       if (!game.data || !game.data['food']) {
-        // Load data manually for test
-        const questionsList = await (gameManager as any).getQuestionsList();
-        game.data = (gameManager as any).deepCopy(questionsList);
+        // Load data manually for test - use the mock service
+        const questionsList = await mockHttpService.getQuestionsList();
+        game.data = JSON.parse(JSON.stringify(questionsList)); // deep copy
       }
 
       const data = {};
@@ -432,8 +488,8 @@ describe('GameManager', () => {
 
       // Ensure game has data loaded
       if (!game.data || !game.data['food']) {
-        const questionsList = await (gameManager as any).getQuestionsList();
-        game.data = (gameManager as any).deepCopy(questionsList);
+        const questionsList = await mockHttpService.getQuestionsList();
+        game.data = JSON.parse(JSON.stringify(questionsList)); // deep copy
       }
 
       // Add a player with a vote
@@ -454,7 +510,16 @@ describe('GameManager', () => {
 
     it('should skip round manually when all players have voted', async () => {
       const game = await gameManager.getOrCreateGame('test-game');
+      game.catagories = ['food'];
+      game.catagory_select = false;
       game.waiting_for_players = true;
+      
+      // Ensure game has data loaded
+      if (!game.data || !game.data['food']) {
+        const questionsList = await mockHttpService.getQuestionsList();
+        game.data = JSON.parse(JSON.stringify(questionsList)); // deep copy
+      }
+      
       game.players[0].this_round.voted = true;
 
       const data = {};

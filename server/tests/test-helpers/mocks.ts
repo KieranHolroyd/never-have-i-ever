@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { mock } from 'bun:test';
 import type { IWebSocketService } from '../../src/services/websocket-service';
 import type { IHttpService } from '../../src/services/http-service';
 import type { IPersistenceService } from '../../src/services/persistence-service';
@@ -19,10 +19,10 @@ export function createMockWebSocket(
 
   return {
     data: { game: gameId, player: playerId, playing },
-    send: vi.fn((data: string) => sent.push(data)),
-    publish: vi.fn((topic: string, data: string) => published.push({ topic, data })),
-    subscribe: vi.fn((topic: string) => subscriptions.push(topic)),
-    close: vi.fn(),
+    send: mock((data: string) => sent.push(data)),
+    publish: mock((topic: string, data: string) => published.push({ topic, data })),
+    subscribe: mock((topic: string) => subscriptions.push(topic)),
+    close: mock(),
     __getMessages() { return { sent, published, subscriptions }; }
   } as any;
 }
@@ -32,21 +32,21 @@ export function createMockWebSocket(
  */
 export function createMockWebSocketService(): IWebSocketService {
   return {
-    sendToClient: vi.fn(),
-    broadcastToGameAndClient: vi.fn(),
-    publishToGame: vi.fn(),
-    broadcastToGame: vi.fn(),
-    handleDisconnect: vi.fn(),
-    handleReconnectStatus: vi.fn(),
-    handlePing: vi.fn(),
-    addWebSocket: vi.fn(),
-    removeWebSocket: vi.fn(),
-    hasWebSockets: vi.fn(),
-    getTimeoutStart: vi.fn(() => 0),
-    setTimeoutStart: vi.fn(),
-    deleteTimeoutStart: vi.fn(),
-    cleanup: vi.fn(),
-    getRoundTimeoutMs: vi.fn(() => 30000)
+    sendToClient: mock(),
+    broadcastToGameAndClient: mock(),
+    publishToGame: mock(),
+    broadcastToGame: mock(),
+    handleDisconnect: mock(),
+    handleReconnectStatus: mock(),
+    handlePing: mock(),
+    addWebSocket: mock(),
+    removeWebSocket: mock(),
+    hasWebSockets: mock(),
+    getTimeoutStart: mock(() => 0),
+    setTimeoutStart: mock(),
+    deleteTimeoutStart: mock(),
+    cleanup: mock(),
+    getRoundTimeoutMs: mock(() => 30000)
   };
 }
 
@@ -55,11 +55,11 @@ export function createMockWebSocketService(): IWebSocketService {
  */
 export function createMockHttpService(): IHttpService {
   return {
-    getQuestionsList: vi.fn(),
-    handleCategories: vi.fn(),
-    handleCAHPacks: vi.fn(),
-    handleGame: vi.fn(),
-    handleGithubWebhook: vi.fn()
+    getQuestionsList: mock(),
+    handleCategories: mock(),
+    handleCAHPacks: mock(),
+    handleGame: mock(),
+    handleGithubWebhook: mock()
   };
 }
 
@@ -68,10 +68,10 @@ export function createMockHttpService(): IHttpService {
  */
 export function createMockPersistenceService(): IPersistenceService {
   return {
-    loadGame: vi.fn(),
-    createGame: vi.fn(),
-    saveGame: vi.fn(),
-    saveActiveGames: vi.fn()
+    loadGame: mock(),
+    createGame: mock(),
+    saveGame: mock(),
+    saveActiveGames: mock()
   };
 }
 
@@ -80,11 +80,11 @@ export function createMockPersistenceService(): IPersistenceService {
  */
 export function createMockGameStateService(): IGameStateService {
   return {
-    getGame: vi.fn(),
-    setGame: vi.fn(),
-    deleteGame: vi.fn(),
-    hasGame: vi.fn(),
-    getAllGameIds: vi.fn()
+    getGame: mock(),
+    setGame: mock(),
+    deleteGame: mock(),
+    hasGame: mock(),
+    getAllGameIds: mock()
   };
 }
 
@@ -93,15 +93,15 @@ export function createMockGameStateService(): IGameStateService {
  */
 export function createMockRedisClient() {
   return {
-    get: vi.fn(),
-    set: vi.fn(),
-    del: vi.fn(),
-    exists: vi.fn(),
-    keys: vi.fn(),
-    ping: vi.fn(() => Promise.resolve('PONG')),
-    publish: vi.fn(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn()
+    get: mock(),
+    set: mock(),
+    del: mock(),
+    exists: mock(),
+    keys: mock(),
+    ping: mock(() => Promise.resolve('PONG')),
+    publish: mock(),
+    subscribe: mock(),
+    unsubscribe: mock()
   };
 }
 
@@ -110,12 +110,12 @@ export function createMockRedisClient() {
  */
 export function createMockDatabase() {
   return {
-    prepare: vi.fn(() => ({
-      all: vi.fn(),
-      run: vi.fn(),
-      get: vi.fn()
+    prepare: mock(() => ({
+      all: mock(),
+      run: mock(),
+      get: mock()
     })),
-    close: vi.fn()
+    close: mock()
   };
 }
 
@@ -124,17 +124,17 @@ export function createMockDatabase() {
  */
 export function createMockGameManager() {
   return {
-    getOrCreateGame: vi.fn(),
-    handleJoinGame: vi.fn(),
-    handleSelectCategories: vi.fn(),
-    handleSelectCategory: vi.fn(),
-    handleConfirmSelections: vi.fn(),
-    handleVote: vi.fn(),
-    handleNextQuestion: vi.fn(),
-    handleResetGame: vi.fn(),
-    handleDisconnect: vi.fn(),
-    handleCategories: vi.fn(),
-    handleGame: vi.fn(),
+    getOrCreateGame: mock(),
+    handleJoinGame: mock(),
+    handleSelectCategories: mock(),
+    handleSelectCategory: mock(),
+    handleConfirmSelections: mock(),
+    handleVote: mock(),
+    handleNextQuestion: mock(),
+    handleResetGame: mock(),
+    handleDisconnect: mock(),
+    handleCategories: mock(),
+    handleGame: mock(),
     games: new Map()
   };
 }

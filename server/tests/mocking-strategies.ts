@@ -5,7 +5,7 @@
  * Each strategy serves a specific purpose and should be chosen based on the testing needs.
  */
 
-import { vi } from 'vitest';
+import { mock } from 'bun:test';
 
 // ================================
 // 1. Service Mocking Strategies
@@ -19,7 +19,7 @@ export function createCompleteServiceMock<T extends Record<string, any>>(service
   const mock = {} as T;
 
   for (const key of Object.keys(serviceInterface)) {
-    (mock as any)[key] = vi.fn();
+    (mock as any)[key] = mock();
   }
 
   return mock;
@@ -75,14 +75,14 @@ export class ServiceMockFactory {
  */
 export function createDatabaseMock() {
   return {
-    prepare: vi.fn(() => ({
-      all: vi.fn(() => []),
-      run: vi.fn(() => ({ changes: 1, lastInsertRowid: 1 })),
-      get: vi.fn(() => null),
-      bind: vi.fn().mockReturnThis()
+    prepare: mock(() => ({
+      all: mock(() => []),
+      run: mock(() => ({ changes: 1, lastInsertRowid: 1 })),
+      get: mock(() => null),
+      bind: mock().mockReturnThis()
     })),
-    close: vi.fn(),
-    exec: vi.fn()
+    close: mock(),
+    exec: mock()
   };
 }
 
@@ -94,31 +94,31 @@ export function createRedisMock(initialData: Record<string, string> = {}) {
   const data = new Map(Object.entries(initialData));
 
   return {
-    get: vi.fn(async (key: string) => data.get(key) || null),
-    set: vi.fn(async (key: string, value: string) => {
+    get: mock(async (key: string) => data.get(key) || null),
+    set: mock(async (key: string, value: string) => {
       data.set(key, value);
       return 'OK';
     }),
-    del: vi.fn(async (key: string) => {
+    del: mock(async (key: string) => {
       const existed = data.has(key);
       data.delete(key);
       return existed ? 1 : 0;
     }),
-    exists: vi.fn(async (key: string) => data.has(key) ? 1 : 0),
-    keys: vi.fn(async (pattern: string) => {
+    exists: mock(async (key: string) => data.has(key) ? 1 : 0),
+    keys: mock(async (pattern: string) => {
       const regex = new RegExp(pattern.replace('*', '.*'));
       return Array.from(data.keys()).filter(key => regex.test(key));
     }),
-    ping: vi.fn(async () => 'PONG'),
-    publish: vi.fn(async (channel: string, message: string) => 1),
-    subscribe: vi.fn(async (channel: string) => 'OK'),
-    unsubscribe: vi.fn(async (channel: string) => 'OK'),
-    hget: vi.fn(async (key: string, field: string) => data.get(`${key}:${field}`) || null),
-    hset: vi.fn(async (key: string, field: string, value: string) => {
+    ping: mock(async () => 'PONG'),
+    publish: mock(async (channel: string, message: string) => 1),
+    subscribe: mock(async (channel: string) => 'OK'),
+    unsubscribe: mock(async (channel: string) => 'OK'),
+    hget: mock(async (key: string, field: string) => data.get(`${key}:${field}`) || null),
+    hset: mock(async (key: string, field: string, value: string) => {
       data.set(`${key}:${field}`, value);
       return 1;
     }),
-    expire: vi.fn(async () => 1)
+    expire: mock(async () => 1)
   };
 }
 
@@ -130,22 +130,22 @@ export function createFileSystemMock(initialFiles: Record<string, string> = {}) 
   const files = new Map(Object.entries(initialFiles));
 
   return {
-    readFile: vi.fn(async (path: string) => {
+    readFile: mock(async (path: string) => {
       const content = files.get(path);
       if (!content) {
         throw new Error(`File not found: ${path}`);
       }
       return content;
     }),
-    writeFile: vi.fn(async (path: string, content: string) => {
+    writeFile: mock(async (path: string, content: string) => {
       files.set(path, content);
     }),
-    exists: vi.fn(async (path: string) => files.has(path)),
-    unlink: vi.fn(async (path: string) => {
+    exists: mock(async (path: string) => files.has(path)),
+    unlink: mock(async (path: string) => {
       files.delete(path);
     }),
-    mkdir: vi.fn(async () => {}),
-    readdir: vi.fn(async (path: string) => {
+    mkdir: mock(async () => {}),
+    readdir: mock(async (path: string) => {
       const prefix = path.endsWith('/') ? path : path + '/';
       return Array.from(files.keys())
         .filter(file => file.startsWith(prefix))
@@ -167,24 +167,24 @@ export function createWebSocketServerMock() {
   const channels = new Map<string, Set<any>>();
 
   return {
-    handleConnection: vi.fn((ws: any) => {
+    handleConnection: mock((ws: any) => {
       connections.add(ws);
 
-      ws.subscribe = vi.fn((channel: string) => {
+      ws.subscribe = mock((channel: string) => {
         if (!channels.has(channel)) {
           channels.set(channel, new Set());
         }
         channels.get(channel)!.add(ws);
       });
 
-      ws.unsubscribe = vi.fn((channel: string) => {
+      ws.unsubscribe = mock((channel: string) => {
         const channelConnections = channels.get(channel);
         if (channelConnections) {
           channelConnections.delete(ws);
         }
       });
 
-      ws.publish = vi.fn((channel: string, message: string) => {
+      ws.publish = mock((channel: string, message: string) => {
         const channelConnections = channels.get(channel);
         if (channelConnections) {
           channelConnections.forEach(client => {
@@ -198,7 +198,7 @@ export function createWebSocketServerMock() {
       return ws;
     }),
 
-    broadcast: vi.fn((channel: string, message: string) => {
+    broadcast: mock((channel: string, message: string) => {
       const channelConnections = channels.get(channel);
       if (channelConnections) {
         channelConnections.forEach(client => {
@@ -225,14 +225,14 @@ export function createWebSocketServerMock() {
  */
 export function createHttpClientMock(responses: Record<string, any> = {}) {
   return {
-    get: vi.fn(async (url: string) => {
+    get: mock(async (url: string) => {
       if (responses[url]) {
         return { data: responses[url], status: 200 };
       }
       throw new Error(`Unexpected GET request to ${url}`);
     }),
 
-    post: vi.fn(async (url: string, data?: any) => {
+    post: mock(async (url: string, data?: any) => {
       const key = `${url}:${JSON.stringify(data)}`;
       if (responses[key]) {
         return { data: responses[key], status: 201 };
@@ -240,7 +240,7 @@ export function createHttpClientMock(responses: Record<string, any> = {}) {
       throw new Error(`Unexpected POST request to ${url}`);
     }),
 
-    put: vi.fn(async (url: string, data?: any) => {
+    put: mock(async (url: string, data?: any) => {
       const key = `${url}:${JSON.stringify(data)}`;
       if (responses[key]) {
         return { data: responses[key], status: 200 };
@@ -248,7 +248,7 @@ export function createHttpClientMock(responses: Record<string, any> = {}) {
       throw new Error(`Unexpected PUT request to ${url}`);
     }),
 
-    delete: vi.fn(async (url: string) => {
+    delete: mock(async (url: string) => {
       if (responses[url]) {
         return { status: 204 };
       }
@@ -272,17 +272,17 @@ export function createTimerMock() {
   return {
     now: () => currentTime,
 
-    setTimeout: vi.fn((callback: Function, delay: number) => {
+    setTimeout: mock((callback: Function, delay: number) => {
       const id = Math.random();
       timers.set(id, { callback, delay });
       return id;
     }),
 
-    clearTimeout: vi.fn((id: number) => {
+    clearTimeout: mock((id: number) => {
       timers.delete(id);
     }),
 
-    setInterval: vi.fn((callback: Function, interval: number) => {
+    setInterval: mock((callback: Function, interval: number) => {
       const id = Math.random();
       const wrappedCallback = () => {
         callback();
@@ -293,7 +293,7 @@ export function createTimerMock() {
       return id;
     }),
 
-    clearInterval: vi.fn((id: number) => {
+    clearInterval: mock((id: number) => {
       timers.delete(id);
     }),
 
@@ -336,7 +336,7 @@ export function createAsyncOperationMock() {
   let rejectWith: Error | null = null;
 
   return {
-    asyncOperation: vi.fn(async (data?: any) => {
+    asyncOperation: mock(async (data?: any) => {
       const promise = new Promise((resolve, reject) => {
         if (shouldReject && rejectWith) {
           reject(rejectWith);
@@ -461,8 +461,8 @@ describe('MyService', () => {
 
     // Strategy 2: Partial Service Mock
     service = createPartialServiceMock(MyService, {
-      getData: vi.fn().mockResolvedValue('mocked data'),
-      saveData: vi.fn().mockResolvedValue(true)
+      getData: mock().mockResolvedValue('mocked data'),
+      saveData: mock().mockResolvedValue(true)
     });
   });
 

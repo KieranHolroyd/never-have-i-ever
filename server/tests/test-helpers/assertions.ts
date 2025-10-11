@@ -1,4 +1,4 @@
-import { expect } from 'vitest';
+import { expect } from 'bun:test';
 import type { GameSocket } from '../../src/lib/router';
 import type { GameState } from '../../src/services/game-state-service';
 

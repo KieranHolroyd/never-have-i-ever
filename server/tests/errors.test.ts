@@ -61,9 +61,9 @@ describe('Errors', () => {
 
   describe('GameFullError', () => {
     it('should create game full error', () => {
-      const error = new GameFullError();
+      const error = new GameFullError(12);
 
-      expect(error.message).toBe('Game is full');
+      expect(error.message).toBe('Game is full (maximum 12 players)');
       expect(error.code).toBe('GAME_FULL');
       expect(error.statusCode).toBe(1013);
       expect(error.name).toBe('GameFullError');
