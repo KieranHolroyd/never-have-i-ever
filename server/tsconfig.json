@@ -4,7 +4,7 @@
     "types": ["bun-types"],
     "resolveJsonModule": true,
     "lib": ["ESNext"],
-    "module": "esnext",
+    "module": "preserve",
     "target": "esnext",
     "moduleResolution": "Bundler"
   }

@@ -1,0 +1,14 @@
+# Bun configuration file
+# https://bun.sh/docs/runtime/configuration
+
+[console]
+# Set the depth for console.log() object inspection
+depth = 5
+
+[test]
+# Enable test coverage reporting
+coverage = true
+
+[install]
+# Configure package installation behavior
+cache = true

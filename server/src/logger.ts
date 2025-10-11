@@ -78,7 +78,9 @@ class Logger {
         if (!this.writeToFile) return;
 
         try {
-            require('fs').appendFileSync(this.logFile, message + '\n');
+            // Use Bun's native stripANSI() for efficient ANSI code removal
+            const cleanMessage = Bun.stripANSI(message);
+            require('fs').appendFileSync(this.logFile, cleanMessage + '\n');
         } catch (error) {
             // If we can't write to file, disable file logging to avoid spam
             console.warn('Failed to write to log file, disabling file logging');
@@ -91,11 +93,11 @@ class Logger {
 
         const formattedMessage = this.formatMessage(level, message, ...args);
 
-        // Always output to console
+        // Always output to console with colors
         console.log(formattedMessage);
 
-        // Also write to file if enabled
-        this.writeToLogFile(`[${new Date().toISOString()}] [${level.name}] ${message}${args.length > 0 ? ` ${JSON.stringify(args)}` : ''}`);
+        // Write to file - formattedMessage will be cleaned by writeToLogFile using Bun.stripANSI
+        this.writeToLogFile(formattedMessage);
     }
 
     error(message: string, ...args: any[]): void {
