@@ -7,9 +7,11 @@
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
-		"sourceMap": true,
+		"sourceMap": false,
 		"strict": true,
-		"types": ["bun-types"]
+		"types": ["bun-types"],
+		"incremental": true,
+		"tsBuildInfoFile": ".svelte-kit/tsconfig.tsbuildinfo"
 	}
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//

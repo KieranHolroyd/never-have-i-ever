@@ -4,5 +4,12 @@ export default {
 	theme: {
 		extend: {}
 	},
-	plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')]
+	plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')],
+	// Performance optimizations
+	future: {
+		hoverOnlyWhenSupported: true
+	},
+	experimental: {
+		optimizeUniversalDefaults: true
+	}
 };

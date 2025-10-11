@@ -13,7 +13,25 @@ const config = {
 		// See https://kit.svelte.dev/docs/adapters for more information about adapters.
 		adapter: adapter({
 			runtime: 'nodejs22.x'
-		})
+		}),
+		// Optimize asset handling
+		inlineStyleThreshold: 1024 // Inline small CSS files
+	},
+	// Compiler optimizations
+	compilerOptions: {
+		runes: true
+	},
+	// Vite plugin configuration for Svelte
+	vitePlugin: {
+		// Enable hot module reloading optimizations
+		hot: {
+			preserveLocalState: true
+		},
+		// Optimize inspector (disable in production)
+		inspector: {
+			toggleKeyCombo: 'meta-shift',
+			showToggleButton: 'never'
+		}
 	}
 };
 
