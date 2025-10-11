@@ -22,7 +22,7 @@ function shuffleArray<T>(array: T[]): T[] {
  * Factory to create the Cards Against Humanity engine.
  *
  * Notes on architecture:
- * - This engine uses Redis-based game state storage via GameStateService
+ * - This engine uses Valkey-based game state storage via GameStateService (using Bun's native Redis client)
  * - Broadcasting is handled via the WebSocket instance provided by the router
  *   and uses topic-based pub/sub on the `gameId` channel (ws.publish).
  * - Clients are subscribed to the `gameId` topic on join so that publishes

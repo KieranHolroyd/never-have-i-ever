@@ -846,7 +846,7 @@ export function expectBroadcastToGame(service: any, gameId: string, op: string, 
 ### Service Mocking
 - Use Vitest/vi.fn() for function mocks
 - Create partial mocks for complex services
-- Mock external dependencies (Redis, Database, FileSystem)
+- Mock external dependencies (Valkey using Bun's RedisClient, Database, FileSystem)
 
 ### WebSocket Mocking
 - Mock WebSocket send/publish/subscribe methods
@@ -855,7 +855,7 @@ export function expectBroadcastToGame(service: any, gameId: string, op: string, 
 
 ### Database Mocking
 - Mock SQLite database operations
-- Mock Redis/Valkey operations
+- Mock Valkey operations (using Bun's native RedisClient)
 - Use in-memory data stores for testing
 
 ### Timer Mocking

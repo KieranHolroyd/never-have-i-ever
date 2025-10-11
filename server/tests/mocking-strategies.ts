@@ -87,8 +87,8 @@ export function createDatabaseMock() {
 }
 
 /**
- * Strategy 5: Redis/Valkey Mocking
- * Mock Redis operations for testing without real Redis
+ * Strategy 5: Valkey Mocking
+ * Mock Valkey operations for testing without real Valkey (using Bun's RedisClient)
  */
 export function createRedisMock(initialData: Record<string, string> = {}) {
   const data = new Map(Object.entries(initialData));
@@ -109,6 +109,7 @@ export function createRedisMock(initialData: Record<string, string> = {}) {
       const regex = new RegExp(pattern.replace('*', '.*'));
       return Array.from(data.keys()).filter(key => regex.test(key));
     }),
+    ping: vi.fn(async () => 'PONG'),
     publish: vi.fn(async (channel: string, message: string) => 1),
     subscribe: vi.fn(async (channel: string) => 'OK'),
     unsubscribe: vi.fn(async (channel: string) => 'OK'),
@@ -420,7 +421,7 @@ export function createConfigMock(overrides: Record<string, any> = {}) {
     NODE_ENV: 'test',
     PORT: 3000,
     DATABASE_URL: 'sqlite::memory:',
-    REDIS_URL: 'redis://localhost:6379',
+    VALKEY_URI: 'redis://localhost:6379',
     GAME_DATA_DIR: './tests/fixtures/',
     LOG_LEVEL: 'error',
     SECRET_KEY: 'test-secret',

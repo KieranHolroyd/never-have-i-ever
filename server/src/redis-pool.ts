@@ -1,14 +1,14 @@
-import { GlideClient } from "@valkey/valkey-glide";
+import { RedisClient } from "bun";
 import logger from "./logger";
 
 export interface RedisConnectionPool {
-  getClient(): Promise<any>;
+  getClient(): Promise<RedisClient>;
   isHealthy(): Promise<boolean>;
   close(): Promise<void>;
 }
 
 export class ValkeyConnectionPool implements RedisConnectionPool {
-  private client: any = null;
+  private client: RedisClient | null = null;
   private isConnected = false;
   private connectionAttempts = 0;
   private maxRetries = 3;
@@ -16,8 +16,7 @@ export class ValkeyConnectionPool implements RedisConnectionPool {
 
   constructor(
     private config: {
-      host: string;
-      port: number;
+      url: string;
       maxRetries?: number;
       retryDelay?: number;
     }
@@ -26,13 +25,13 @@ export class ValkeyConnectionPool implements RedisConnectionPool {
     this.retryDelay = config.retryDelay || 1000;
   }
 
-  async getClient(): Promise<any> {
+  async getClient(): Promise<RedisClient> {
     if (this.client && this.isConnected) {
       return this.client;
     }
 
     await this.connect();
-    return this.client;
+    return this.client!;
   }
 
   private async connect(): Promise<void> {
@@ -43,11 +42,12 @@ export class ValkeyConnectionPool implements RedisConnectionPool {
     this.connectionAttempts++;
 
     try {
-      logger.info(`Attempting to connect to Valkey at ${this.config.host}:${this.config.port} (attempt ${this.connectionAttempts})`);
+      logger.info(`Attempting to connect to Valkey at ${this.config.url} (attempt ${this.connectionAttempts})`);
       
-      this.client = await GlideClient.createClient({
-        addresses: [{ host: this.config.host, port: this.config.port }],
-      });
+      this.client = new RedisClient(this.config.url);
+      
+      // Test the connection with a PING
+      await this.client.ping();
 
       this.isConnected = true;
       this.connectionAttempts = 0; // Reset on successful connection
@@ -73,8 +73,8 @@ export class ValkeyConnectionPool implements RedisConnectionPool {
       }
       
       // Simple ping to check if connection is alive
-      await this.client.ping();
-      return true;
+      const result = await this.client.ping();
+      return result === "PONG";
     } catch (error) {
       logger.warn(`Valkey health check failed: ${(error as Error).message}`);
       this.isConnected = false;
@@ -111,11 +111,25 @@ export class KeyValueStoreFallback implements RedisConnectionPool {
       set: async (key: string, value: string): Promise<void> => {
         this.store.set(key, value);
       },
+      del: async (...keys: string[]): Promise<number> => {
+        let deleted = 0;
+        for (const key of keys) {
+          if (this.store.delete(key)) {
+            deleted++;
+          }
+        }
+        return deleted;
+      },
+      exists: async (...keys: string[]): Promise<number> => {
+        return keys.filter(key => this.store.has(key)).length;
+      },
+      keys: async (pattern: string): Promise<string[]> => {
+        // Simple pattern matching for in-memory store
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        return Array.from(this.store.keys()).filter(key => regex.test(key));
+      },
       ping: async (): Promise<string> => {
         return "PONG";
-      },
-      close: async (): Promise<void> => {
-        // No-op for in-memory store
       }
     };
   }
@@ -136,13 +150,11 @@ export class RedisPoolManager {
   private usingFallback = false;
 
   constructor() {
-    // Parse VALKEY_URI (format: valkey://host:port)
-    const valkeyUri = (Bun?.env?.VALKEY_URI as string) || "valkey://localhost:6379";
-    const url = new URL(valkeyUri);
+    // Parse VALKEY_URI (format: redis://host:port or redis://user:pass@host:port)
+    const valkeyUri = (Bun?.env?.VALKEY_URI as string) || "redis://localhost:6379";
 
     this.pool = new ValkeyConnectionPool({
-      host: url.hostname,
-      port: parseInt(url.port),
+      url: valkeyUri,
       maxRetries: 3,
       retryDelay: 1000
     });
@@ -166,10 +178,10 @@ export class RedisPoolManager {
       
       return await this.fallback.getClient();
     } catch (error) {
-      logger.error(`Failed to get Redis client: ${(error as Error).message}`);
+      logger.error(`Failed to get Valkey client: ${(error as Error).message}`);
       
       if (!this.usingFallback) {
-        logger.warn("Switching to KeyValueStore fallback due to Redis error");
+        logger.warn("Switching to KeyValueStore fallback due to Valkey error");
         this.usingFallback = true;
       }
       
@@ -185,7 +197,7 @@ export class RedisPoolManager {
     try {
       return await this.pool.isHealthy();
     } catch (error) {
-      logger.warn(`Redis health check failed: ${(error as Error).message}`);
+      logger.warn(`Valkey health check failed: ${(error as Error).message}`);
       return false;
     }
   }
@@ -194,7 +206,7 @@ export class RedisPoolManager {
     try {
       await this.pool.close();
     } catch (error) {
-      logger.error(`Error closing Redis pool: ${(error as Error).message}`);
+      logger.error(`Error closing Valkey pool: ${(error as Error).message}`);
     }
     
     try {
@@ -228,12 +240,12 @@ export const initializeRedisPool = async (): Promise<void> => {
     await client.ping();
     
     if (pool.isUsingFallback()) {
-      logger.warn("Redis pool initialized with fallback mode");
+      logger.warn("Valkey pool initialized with fallback mode");
     } else {
-      logger.info("Redis pool initialized successfully");
+      logger.info("Valkey pool initialized successfully");
     }
   } catch (error) {
-    logger.error(`Failed to initialize Redis pool: ${(error as Error).message}`);
+    logger.error(`Failed to initialize Valkey pool: ${(error as Error).message}`);
     throw error;
   }
 };
@@ -242,6 +254,6 @@ export const closeRedisPool = async (): Promise<void> => {
   if (poolManager) {
     await poolManager.close();
     poolManager = null;
-    logger.info("Redis pool closed");
+    logger.info("Valkey pool closed");
   }
 };

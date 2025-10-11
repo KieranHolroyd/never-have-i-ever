@@ -89,7 +89,7 @@ export function createMockGameStateService(): IGameStateService {
 }
 
 /**
- * Mock Redis client factory
+ * Mock Valkey client factory (compatible with Bun's RedisClient)
  */
 export function createMockRedisClient() {
   return {
@@ -98,12 +98,10 @@ export function createMockRedisClient() {
     del: vi.fn(),
     exists: vi.fn(),
     keys: vi.fn(),
+    ping: vi.fn(() => Promise.resolve('PONG')),
     publish: vi.fn(),
     subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
-    on: vi.fn(),
-    connect: vi.fn(),
-    disconnect: vi.fn()
+    unsubscribe: vi.fn()
   };
 }
 
