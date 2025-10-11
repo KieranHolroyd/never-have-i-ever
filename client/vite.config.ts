@@ -22,11 +22,18 @@ export default defineConfig({
 		// Optimize chunk splitting for better caching
 		rollupOptions: {
 			output: {
-				manualChunks: {
-					// Separate vendor chunks for better caching
-					'svelte-vendor': ['svelte', 'svelte/transition', 'svelte/animate', 'svelte/easing'],
-					'uuid': ['uuid'],
-					'icons': ['lucide-svelte']
+				manualChunks(id) {
+					// Only chunk for client-side code, not SSR
+					if (id.includes('node_modules')) {
+						// Chunk svelte core separately
+						if (id.includes('svelte/')) {
+							return 'svelte-vendor';
+						}
+						// Chunk icons separately
+						if (id.includes('lucide-svelte')) {
+							return 'icons';
+						}
+					}
 				}
 			}
 		},

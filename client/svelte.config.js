@@ -17,16 +17,8 @@ const config = {
 		// Optimize asset handling
 		inlineStyleThreshold: 1024 // Inline small CSS files
 	},
-	// Compiler optimizations
-	compilerOptions: {
-		runes: true
-	},
 	// Vite plugin configuration for Svelte
 	vitePlugin: {
-		// Enable hot module reloading optimizations
-		hot: {
-			preserveLocalState: true
-		},
 		// Optimize inspector (disable in production)
 		inspector: {
 			toggleKeyCombo: 'meta-shift',
