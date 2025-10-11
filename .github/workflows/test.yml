@@ -119,6 +119,7 @@ jobs:
         run: |
           cd client
           npx playwright install --with-deps
+        continue-on-error: true
 
       - name: Build client
         run: |
