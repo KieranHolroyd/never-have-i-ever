@@ -7,7 +7,7 @@ on:
     branches: [master, main, staging]
 
 jobs:
-  test:
+  test-server:
     runs-on: ubuntu-latest
 
     services:
@@ -20,6 +20,41 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            server/bun.lockb
+          key: ${{ runner.os }}-bun-server-${{ hashFiles('server/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-server-
+
+      - name: Install server dependencies
+        run: |
+          cd server
+          bun install
+
+      - name: Run server tests
+        run: |
+          cd server
+          bun test
+        env:
+          GAME_DATA_DIR: ./assets/games/
+          VALKEY_URI: valkey://localhost:6379
+
+  test-client:
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
@@ -39,11 +74,10 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            server/bun.lockb
             client/bun.lockb
-          key: ${{ runner.os }}-bun-${{ hashFiles('server/bun.lockb', 'client/bun.lockb') }}
+          key: ${{ runner.os }}-bun-client-${{ hashFiles('client/bun.lockb') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-bun-client-
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -58,30 +92,25 @@ jobs:
           cd client
           bun install
 
-      - name: Install server dependencies
-        run: |
-          cd server
-          bun install
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('client/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: |
           cd client
           npx playwright install --with-deps
-
-      - name: Run server tests
-        run: |
-          cd server
-          bun test
-        env:
-          GAME_DATA_DIR: ./assets/games/
-          VALKEY_URI: valkey://localhost:6379
-        continue-on-error: true
 
       - name: Build client
         run: |
           cd client
           npm run build
-        continue-on-error: true
 
       - name: Run browser tests
         run: |
@@ -91,7 +120,6 @@ jobs:
           PUBLIC_API_URL: http://localhost:3000/
           PUBLIC_SOCKET_URL: ws://localhost:3000/ws
           BASE_URL: http://localhost:5173
-        continue-on-error: true
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
