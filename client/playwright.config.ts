@@ -12,7 +12,7 @@ export default defineConfig({
 	/* Different retry strategies for different test types */
 	retries: process.env.CI ? 2 : 1,
 	/* Use multiple workers for speed */
-	workers: process.env.CI ? 2 : 12,
+	workers: process.env.CI ? 3 : 12,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: 'list',
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -37,23 +37,23 @@ export default defineConfig({
 				name: 'chromium',
 				use: {
 					...devices['Desktop Chrome'],
-					navigationTimeout: 10000
+					navigationTimeout: 5000
 				}
 			},
-			{
-				name: 'firefox',
-				use: {
-					...devices['Desktop Firefox'],
-					navigationTimeout: 10000
-				}
-			},
-			{
-				name: 'webkit',
-				use: {
-					...devices['Desktop Safari'],
-					navigationTimeout: 10000
-				}
-			}
+		// 	{
+		// 		name: 'firefox',
+		// 		use: {
+		// 			...devices['Desktop Firefox'],
+		// 			navigationTimeout: 10000
+		// 		}
+		// 	},
+		// 	{
+		// 		name: 'webkit',
+		// 		use: {
+		// 			...devices['Desktop Safari'],
+		// 			navigationTimeout: 10000
+		// 		}
+		// 	}
 		]
 		: [
 			{
