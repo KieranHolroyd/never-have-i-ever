@@ -10,7 +10,7 @@ export default defineConfig({
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: !!process.env.CI,
 	/* Different retry strategies for different test types */
-	retries: process.env.CI ? 2 : 1,
+	retries: process.env.CI ? 1 : 1,
 	/* Use multiple workers for speed */
 	workers: process.env.CI ? 3 : 12,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -21,7 +21,7 @@ export default defineConfig({
 		baseURL: process.env.BASE_URL || 'http://localhost:5173',
 
 		/* Reduce action timeout for faster tests */
-		actionTimeout: 5000,
+		actionTimeout: 2500,
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: 'on-first-retry',
