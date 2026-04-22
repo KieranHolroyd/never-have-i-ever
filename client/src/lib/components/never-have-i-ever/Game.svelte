@@ -195,7 +195,6 @@
 				categories: game_state.current_catagory
 			});
 			socket?.send(JSON.stringify({ op: 'confirm_selections' }));
-			socket?.send(JSON.stringify({ op: 'next_question' }));
 		} else {
 			error = 'You must select at least one catagory';
 			setTimeout(() => {
@@ -304,7 +303,7 @@
 						break;
 					case 'game_state':
 						console.log('[DEBUG] Game state received:', {
-							waiting_for_players: data.game.waiting_for_players,
+							waiting_for_players: data.game.waitingForPlayers,
 							timeout_start: data.game.timeout_start,
 							timeout_duration: data.game.timeout_duration,
 							current_timeout_start: timeout_start,
@@ -313,15 +312,15 @@
 						});
 
 						game_state.current_catagory = data.game.catagories;
-						game_state.catagory_select = data.game.catagory_select;
-						if (!game_state.game_completed && data.game.game_completed) {
+						game_state.catagory_select = data.game.phase === 'category_select';
+						if (!game_state.game_completed && data.game.gameCompleted) {
 							posthog.capture('nhie_game_completed', {
 								player_count: (data.game.players ?? []).length,
 								history_count: (data.game.history ?? []).length
 							});
 						}
-						game_state.game_completed = data.game.game_completed;
-						game_state.waiting_for_players = data.game.waiting_for_players || false;
+						game_state.game_completed = data.game.gameCompleted;
+						game_state.waiting_for_players = data.game.waitingForPlayers || false;
 						game_state.history = data.game.history;
 
 						current_question = data.game.current_question;
@@ -330,6 +329,7 @@
 						if (
 							game_state.waiting_for_players &&
 							data.game.timeout_start !== undefined &&
+							data.game.timeout_start > 0 &&
 							data.game.timeout_duration
 						) {
 							console.log(

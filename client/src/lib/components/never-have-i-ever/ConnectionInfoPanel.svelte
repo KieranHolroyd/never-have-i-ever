@@ -39,7 +39,7 @@
 				<summary class="cursor-pointer font-semibold">Debug</summary>
 				<ul class="mt-1 space-y-0.5 text-[10px] opacity-80">
 					{#each errors as error, index (index)}
-						<li>{error.message}</li>
+						<li>{error.error?.message ?? error.message ?? JSON.stringify(error)}</li>
 					{/each}
 				</ul>
 			</details>

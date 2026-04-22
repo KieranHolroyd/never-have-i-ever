@@ -41,7 +41,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 export const handleError: HandleServerError = async ({ error, status, message }) => {
 	const posthog = getPostHogClient();
-	posthog.capture({
+	posthog?.capture({
 		distinctId: 'server',
 		event: 'server_error',
 		properties: {
