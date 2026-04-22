@@ -4,6 +4,7 @@
 	import MdiGamepadSquare from '~icons/mdi/gamepad-square';
 	import { LocalPlayer } from '$lib/player';
 	import type { PageData } from './$types';
+	import posthog from 'posthog-js';
 
 	interface Props {
 		data: PageData;
@@ -12,6 +13,7 @@
 	let { data }: Props = $props();
 
 	function startNhie() {
+		posthog.capture('game_started', { game_type: 'never-have-i-ever' });
 		if (LocalPlayer.name === null) {
 			return goto(`/play/name?redirect=/play/${data.newgame_nhie_id}/never-have-i-ever`);
 		}
@@ -19,6 +21,7 @@
 	}
 
 	function startCah() {
+		posthog.capture('game_started', { game_type: 'cards-against-humanity' });
 		if (LocalPlayer.name === null) {
 			return goto(`/play/name?redirect=/play/${data.newgame_cah_id}/cards-against-humanity`);
 		}

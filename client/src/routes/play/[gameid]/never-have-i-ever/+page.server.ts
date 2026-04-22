@@ -31,4 +31,4 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		game: game,
 		catagories: cats
 	};
-}
+};

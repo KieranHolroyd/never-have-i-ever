@@ -1,10 +1,22 @@
 // Re-export shared protocol types
-export { VoteOptions, type Catagory, type Catagories, type Question, type NHIEPlayer, type NHIEGameState, type GameHistoryEntry } from '@nhie/shared';
+export {
+	VoteOptions,
+	type Catagory,
+	type Catagories,
+	type Question,
+	type NHIEPlayer,
+	type NHIEGameState,
+	type GameHistoryEntry
+} from '@nhie/shared';
 // Backwards-compat alias used by existing client components
 export type { NHIEPlayer as Player } from '@nhie/shared';
 
 // Local aliases for use within this file
-import type { NHIEPlayer as _Player, Question as _Question, Catagories as _Catagories } from '@nhie/shared';
+import type {
+	NHIEPlayer as _Player,
+	Question as _Question,
+	Catagories as _Catagories
+} from '@nhie/shared';
 
 export enum Status {
 	CONNECTING,

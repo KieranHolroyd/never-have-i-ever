@@ -25,7 +25,9 @@
 			<span class="capitalize text-xs">
 				{connection.status}
 				{#if connection.isReconnecting}
-					<span class="text-yellow-400 animate-pulse">(Reconnecting... {connection.reconnectAttempts}/10)</span>
+					<span class="text-yellow-400 animate-pulse"
+						>(Reconnecting... {connection.reconnectAttempts}/10)</span
+					>
 				{/if}
 			</span>
 		</div>
@@ -34,7 +36,9 @@
 		{/if}
 	</div>
 {:else}
-	<div class="flex items-center justify-between mb-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/70">
+	<div
+		class="flex items-center justify-between mb-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/70"
+	>
 		<div class="flex items-center gap-3">
 			<div
 				class="w-3 h-3 rounded-full {connection.status === 'connected'
@@ -48,7 +52,9 @@
 					Status: <span class="capitalize">
 						{connection.status}
 						{#if connection.isReconnecting}
-							<span class="text-yellow-400 animate-pulse">(Reconnecting... {connection.reconnectAttempts}/10)</span>
+							<span class="text-yellow-400 animate-pulse"
+								>(Reconnecting... {connection.reconnectAttempts}/10)</span
+							>
 						{/if}
 					</span>
 				</p>

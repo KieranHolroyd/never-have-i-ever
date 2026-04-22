@@ -6,6 +6,7 @@
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import type { CardPack, SelectedPacks } from '$lib/types';
 	import { getCardPacks, getCachedCardPacks, calculateTotalCards } from '$lib/card-packs';
+	import posthog from 'posthog-js';
 
 	interface Props {
 		gameId: string;
@@ -78,12 +79,12 @@
 		let filtered = cardPacks.filter((pack) => {
 			if (!showNSFW && pack.isNSFW) return false;
 			if (!showCommunity && !pack.isOfficial) return false;
-			
+
 			// Apply search filter
 			if (searchQuery.trim()) {
 				return pack.name.toLowerCase().includes(searchQuery.toLowerCase());
 			}
-			
+
 			return true;
 		});
 
@@ -113,18 +114,25 @@
 		return cardPacks.filter((pack) => {
 			if (!showNSFW && pack.isNSFW) return false;
 			if (!showCommunity && !pack.isOfficial) return false;
-			
+
 			// Apply search filter
 			if (searchQuery.trim()) {
 				return pack.name.toLowerCase().includes(searchQuery.toLowerCase());
 			}
-			
+
 			return true;
 		}).length;
 	}
 
 	function startGame() {
 		const selectedIds = getSelectedPackIds();
+		const currentTotals = calculateTotalCards(selectedIds);
+		posthog.capture('cah_packs_selected', {
+			pack_count: selectedIds.length,
+			pack_ids: selectedIds,
+			total_black_cards: currentTotals.totalBlack,
+			total_white_cards: currentTotals.totalWhite
+		});
 		if (onPacksSelected) {
 			onPacksSelected(selectedIds);
 			isStarting = true;
@@ -143,7 +151,9 @@
 	let selectedIds = $derived(getSelectedPackIds());
 	let totals = $derived(calculateTotalCards(selectedIds));
 	let totalFilteredPacks = $derived(getTotalFilteredPacks());
-	let shouldShowMoreButton = $derived(totalFilteredPacks > 6 && !searchQuery.trim() && !showAllPacks);
+	let shouldShowMoreButton = $derived(
+		totalFilteredPacks > 6 && !searchQuery.trim() && !showAllPacks
+	);
 </script>
 
 <div class="min-h-screen bg-slate-900 text-white">
@@ -218,7 +228,7 @@
 						/>
 					</svg>
 				</div>
-				
+
 				<!-- Filter Checkboxes -->
 				<div class="flex flex-wrap gap-4 items-center">
 					<div class="flex items-center gap-3">
@@ -372,17 +382,22 @@
 						</button>
 					{/each}
 				</div>
-				
+
 				<!-- Show More Button -->
 				{#if shouldShowMoreButton}
 					<div class="flex justify-center mt-6">
 						<button
 							class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-6 py-3 text-white font-semibold hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
-							onclick={() => showAllPacks = true}
+							onclick={() => (showAllPacks = true)}
 						>
 							<span>Show More ({totalFilteredPacks - 6} more)</span>
 							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M19 9l-7 7-7-7"
+								/>
 							</svg>
 						</button>
 					</div>

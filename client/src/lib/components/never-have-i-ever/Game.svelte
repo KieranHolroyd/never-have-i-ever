@@ -13,17 +13,25 @@
 	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';
 	import { WebSocketManager } from '$lib/websocket-manager';
-	import { gameStore, connectionStore, currentPlayerStore, errorStore, setError, updateConnection } from '$lib/stores/game-store';
+	import {
+		gameStore,
+		connectionStore,
+		currentPlayerStore,
+		errorStore,
+		setError,
+		updateConnection
+	} from '$lib/stores/game-store';
 	import { validateCategorySelection, handleValidationError } from '$lib/validation';
 	import ConnectionStatus from '../shared/ConnectionStatus.svelte';
 	import ErrorDisplay from '../shared/ErrorDisplay.svelte';
-    import { fade, fly } from 'svelte/transition';
-    import { flip } from 'svelte/animate';
-    import { backOut, quintOut } from 'svelte/easing';
+	import { fade, fly } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
+	import { backOut, quintOut } from 'svelte/easing';
 
 	import MdiUndoVariant from '~icons/mdi/undo-variant';
 	import MdiListBox from '~icons/mdi/list-box';
 	import MdiShareOutline from '~icons/mdi/share-outline';
+	import posthog from 'posthog-js';
 
 	interface Props {
 		id: string;
@@ -99,10 +107,12 @@
 
 	async function share_game() {
 		if (navigator.share) {
+			posthog.capture('game_shared', { method: 'native', game_type: 'never-have-i-ever' });
 			await navigator.share(share_data);
 		} else {
 			await navigator.clipboard.writeText(share_data.url);
 			toast.success('Copied game link to clipboard');
+			posthog.capture('game_shared', { method: 'clipboard', game_type: 'never-have-i-ever' });
 		}
 	}
 
@@ -180,6 +190,10 @@
 	}
 	function confirmSelections() {
 		if (game_state.current_catagory.length > 0) {
+			posthog.capture('nhie_categories_confirmed', {
+				category_count: game_state.current_catagory.length,
+				categories: game_state.current_catagory
+			});
 			socket?.send(JSON.stringify({ op: 'confirm_selections' }));
 			socket?.send(JSON.stringify({ op: 'next_question' }));
 		} else {
@@ -193,9 +207,11 @@
 		socket?.send(JSON.stringify({ op: 'select_catagories' }));
 	}
 	function selectQuestion() {
+		posthog.capture('nhie_next_question');
 		socket?.send(JSON.stringify({ op: 'next_question' }));
 	}
 	function reset() {
+		posthog.capture('game_reset', { game_type: 'never-have-i-ever' });
 		socket?.send(JSON.stringify({ op: 'reset_game' }));
 		conf_reset_display = false;
 
@@ -213,13 +229,19 @@
 		socket?.send(JSON.stringify({ op: 'select_catagory', catagory }));
 	}
 
-    function vote(option: VoteOptions) {
-        console.log('[DEBUG] Voting:', option);
-        socket?.send(JSON.stringify({ op: 'vote', option }));
-        if (browser && 'vibrate' in navigator) {
-            try { (navigator as any).vibrate?.(10); } catch {}
-        }
-    }
+	function vote(option: VoteOptions) {
+		console.log('[DEBUG] Voting:', option);
+		posthog.capture('nhie_vote_cast', {
+			vote: option,
+			category: current_question?.catagory
+		});
+		socket?.send(JSON.stringify({ op: 'vote', option }));
+		if (browser && 'vibrate' in navigator) {
+			try {
+				(navigator as any).vibrate?.(10);
+			} catch {}
+		}
+	}
 
 	// Debug function for browser console
 	function debugGameState() {
@@ -292,6 +314,12 @@
 
 						game_state.current_catagory = data.game.catagories;
 						game_state.catagory_select = data.game.catagory_select;
+						if (!game_state.game_completed && data.game.game_completed) {
+							posthog.capture('nhie_game_completed', {
+								player_count: (data.game.players ?? []).length,
+								history_count: (data.game.history ?? []).length
+							});
+						}
 						game_state.game_completed = data.game.game_completed;
 						game_state.waiting_for_players = data.game.waiting_for_players || false;
 						game_state.history = data.game.history;
@@ -357,23 +385,23 @@
 						errors = [...errors, data];
 						break;
 					case 'github_push':
-					setTimeout(() => {
-						if (data.showReloadButton) {
-							toast.info(data.notification, {
-								action: { label: 'Reload', onClick: reload_page },
-								// Slightly longer so users can act
-								duration: 6000
-							});
-						} else {
-							toast.info(data.notification);
-						}
-					}, data.delay);
+						setTimeout(() => {
+							if (data.showReloadButton) {
+								toast.info(data.notification, {
+									action: { label: 'Reload', onClick: reload_page },
+									// Slightly longer so users can act
+									duration: 6000
+								});
+							} else {
+								toast.info(data.notification);
+							}
+						}, data.delay);
 						// Set flag to reload when we reconnect after deployment
 						should_reload_on_reconnect = true;
 						break;
 					case 'round_timeout':
 						console.log('[DEBUG] Round timeout received:', data.message);
-					toast.info(data.message, { duration: 3000 });
+						toast.info(data.message, { duration: 3000 });
 
 						// Clear timeout state when timeout occurs
 						if (timeout_interval) {
@@ -406,6 +434,7 @@
 		// socket opened
 		socket?.addEventListener('open', (event) => {
 			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
+			posthog.capture('game_joined', { game_type: 'never-have-i-ever', game_id: id });
 			retry_count = 0;
 			// Clear any pending timeouts on successful connection
 			if (reconnect_timeout) {
@@ -624,40 +653,51 @@
 >
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
-			<div class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl" in:fade={{ duration: 260, easing: quintOut }}>
+			<div
+				class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl"
+				in:fade={{ duration: 260, easing: quintOut }}
+			>
 				<h1>New Game</h1>
 			</div>
-			<div class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl" in:fade={{ duration: 260, easing: quintOut }}>
+			<div
+				class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl"
+				in:fade={{ duration: 260, easing: quintOut }}
+			>
 				<div in:fly={{ y: 10, duration: 300, easing: backOut }}>
 					<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">Select Catagories</p>
 					{#if catagories !== undefined}
 						<div class="max-h-96 overflow-auto">
 							{#each Object.entries(catagories) as [catagory_name, catagory], index (catagory_name)}
-							{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
-								<span></span>
-							{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
-								<span></span>
-							{:else}
-								<label class="my-[2px]">
-											<div
-												class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-slate-700/50 duration-75"
-												in:fly={{ y: 6, duration: 260, delay: Math.min(index * 18, 300), easing: quintOut }}
-											>
-										<input
-											type="checkbox"
-											class=""
-											checked={game_state.current_catagory.includes(catagory_name)}
-											onchange={() => emitSelectCatagory(catagory_name)}
-										/>
-										<span class="float-right">
-											{#if catagory.flags.is_nsfw}
-												<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
-											{/if}
-											{catagory_name}
-										</span>
-									</div>
-								</label>
-							{/if}
+								{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
+									<span></span>
+								{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
+									<span></span>
+								{:else}
+									<label class="my-[2px]">
+										<div
+											class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-slate-700/50 duration-75"
+											in:fly={{
+												y: 6,
+												duration: 260,
+												delay: Math.min(index * 18, 300),
+												easing: quintOut
+											}}
+										>
+											<input
+												type="checkbox"
+												class=""
+												checked={game_state.current_catagory.includes(catagory_name)}
+												onchange={() => emitSelectCatagory(catagory_name)}
+											/>
+											<span class="float-right">
+												{#if catagory.flags.is_nsfw}
+													<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
+												{/if}
+												{catagory_name}
+											</span>
+										</div>
+									</label>
+								{/if}
 							{/each}
 						</div>
 					{:else}
@@ -673,39 +713,53 @@
 				Continue
 			</button>
 			<PreGameConnection {connection} {players} />
-            <Tutorial
-                id="welcome"
-                steps={[
-                    { title: 'Welcome', content: 'Play Never Have I Ever with friends in real-time. No accounts needed.' },
-                    { title: 'Pick categories', content: 'Choose one or more categories to tailor the questions to your group.' },
-                    { title: 'How rounds work', content: 'A question appears. Everyone votes: Have, Kinda, or Have Not.' },
-                    { title: 'Scoring', content: 'Have = +1, Kinda = +0.5, Have Not = 0. Highest score wins, but fun matters most.' }
-                ]}
-            />
+			<Tutorial
+				id="welcome"
+				steps={[
+					{
+						title: 'Welcome',
+						content: 'Play Never Have I Ever with friends in real-time. No accounts needed.'
+					},
+					{
+						title: 'Pick categories',
+						content: 'Choose one or more categories to tailor the questions to your group.'
+					},
+					{
+						title: 'How rounds work',
+						content: 'A question appears. Everyone votes: Have, Kinda, or Have Not.'
+					},
+					{
+						title: 'Scoring',
+						content:
+							'Have = +1, Kinda = +0.5, Have Not = 0. Highest score wins, but fun matters most.'
+					}
+				]}
+			/>
 			<!-- Removed local overlay popup in favor of global toasts -->
 		{:else}
-            {#if current_question?.content !== undefined}
-                {#key current_question?.content}
-                <div class="panel card" in:fade={{ duration: 180, easing: quintOut }}>
-                    <div in:fly={{ y: 8, duration: 220, easing: backOut }}>
-                        <p class="m-0 text-xs uppercase font-bold" data-testid="question-category">
-                            Catagory: {current_question?.catagory}
-                        </p>
-                        <p class="relative text-lg my-1 p-1" data-testid="question-content">
-                            {current_question?.content}
-                        </p>
-                    </div>
-                </div>
-                {/key}
+			{#if current_question?.content !== undefined}
+				{#key current_question?.content}
+					<div class="panel card" in:fade={{ duration: 180, easing: quintOut }}>
+						<div in:fly={{ y: 8, duration: 220, easing: backOut }}>
+							<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">
+								Catagory: {current_question?.catagory}
+							</p>
+							<p class="relative text-lg my-1 p-1" data-testid="question-content">
+								{current_question?.content}
+							</p>
+						</div>
+					</div>
+				{/key}
 				{#if error}
 					<p class="text-red-700">{error}</p>
 				{/if}
-                <div class="panel card">
+				<div class="panel card">
 					<p class="panel-heading">Players</p>
-                    {#each players.filter((p) => p.connected) as player, index (player.id)}
+					{#each players.filter((p) => p.connected) as player, index (player.id)}
 						<div
-                            class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]} transition-colors duration-300 ease-out`}
-                            in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: quintOut }} animate:flip
+							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]} transition-colors duration-300 ease-out`}
+							in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: quintOut }}
+							animate:flip
 							data-testid={`player-${player.name}`}
 						>
 							{player.name}: {player.this_round.vote ?? 'Not Voted'}
@@ -722,10 +776,10 @@
 				<h2>Choose a question</h2>
 			{/if}
 			{#if game_state.waiting_for_players}
-                <div
-                    class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600"
-                    in:fade={{ duration: 140, easing: quintOut }}
-                >
+				<div
+					class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600"
+					in:fade={{ duration: 140, easing: quintOut }}
+				>
 					<div class="text-center">
 						<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
 							Round in Progress
@@ -771,25 +825,28 @@
 			{/if}
 
 			<!-- Restyled Action Bar -->
-			<div class="fixed bottom-0 left-0 w-full z-30" in:fly={{ y: 32, duration: 320, easing: quintOut }}>
+			<div
+				class="fixed bottom-0 left-0 w-full z-30"
+				in:fly={{ y: 32, duration: 320, easing: quintOut }}
+			>
 				<div
 					class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/60"
 				>
-                    <button
-                        class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)]"
+					<button
+						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)]"
 						onclick={() => vote(VoteOptions.Have)}
 						data-testid="have-button"
 					>
 						Have
 					</button>
-                    <button
-                        class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 transition-all duration-200 ease-out hover:text-sky-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-sky-400/40 hover:shadow-[0_8px_24px_-12px_rgba(56,189,248,0.6)]"
+					<button
+						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 transition-all duration-200 ease-out hover:text-sky-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-sky-400/40 hover:shadow-[0_8px_24px_-12px_rgba(56,189,248,0.6)]"
 						onclick={() => vote(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
-                    <button
-                        class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-rose-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-rose-400/40 hover:shadow-[0_8px_24px_-12px_rgba(244,63,94,0.6)]"
+					<button
+						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-rose-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-rose-400/40 hover:shadow-[0_8px_24px_-12px_rgba(244,63,94,0.6)]"
 						onclick={() => vote(VoteOptions.HaveNot)}
 						data-testid="have-not-button"
 					>
@@ -844,14 +901,22 @@
 					<p>Double Click</p>
 				</div>
 			{/if}
-            <Tutorial
-                id="ingame"
-                steps={[
-                    { title: 'Vote quickly', content: 'When a question appears, tap your answer. The next round can start once everyone has voted.' },
-                    { title: 'Anyone can drive', content: 'Any player can skip to the next question, reset, or reopen category selection.' },
-                    { title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
-                ]}
-            />
+			<Tutorial
+				id="ingame"
+				steps={[
+					{
+						title: 'Vote quickly',
+						content:
+							'When a question appears, tap your answer. The next round can start once everyone has voted.'
+					},
+					{
+						title: 'Anyone can drive',
+						content:
+							'Any player can skip to the next question, reset, or reopen category selection.'
+					},
+					{ title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
+				]}
+			/>
 			<ConnectionInfoPanel {connection} {players} {errors} />
 		{/if}
 	{:else}

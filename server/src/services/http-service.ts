@@ -1,10 +1,11 @@
 import { Catagories, CatagoriesSchema } from "../types";
-import { config } from "../config";
 import { client } from "../redis_client";
-import Database from "bun:sqlite";
 import { ValkeyJSON } from "../utils/json";
 import { PushEvent } from "@octokit/webhooks-types";
 import logger from "../logger";
+import { db } from "../db";
+import { categories, cahCards } from "../db/schema";
+import { sql } from "drizzle-orm";
 
 export interface IHttpService {
   getQuestionsList(): Promise<Catagories>;
@@ -21,39 +22,27 @@ export class HttpService implements IHttpService {
     let questionsList = await ValkeyJSON.get(client, "shared:questions_list", CatagoriesSchema);
 
     if (!questionsList) {
-      // Load from database if not in cache (categories are in main assets directory)
-      const dbPath = `${import.meta.dir}/../../assets/db.sqlite`;
-      const db = new Database(dbPath);
-
       try {
-        const categoryRows = db.prepare("SELECT name, questions, is_nsfw FROM categories").all() as Array<{
-          name: string;
-          questions: string;
-          is_nsfw: number;
-        }>;
+        const rows = await db.select({
+          name: categories.name,
+          questions: categories.questions,
+          is_nsfw: categories.is_nsfw,
+        }).from(categories);
 
         const categoriesData: Catagories = {};
-
-        for (const row of categoryRows) {
+        for (const row of rows) {
           categoriesData[row.name] = {
-            flags: {
-              is_nsfw: Boolean(row.is_nsfw)
-            },
-            questions: JSON.parse(row.questions)
+            flags: { is_nsfw: row.is_nsfw },
+            questions: JSON.parse(row.questions) as string[],
           };
         }
 
-        // Cache in Valkey for performance
         await ValkeyJSON.set(client, "shared:questions_list", categoriesData, CatagoriesSchema);
         questionsList = categoriesData;
-
-        logger.info(`Loaded ${Object.keys(categoriesData).length} categories from database`);
+        logger.info(`Loaded ${rows.length} categories from database`);
       } catch (error) {
         logger.error("Failed to load categories from database:", error);
-        // Fallback to empty object if database fails
         questionsList = {};
-      } finally {
-        db.close();
       }
     }
 
@@ -77,27 +66,16 @@ export class HttpService implements IHttpService {
 
   async handleCAHPacks(): Promise<Response> {
     try {
-      const dbPath = `${config.GAME_DATA_DIR}db.sqlite`;
-      const db = new Database(dbPath);
+      const packRows = await db
+        .select({
+          pack_name: cahCards.pack_name,
+          card_type: cahCards.card_type,
+          card_count: sql<number>`count(*)`.as("card_count"),
+        })
+        .from(cahCards)
+        .groupBy(cahCards.pack_name, cahCards.card_type)
+        .orderBy(cahCards.pack_name, cahCards.card_type);
 
-      // Query to get pack information with card counts
-      const packsQuery = `
-        SELECT
-          pack_name,
-          card_type,
-          COUNT(*) as card_count
-        FROM cah_cards
-        GROUP BY pack_name, card_type
-        ORDER BY pack_name, card_type
-      `;
-
-      const packRows = db.prepare(packsQuery).all() as Array<{
-        pack_name: string;
-        card_type: string;
-        card_count: number;
-      }>;
-
-      // Group by pack_name and create pack objects
       const packsMap = new Map<string, {
         id: string;
         name: string;
@@ -108,7 +86,7 @@ export class HttpService implements IHttpService {
       }>();
 
       for (const row of packRows) {
-        const pack = packsMap.get(row.pack_name) || {
+        const pack = packsMap.get(row.pack_name) ?? {
           id: row.pack_name,
           name: row.pack_name,
           blackCards: 0,
@@ -117,21 +95,18 @@ export class HttpService implements IHttpService {
           isNSFW: this.isNSFWPack(row.pack_name),
         };
 
-        if (row.card_type === 'black') {
+        if (row.card_type === "black") {
           pack.blackCards = row.card_count;
-        } else if (row.card_type === 'white') {
+        } else if (row.card_type === "white") {
           pack.whiteCards = row.card_count;
         }
 
         packsMap.set(row.pack_name, pack);
       }
 
-      const packs = Array.from(packsMap.values());
-
-      const response = Response.json(packs);
+      const response = Response.json(Array.from(packsMap.values()));
       response.headers.set("Access-Control-Allow-Origin", "*");
-      response.headers.set("Cache-Control", "max-age=3600"); // Cache for 1 hour
-      db.close();
+      response.headers.set("Cache-Control", "max-age=3600");
       return response;
     } catch (error) {
       console.error("Error fetching CAH packs:", error);

@@ -7,13 +7,7 @@
 		variant?: 'default' | 'gradient' | 'animated';
 	}
 
-	let {
-		value,
-		max = 100,
-		label,
-		size = 'md',
-		variant = 'default'
-	}: Props = $props();
+	let { value, max = 100, label, size = 'md', variant = 'default' }: Props = $props();
 
 	const percentage = Math.min((value / max) * 100, 100);
 
@@ -38,7 +32,9 @@
 	{/if}
 	<div class="w-full bg-slate-700 rounded-full {sizeClasses[size]} overflow-hidden">
 		<div
-			class="{variantClasses[variant]} {sizeClasses[size]} rounded-full transition-all duration-500 ease-out"
+			class="{variantClasses[variant]} {sizeClasses[
+				size
+			]} rounded-full transition-all duration-500 ease-out"
 			style="width: {percentage}%"
 		></div>
 	</div>

@@ -56,6 +56,9 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 # This allows better layer caching for subsequent builds
 COPY server/assets/data.json server/assets/db.sqlite ./server/assets/
 
+# Copy Drizzle migration files
+COPY server/drizzle/ ./server/drizzle/
+
 # Create necessary directories
 RUN mkdir -p /app/server/assets/games
 

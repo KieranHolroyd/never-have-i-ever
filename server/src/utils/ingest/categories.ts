@@ -1,40 +1,40 @@
-import Database from "bun:sqlite";
 import type { Catagories } from "@nhie/shared";
 import { migrate } from "../../migrate";
+import { db } from "../../db";
+import { categories } from "../../db/schema";
 
 async function ingestCategories() {
-  const dbPath = `${import.meta.dir}/../../../assets/db.sqlite`;
-  const db = new Database(dbPath);
+  migrate();
 
-  // Run migrations first to ensure tables exist
-  migrate(db);
-
-  // Load and insert categories data
-  const categories = await Bun.file(
+  const data = await Bun.file(
     `${import.meta.dir}/../../../assets/data.json`
   ).json() as Catagories;
 
-  console.log(`Found ${Object.keys(categories).length} categories to ingest`);
+  console.log(`Found ${Object.keys(data).length} categories to ingest`);
 
-  const insertCategory = db.prepare(`
-    INSERT OR REPLACE INTO categories (name, questions, is_nsfw, updated_at)
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-  `);
+  const rows = Object.entries(data).map(([name, category]) => ({
+    name,
+    questions: JSON.stringify(category.questions),
+    is_nsfw: category.flags.is_nsfw,
+  }));
 
-  let insertedCount = 0;
-  for (const [name, category] of Object.entries(categories)) {
-    insertCategory.run(name, JSON.stringify(category.questions), category.flags.is_nsfw);
-    insertedCount++;
-  }
+  await db
+    .insert(categories)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: categories.name,
+      set: {
+        questions: categories.questions,
+        is_nsfw: categories.is_nsfw,
+        updated_at: new Date().toISOString(),
+      },
+    });
 
-  console.log(`Successfully ingested ${insertedCount} categories into SQLite database`);
-
-  // Close database connection
-  db.close();
+  console.log(`Successfully ingested ${rows.length} categories into SQLite database`);
 }
 
-// Run the ingest script
 ingestCategories().catch((error) => {
   console.error('Failed to ingest categories:', error);
   process.exit(1);
 });
+

@@ -54,11 +54,7 @@ export default defineConfig({
 	},
 	optimizeDeps: {
 		// Pre-bundle dependencies for faster dev server startup
-		include: [
-			'uuid',
-			'lucide-svelte',
-			'svelte-outside-click'
-		],
+		include: ['uuid', 'lucide-svelte', 'svelte-outside-click'],
 		// Exclude packages that don't need optimization
 		exclude: ['$app']
 	},

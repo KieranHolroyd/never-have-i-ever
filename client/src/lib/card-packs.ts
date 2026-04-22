@@ -8,7 +8,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function getCardPacks(): Promise<CardPack[]> {
 	// Return cached data if it's still fresh
-	if (cardPacksCache && cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION) {
+	if (cardPacksCache && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_DURATION) {
 		return cardPacksCache;
 	}
 

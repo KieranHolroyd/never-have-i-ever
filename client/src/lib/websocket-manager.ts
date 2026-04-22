@@ -42,7 +42,9 @@ export class WebSocketManager {
 			this.setupEventListeners();
 		} catch (e) {
 			console.error('Failed to create WebSocket:', e);
-			this.config.onError('Unable to establish connection - please check the server URL and your network connection');
+			this.config.onError(
+				'Unable to establish connection - please check the server URL and your network connection'
+			);
 			this.scheduleReconnect();
 		}
 	}
@@ -65,10 +67,12 @@ export class WebSocketManager {
 			);
 
 			// Send selected packs if available (CAH only)
-			if (this.config.gameType === 'cards-against-humanity' &&
+			if (
+				this.config.gameType === 'cards-against-humanity' &&
 				this.config.selectedPackIds &&
 				this.config.selectedPackIds.length > 0 &&
-				!this.packsSelected) {
+				!this.packsSelected
+			) {
 				setTimeout(() => {
 					this.socket?.send(
 						JSON.stringify({
@@ -183,7 +187,9 @@ export class WebSocketManager {
 
 		this.reconnectTimeout = window.setTimeout(() => {
 			this.reconnectAttempts++;
-			console.log(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+			console.log(
+				`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`
+			);
 			this.connect();
 		}, delay);
 	}

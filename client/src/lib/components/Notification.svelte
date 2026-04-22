@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-    import { fade, scale } from 'svelte/transition';
-    import { quintOut, backOut } from 'svelte/easing';
+	import { fade, scale } from 'svelte/transition';
+	import { quintOut, backOut } from 'svelte/easing';
 
 	interface Props {
 		show?: boolean;
@@ -19,8 +19,14 @@
 </script>
 
 {#if show}
-	<div class="fixed top-2 left-2 right-2 z-50" transition:fade={{ duration: 140, easing: quintOut }}>
-		<div class="panel text-center py-4 px-8" in:scale={{ start: 0.96, duration: 200, easing: backOut }}>
+	<div
+		class="fixed top-2 left-2 right-2 z-50"
+		transition:fade={{ duration: 140, easing: quintOut }}
+	>
+		<div
+			class="panel text-center py-4 px-8"
+			in:scale={{ start: 0.96, duration: 200, easing: backOut }}
+		>
 			{@render children?.()}
 			<br />
 			<div class="flex justify-center gap-2 mt-2">

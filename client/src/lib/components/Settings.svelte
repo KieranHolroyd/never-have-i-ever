@@ -17,7 +17,7 @@
 		try {
 			if (browser) {
 				localStorage.setItem('settings', JSON.stringify($settings));
-                toast.success('Settings saved');
+				toast.success('Settings saved');
 			}
 		} catch (e) {
 			error = String(e ?? 'Failed to save settings');
@@ -116,4 +116,3 @@
 		</label>
 	</div>
 </div>
-

@@ -25,7 +25,11 @@
 
 <div class="relative inline-block">
 	<!-- Avatar -->
-	<div class="rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center {sizeClasses[size]}">
+	<div
+		class="rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center {sizeClasses[
+			size
+		]}"
+	>
 		<span class="font-bold text-white {textSizeClasses[size]}">
 			{player.name.charAt(0).toUpperCase()}
 		</span>
@@ -33,10 +37,14 @@
 
 	<!-- Rank Badge -->
 	{#if showRank && rank && rank <= 3}
-		<div class="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-			{rank === 1 ? 'bg-yellow-500 text-black' :
-			 rank === 2 ? 'bg-slate-400 text-black' :
-			 'bg-amber-600 text-white'}">
+		<div
+			class="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+			{rank === 1
+				? 'bg-yellow-500 text-black'
+				: rank === 2
+					? 'bg-slate-400 text-black'
+					: 'bg-amber-600 text-white'}"
+		>
 			{rank}
 		</div>
 	{/if}

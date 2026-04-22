@@ -33,38 +33,38 @@ export default defineConfig({
 	/* Configure projects for major browsers */
 	projects: process.env.CI
 		? [
-			{
-				name: 'chromium',
-				use: {
-					...devices['Desktop Chrome'],
-					navigationTimeout: 5000
+				{
+					name: 'chromium',
+					use: {
+						...devices['Desktop Chrome'],
+						navigationTimeout: 5000
+					}
 				}
-			},
-		// 	{
-		// 		name: 'firefox',
-		// 		use: {
-		// 			...devices['Desktop Firefox'],
-		// 			navigationTimeout: 10000
-		// 		}
-		// 	},
-		// 	{
-		// 		name: 'webkit',
-		// 		use: {
-		// 			...devices['Desktop Safari'],
-		// 			navigationTimeout: 10000
-		// 		}
-		// 	}
-		]
+				// 	{
+				// 		name: 'firefox',
+				// 		use: {
+				// 			...devices['Desktop Firefox'],
+				// 			navigationTimeout: 10000
+				// 		}
+				// 	},
+				// 	{
+				// 		name: 'webkit',
+				// 		use: {
+				// 			...devices['Desktop Safari'],
+				// 			navigationTimeout: 10000
+				// 		}
+				// 	}
+			]
 		: [
-			{
-				name: 'chromium',
-				use: {
-					...devices['Desktop Chrome'],
-					/* Reduce navigation timeout */
-					navigationTimeout: 10000
+				{
+					name: 'chromium',
+					use: {
+						...devices['Desktop Chrome'],
+						/* Reduce navigation timeout */
+						navigationTimeout: 10000
+					}
 				}
-			}
-		],
+			],
 
 	/* Run your local dev server before starting the tests */
 	webServer: [

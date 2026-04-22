@@ -6,132 +6,132 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Basic Application Functionality', () => {
-  test('should load the home page successfully', async ({ page }) => {
-    // Clear any existing state
-    await page.context().addInitScript(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+	test('should load the home page successfully', async ({ page }) => {
+		// Clear any existing state
+		await page.context().addInitScript(() => {
+			localStorage.clear();
+			sessionStorage.clear();
+		});
 
-    await page.goto('/');
+		await page.goto('/');
 
-    // Verify page loads
-    await expect(page).toHaveTitle('Games ~ Kieran.dev');
+		// Verify page loads
+		await expect(page).toHaveTitle('Games ~ Kieran.dev');
 
-    // Verify main content is visible
-    await expect(page.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
+		// Verify main content is visible
+		await expect(page.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
 
-    // Verify game cards are present
-    const gameCards = page.locator('article');
-    await expect(gameCards).toHaveCount(2);
+		// Verify game cards are present
+		const gameCards = page.locator('article');
+		await expect(gameCards).toHaveCount(2);
 
-    // Verify each game has a start button
-    for (const card of await gameCards.all()) {
-      await expect(card.locator('text=Start New Game')).toBeVisible();
-    }
-  });
+		// Verify each game has a start button
+		for (const card of await gameCards.all()) {
+			await expect(card.locator('text=Start New Game')).toBeVisible();
+		}
+	});
 
-  test('should handle basic user interactions', async ({ page }) => {
-    await page.goto('/');
+	test('should handle basic user interactions', async ({ page }) => {
+		await page.goto('/');
 
-    // Click a game link (may trigger navigation or state change)
-    await page.locator('text=Start New Game').first().click();
+		// Click a game link (may trigger navigation or state change)
+		await page.locator('text=Start New Game').first().click();
 
-    // Since client-side navigation may not work reliably in tests,
-    // just verify the page didn't crash and we can still interact with it
-    await expect(page.locator('body')).toBeVisible();
+		// Since client-side navigation may not work reliably in tests,
+		// just verify the page didn't crash and we can still interact with it
+		await expect(page.locator('body')).toBeVisible();
 
-    // Verify we can still access basic page elements
-    await expect(page.locator('html')).toBeAttached();
-  });
+		// Verify we can still access basic page elements
+		await expect(page.locator('html')).toBeAttached();
+	});
 
-  test('should handle direct URL access to game pages', async ({ page }) => {
-    const testGameId = `test-${Date.now()}`;
+	test('should handle direct URL access to game pages', async ({ page }) => {
+		const testGameId = `test-${Date.now()}`;
 
-    // Try to access a game URL directly
-    await page.goto(`/play/${testGameId}/never-have-i-ever`);
+		// Try to access a game URL directly
+		await page.goto(`/play/${testGameId}/never-have-i-ever`);
 
-    // Should load without crashing (even if server returns errors)
-    await expect(page.locator('body')).toBeVisible();
+		// Should load without crashing (even if server returns errors)
+		await expect(page.locator('body')).toBeVisible();
 
-    // URL should be preserved
-    await expect(page).toHaveURL(new RegExp(`/play/${testGameId}/never-have-i-ever`));
-  });
+		// URL should be preserved
+		await expect(page).toHaveURL(new RegExp(`/play/${testGameId}/never-have-i-ever`));
+	});
 
-  test('should handle name input page access', async ({ page }) => {
-    await page.goto('/play/name');
+	test('should handle name input page access', async ({ page }) => {
+		await page.goto('/play/name');
 
-    // Should load the name input page
-    await expect(page.locator('body')).toBeVisible();
+		// Should load the name input page
+		await expect(page.locator('body')).toBeVisible();
 
-    // Should have some form of input (exact element may vary)
-    const inputs = page.locator('input');
-    await expect(inputs).toHaveCount(await inputs.count()); // At least one input exists
+		// Should have some form of input (exact element may vary)
+		const inputs = page.locator('input');
+		await expect(inputs).toHaveCount(await inputs.count()); // At least one input exists
 
-    // Should have some form of submit button
-    const buttons = page.locator('button');
-    await expect(buttons).toHaveCount(await buttons.count()); // At least one button exists
-  });
+		// Should have some form of submit button
+		const buttons = page.locator('button');
+		await expect(buttons).toHaveCount(await buttons.count()); // At least one button exists
+	});
 
-  test('should handle invalid URLs gracefully', async ({ page }) => {
-    // Try various invalid URLs
-    const invalidUrls = [
-      '/play/invalid-game-id/never-have-i-ever',
-      '/play/nonexistent-page',
-      '/invalid/route'
-    ];
+	test('should handle invalid URLs gracefully', async ({ page }) => {
+		// Try various invalid URLs
+		const invalidUrls = [
+			'/play/invalid-game-id/never-have-i-ever',
+			'/play/nonexistent-page',
+			'/invalid/route'
+		];
 
-    for (const url of invalidUrls) {
-      await page.goto(url);
-      // Should load without crashing
-      await expect(page.locator('body')).toBeVisible();
-    }
-  });
+		for (const url of invalidUrls) {
+			await page.goto(url);
+			// Should load without crashing
+			await expect(page.locator('body')).toBeVisible();
+		}
+	});
 
-  test('should handle page refresh', async ({ page }) => {
-    await page.goto('/');
+	test('should handle page refresh', async ({ page }) => {
+		await page.goto('/');
 
-    // Verify initial load
-    await expect(page.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
+		// Verify initial load
+		await expect(page.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
 
-    // Refresh page
-    await page.reload();
+		// Refresh page
+		await page.reload();
 
-    // Should still work after refresh
-    await expect(page.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
-  });
+		// Should still work after refresh
+		await expect(page.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
+	});
 
-  test('should handle multiple browser contexts', async ({ browser }) => {
-    const context1 = await browser.newContext();
-    const context2 = await browser.newContext();
-    const page1 = await context1.newPage();
-    const page2 = await context2.newPage();
+	test('should handle multiple browser contexts', async ({ browser }) => {
+		const context1 = await browser.newContext();
+		const context2 = await browser.newContext();
+		const page1 = await context1.newPage();
+		const page2 = await context2.newPage();
 
-    // Both should load independently
-    await page1.goto('/');
-    await page2.goto('/');
+		// Both should load independently
+		await page1.goto('/');
+		await page2.goto('/');
 
-    await expect(page1.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
-    await expect(page2.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
+		await expect(page1.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
+		await expect(page2.locator('h1:has-text("Multiplayer Party Games")')).toBeVisible();
 
-    await context1.close();
-    await context2.close();
-  });
+		await context1.close();
+		await context2.close();
+	});
 
-  test('should handle viewport changes', async ({ page }) => {
-    await page.goto('/');
+	test('should handle viewport changes', async ({ page }) => {
+		await page.goto('/');
 
-    // Test different viewport sizes
-    const viewports = [
-      { width: 1920, height: 1080 },
-      { width: 768, height: 1024 },
-      { width: 375, height: 667 }
-    ];
+		// Test different viewport sizes
+		const viewports = [
+			{ width: 1920, height: 1080 },
+			{ width: 768, height: 1024 },
+			{ width: 375, height: 667 }
+		];
 
-    for (const viewport of viewports) {
-      await page.setViewportSize(viewport);
-      // Should still be functional
-      await expect(page.locator('body')).toBeVisible();
-    }
-  });
+		for (const viewport of viewports) {
+			await page.setViewportSize(viewport);
+			// Should still be functional
+			await expect(page.locator('body')).toBeVisible();
+		}
+	});
 });

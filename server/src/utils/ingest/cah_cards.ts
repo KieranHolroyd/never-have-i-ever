@@ -1,5 +1,6 @@
-import Database from "bun:sqlite";
 import { migrate } from "../../migrate";
+import { db } from "../../db";
+import { cahCards } from "../../db/schema";
 
 interface CahCardPack {
   name: string;
@@ -9,13 +10,8 @@ interface CahCardPack {
 }
 
 async function ingestCahCards() {
-  const dbPath = `${import.meta.dir}/../../../assets/games/db.sqlite`;
-  const db = new Database(dbPath);
+  migrate();
 
-  // Run migrations to ensure tables exist
-  migrate(db);
-
-  // Read the JSON data
   const jsonPath = `${import.meta.dir}/data/cah-cards.json`;
   const file = Bun.file(jsonPath);
 
@@ -25,47 +21,29 @@ async function ingestCahCards() {
   }
 
   const cardPacks: CahCardPack[] = await file.json();
-
   console.log(`Found ${cardPacks.length} card packs to ingest`);
-
-  // Prepare insert statement
-  const insertCard = db.prepare(`
-    INSERT INTO cah_cards (pack_name, card_type, text, pick)
-    VALUES (?, ?, ?, ?)
-  `);
 
   let totalCardsInserted = 0;
 
-  // Start transaction for better performance
-  const transaction = db.transaction(() => {
-    for (const pack of cardPacks) {
-      console.log(`Processing pack: ${pack.name}`);
+  for (const pack of cardPacks) {
+    console.log(`Processing pack: ${pack.name}`);
 
-      // Insert white cards
-      for (const whiteCard of pack.white) {
-        insertCard.run(pack.name, 'white', whiteCard.text, null);
-        totalCardsInserted++;
-      }
+    const rows = [
+      ...pack.white.map((c) => ({ pack_name: pack.name, card_type: "white" as const, text: c.text, pick: null as number | null })),
+      ...pack.black.map((c) => ({ pack_name: pack.name, card_type: "black" as const, text: c.text, pick: c.pick })),
+    ];
 
-      // Insert black cards
-      for (const blackCard of pack.black) {
-        insertCard.run(pack.name, 'black', blackCard.text, blackCard.pick);
-        totalCardsInserted++;
-      }
-    }
-  });
+    if (rows.length === 0) continue;
 
-  // Execute transaction
-  transaction();
+    await db.insert(cahCards).values(rows);
+    totalCardsInserted += rows.length;
+  }
 
   console.log(`Successfully ingested ${totalCardsInserted} CAH cards into SQLite database`);
-
-  // Close database connection
-  db.close();
 }
 
-// Run the ingest script
 ingestCahCards().catch((error) => {
   console.error('Failed to ingest CAH cards:', error);
   process.exit(1);
 });
+

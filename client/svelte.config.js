@@ -15,7 +15,11 @@ const config = {
 			runtime: 'nodejs22.x'
 		}),
 		// Optimize asset handling
-		inlineStyleThreshold: 1024 // Inline small CSS files
+		inlineStyleThreshold: 1024, // Inline small CSS files
+		// Required for PostHog session replay to work correctly with SSR
+		paths: {
+			relative: false
+		}
 	},
 	// Vite plugin configuration for Svelte
 	vitePlugin: {

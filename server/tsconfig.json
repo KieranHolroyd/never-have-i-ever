@@ -6,6 +6,7 @@
     "lib": ["ESNext"],
     "module": "preserve",
     "target": "esnext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    "skipLibCheck": true
   }
 }

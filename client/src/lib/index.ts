@@ -18,12 +18,7 @@ export {
 	updatePing,
 	clearError
 } from './stores/game-store';
-export type {
-	GameState,
-	ConnectionState,
-	ErrorState,
-	CurrentPlayer
-} from './stores/game-store';
+export type { GameState, ConnectionState, ErrorState, CurrentPlayer } from './stores/game-store';
 
 // Validation utilities
 export {

@@ -5,9 +5,17 @@
 	import { Status, type CAHGameState, type CAHPlayer } from '$lib/types';
 	import { settingsStore } from '$lib/settings';
 	import { WebSocketManager } from '$lib/websocket-manager';
-	import { gameStore, connectionStore, currentPlayerStore, errorStore, setError, updateConnection } from '$lib/stores/game-store';
+	import {
+		gameStore,
+		connectionStore,
+		currentPlayerStore,
+		errorStore,
+		setError,
+		updateConnection
+	} from '$lib/stores/game-store';
 	import { validateCardSelection, handleValidationError } from '$lib/validation';
 	import { v4 as uuidv4 } from 'uuid';
+	import posthog from 'posthog-js';
 
 	// Import shared components
 	import ConnectionStatus from '../shared/ConnectionStatus.svelte';
@@ -193,10 +201,19 @@
 		setError(newError);
 	}
 
+	let hasJoined = false;
+
 	function handleConnectionChange(status: Status, reconnecting?: boolean, attempts?: number) {
+		if (status === Status.CONNECTED && !hasJoined) {
+			hasJoined = true;
+			posthog.capture('game_joined', { game_type: 'cards-against-humanity', game_id: id });
+		}
 		updateConnection(
-			status === Status.CONNECTED ? 'connected' :
-			status === Status.CONNECTING ? 'connecting' : 'disconnected',
+			status === Status.CONNECTED
+				? 'connected'
+				: status === Status.CONNECTING
+					? 'connecting'
+					: 'disconnected',
 			reconnecting,
 			attempts
 		);
@@ -234,6 +251,7 @@
 
 	function submitCards(cardIds?: string[]) {
 		const toSubmit = cardIds ?? selectedCardIds;
+		posthog.capture('cah_cards_submitted', { card_count: toSubmit.length });
 		if (wsManager) {
 			wsManager.submitCards(toSubmit);
 		}
@@ -241,12 +259,14 @@
 	}
 
 	function selectWinner(winnerPlayerId: string) {
+		posthog.capture('cah_winner_selected');
 		if (wsManager) {
 			wsManager.selectWinner(winnerPlayerId);
 		}
 	}
 
 	function resetGame() {
+		posthog.capture('game_reset', { game_type: 'cards-against-humanity' });
 		if (wsManager) {
 			wsManager.resetGame();
 		}
@@ -346,15 +366,24 @@
 						requiredCards={(gameState as CAHGameState).currentBlackCard?.pick ?? 1}
 					/>
 				{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge}
-					<CahJudgingPhase submissions={(gameState as CAHGameState).submittedCards || []} onSelectWinner={selectWinner} />
+					<CahJudgingPhase
+						submissions={(gameState as CAHGameState).submittedCards || []}
+						onSelectWinner={selectWinner}
+					/>
 				{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
 					<CahWaitingForJudgePhase submissions={(gameState as CAHGameState).submittedCards || []} />
 				{:else if (gameState as CAHGameState).phase === 'scoring'}
 					{@const winnerPlayer =
-						(gameState as CAHGameState)!.players.find((p) => p.id === (gameState as CAHGameState)!.roundWinner) || null}
+						(gameState as CAHGameState)!.players.find(
+							(p) => p.id === (gameState as CAHGameState)!.roundWinner
+						) || null}
 					<CahScoringPhase {winnerPlayer} />
 				{:else if (gameState as CAHGameState).phase === 'game_over'}
-					<CahGameOverPhase gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} onResetGame={resetGame} />
+					<CahGameOverPhase
+						gameState={gameState as CAHGameState}
+						currentPlayerId={LocalPlayer.id}
+						onResetGame={resetGame}
+					/>
 				{/if}
 			{/key}
 		{:else}

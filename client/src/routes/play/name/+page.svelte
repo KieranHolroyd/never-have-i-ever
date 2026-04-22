@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { LocalPlayer } from '$lib/player';
+	import posthog from 'posthog-js';
 
 	let nickname: string = $state(LocalPlayer.name ?? '');
 	let error: string = $state('');
@@ -12,7 +13,11 @@
 		if (nickname === '') {
 			return (error = 'You need to choose a nickname!');
 		}
+		const isNew = LocalPlayer.name === null;
 		LocalPlayer.name = nickname;
+
+		posthog.identify(LocalPlayer.id, { nickname });
+		posthog.capture('nickname_set', { is_new: isNew });
 
 		const redirect_url = page.url.searchParams.get('redirect');
 		if (redirect_url !== null) {

@@ -82,7 +82,11 @@ export function setError(message: string) {
 	});
 }
 
-export function updateConnection(status: 'connecting' | 'connected' | 'disconnected', isReconnecting = false, attempts = 0) {
+export function updateConnection(
+	status: 'connecting' | 'connected' | 'disconnected',
+	isReconnecting = false,
+	attempts = 0
+) {
 	connectionStore.set({
 		status,
 		isReconnecting,
@@ -92,7 +96,7 @@ export function updateConnection(status: 'connecting' | 'connected' | 'disconnec
 }
 
 export function updatePing(ping: number) {
-	connectionStore.update(state => ({
+	connectionStore.update((state) => ({
 		...state,
 		ping
 	}));

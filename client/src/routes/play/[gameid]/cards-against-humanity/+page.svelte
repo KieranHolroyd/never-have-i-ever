@@ -9,7 +9,7 @@
 
 	let { data }: Props = $props();
 
-    // Selection occurs inside CahGame based on live game state
+	// Selection occurs inside CahGame based on live game state
 </script>
 
 <svelte:head>

@@ -43,7 +43,10 @@ export function validateGameId(gameId: string): ValidationResult {
 	};
 }
 
-export function validateCardSelection(selectedCards: string[], requiredCount: number): ValidationResult {
+export function validateCardSelection(
+	selectedCards: string[],
+	requiredCount: number
+): ValidationResult {
 	const errors: string[] = [];
 
 	if (selectedCards.length === 0) {
@@ -119,7 +122,10 @@ export function validateWebSocketMessage(data: any): ValidationResult {
 }
 
 // Utility function to handle validation errors
-export function handleValidationError(result: ValidationResult, onError: (message: string) => void): boolean {
+export function handleValidationError(
+	result: ValidationResult,
+	onError: (message: string) => void
+): boolean {
 	if (!result.isValid) {
 		onError(result.errors.join(', '));
 		return false;
