@@ -269,11 +269,11 @@ export class WebSocketManager {
 	}
 
 	selectCatagories(): void {
-		this.sendMessage('select_catagories');
+		this.sendMessage('select_categories');
 	}
 
 	selectCatagory(catagory: string): void {
-		this.sendMessage('select_catagory', { catagory });
+		this.sendMessage('select_category', { catagory });
 	}
 
 	vote(option: number): void {

@@ -204,7 +204,7 @@
 		}
 	}
 	function selectCatagories() {
-		socket?.send(JSON.stringify({ op: 'select_catagories' }));
+		socket?.send(JSON.stringify({ op: 'select_categories' }));
 	}
 	function selectQuestion() {
 		posthog.capture('nhie_next_question');
@@ -226,7 +226,7 @@
 	}
 
 	function emitSelectCatagory(catagory: string) {
-		socket?.send(JSON.stringify({ op: 'select_catagory', catagory }));
+		socket?.send(JSON.stringify({ op: 'select_category', catagory }));
 	}
 
 	function vote(option: VoteOptions) {
