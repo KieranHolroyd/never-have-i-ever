@@ -1,5 +1,5 @@
 import Database from "bun:sqlite";
-import { Categories } from "../../../types";
+import type { Catagories } from "@nhie/shared";
 import { migrate } from "../../migrate";
 
 async function ingestCategories() {
@@ -12,7 +12,7 @@ async function ingestCategories() {
   // Load and insert categories data
   const categories = await Bun.file(
     `${import.meta.dir}/../../../assets/data.json`
-  ).json() as Categories;
+  ).json() as Catagories;
 
   console.log(`Found ${Object.keys(categories).length} categories to ingest`);
 

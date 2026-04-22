@@ -1,12 +1,11 @@
 import { GameSocket } from "../lib/router";
-import { GameData } from "../types";
 
 export interface IWebSocketService {
   sendToClient(ws: GameSocket, op: string, data?: object): void;
   broadcastToGameAndClient(ws: GameSocket, op: string, data?: object): void;
   publishToGame(ws: GameSocket, op: string, data?: object): void;
   broadcastToGame(gameId: string, op: string, data?: object): void;
-  handleDisconnect(ws: GameSocket, game: GameData): void;
+  handleDisconnect(ws: GameSocket): void;
   handleReconnectStatus(ws: GameSocket): Promise<void>;
   handlePing(ws: GameSocket): Promise<void>;
   addWebSocket(gameId: string, ws: GameSocket): void;
@@ -75,20 +74,15 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  handleDisconnect(ws: GameSocket, game: GameData): void {
+  handleDisconnect(ws: GameSocket): void {
     try {
-      // Remove WebSocket instance
+      // Remove WebSocket instance from registry; player state is managed by Redis via the engine.
       const gameSockets = this.gameWebSockets.get(ws.data.game);
       if (gameSockets) {
         gameSockets.delete(ws);
         if (gameSockets.size === 0) {
           this.gameWebSockets.delete(ws.data.game);
         }
-      }
-
-      const player = game.players.find(p => p.id === ws.data.player);
-      if (player) {
-        player.connected = false;
       }
     } catch (error) {
       console.error("Error in handleDisconnect:", error);

@@ -15,6 +15,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "@nhie/shared": "workspace:*",
     "@axiomhq/js": "^1.3.1",
     "@octokit/webhooks-types": "^7.6.1",
     "@stricjs/utils": "^2.0.7",

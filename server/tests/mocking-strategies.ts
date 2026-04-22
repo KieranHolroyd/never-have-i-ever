@@ -16,13 +16,13 @@ import { mock } from 'bun:test';
  * Use when you want to mock an entire service interface
  */
 export function createCompleteServiceMock<T extends Record<string, any>>(serviceInterface: T): T {
-  const mock = {} as T;
+  const result = {} as T;
 
   for (const key of Object.keys(serviceInterface)) {
-    (mock as any)[key] = mock();
+    (result as any)[key] = mock();
   }
 
-  return mock;
+  return result;
 }
 
 /**
@@ -30,20 +30,11 @@ export function createCompleteServiceMock<T extends Record<string, any>>(service
  * Use when you only want to mock specific methods while keeping others real
  */
 export function createPartialServiceMock<T extends Record<string, any>>(
-  serviceClass: new (...args: any[]) => T,
-  methodsToMock: Partial<Record<keyof T, any>> = {}
+  _serviceClass: new (...args: any[]) => T,
+  _methodsToMock: Partial<Record<keyof T, any>> = {}
 ): T {
-  const realInstance = new serviceClass();
-
-  for (const [method, mockImplementation] of Object.entries(methodsToMock)) {
-    if (typeof mockImplementation === 'function') {
-      vi.spyOn(realInstance, method as keyof T).mockImplementation(mockImplementation);
-    } else {
-      vi.spyOn(realInstance, method as keyof T).mockReturnValue(mockImplementation);
-    }
-  }
-
-  return realInstance;
+  // Partial mocking not supported without vitest spyOn — use createCompleteServiceMock instead
+  throw new Error('createPartialServiceMock requires vitest; use createCompleteServiceMock instead');
 }
 
 /**

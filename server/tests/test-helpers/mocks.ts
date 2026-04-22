@@ -58,7 +58,6 @@ export function createMockHttpService(): IHttpService {
     getQuestionsList: mock(),
     handleCategories: mock(),
     handleCAHPacks: mock(),
-    handleGame: mock(),
     handleGithubWebhook: mock()
   };
 }
@@ -80,11 +79,27 @@ export function createMockPersistenceService(): IPersistenceService {
  */
 export function createMockGameStateService(): IGameStateService {
   return {
-    getGame: mock(),
-    setGame: mock(),
-    deleteGame: mock(),
-    hasGame: mock(),
-    getAllGameIds: mock()
+    gameExists: mock(() => Promise.resolve(false)),
+    createGame: mock(() => Promise.resolve()),
+    deleteGame: mock(() => Promise.resolve()),
+    getGameMeta: mock(() => Promise.resolve(null)),
+    setGameMeta: mock(() => Promise.resolve()),
+    addPlayer: mock(() => Promise.resolve()),
+    getPlayer: mock(() => Promise.resolve(null)),
+    getPlayers: mock(() => Promise.resolve([])),
+    updatePlayerConnected: mock(() => Promise.resolve()),
+    updatePlayerVote: mock(() => Promise.resolve()),
+    incrPlayerScore: mock(() => Promise.resolve()),
+    resetAllPlayerVotes: mock(() => Promise.resolve()),
+    getSelectedCategories: mock(() => Promise.resolve([])),
+    addCategory: mock(() => Promise.resolve()),
+    removeCategory: mock(() => Promise.resolve()),
+    initCategoryQuestions: mock(() => Promise.resolve()),
+    popRandomQuestion: mock(() => Promise.resolve(null)),
+    remainingQuestionCount: mock(() => Promise.resolve(0)),
+    pushHistory: mock(() => Promise.resolve()),
+    getHistory: mock(() => Promise.resolve([])),
+    getFullGameState: mock(() => Promise.resolve(null)),
   };
 }
 

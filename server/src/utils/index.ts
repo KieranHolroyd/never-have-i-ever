@@ -1,4 +1,3 @@
-import { GameData, Player } from "../types";
 import { SafeJSON } from "./json";
 import { z } from "zod";
 
@@ -21,32 +20,4 @@ export function validateRequiredParams(params: Record<string, any>, required: st
   if (missing.length > 0) {
     throw new Error(`Missing required parameters: ${missing.join(", ")}`);
   }
-}
-
-export function getActivePlayerCount(game: GameData): number {
-  return game.players.filter(p => p.connected).length;
-}
-
-export function isGameActive(game: GameData): boolean {
-  return getActivePlayerCount(game) > 0;
-}
-
-export function sanitizeGameState(game: GameData): Omit<GameData, 'data' | 'history'> {
-  return omitKeys(game, ['data', 'history']);
-}
-
-export function sanitizeGameStateWithHistory(game: GameData): Omit<GameData, 'data'> {
-  return omitKeys(game, ['data']);
-}
-
-export function findPlayerById(game: GameData, playerId: string): Player | undefined {
-  return game.players.find(p => p.id === playerId);
-}
-
-export function requirePlayer(game: GameData, playerId: string): Player {
-  const player = findPlayerById(game, playerId);
-  if (!player) {
-    throw new Error(`Player ${playerId} not found in game ${game.id}`);
-  }
-  return player;
 }

@@ -1,6 +1,6 @@
 import { expect } from 'bun:test';
 import type { GameSocket } from '../../src/lib/router';
-import type { GameState } from '../../src/services/game-state-service';
+import type { NHIEGameState } from '@nhie/shared';
 
 /**
  * Get the last message sent by operation type from a mock WebSocket
@@ -65,8 +65,8 @@ export function expectSentToClient(
  * Assert that a game state matches expected properties
  */
 export function expectGameState(
-  gameState: GameState,
-  expected: Partial<GameState>
+  gameState: NHIEGameState,
+  expected: Partial<NHIEGameState>
 ) {
   expect(gameState).toMatchObject(expected);
 }
@@ -184,8 +184,8 @@ export function waitForMessage(client: any, op: string, timeout = 1000): Promise
 /**
  * Assert that a service method was called with correct game state
  */
-export function expectGameStateSaved(service: any, expectedGameState: Partial<GameState>) {
-  expect(service.setGame).toHaveBeenCalledWith(
+export function expectGameStateSaved(service: any, expectedGameState: Partial<NHIEGameState>) {
+  expect(service.setGameMeta).toHaveBeenCalledWith(
     expect.any(String),
     expect.objectContaining(expectedGameState)
   );

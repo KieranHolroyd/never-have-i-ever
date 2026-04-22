@@ -1,32 +1,23 @@
+// Re-export shared protocol types
+export { VoteOptions, type Catagory, type Catagories, type Question, type NHIEPlayer, type NHIEGameState, type GameHistoryEntry } from '@nhie/shared';
+// Backwards-compat alias used by existing client components
+export type { NHIEPlayer as Player } from '@nhie/shared';
+
+// Local aliases for use within this file
+import type { NHIEPlayer as _Player, Question as _Question, Catagories as _Catagories } from '@nhie/shared';
+
 export enum Status {
 	CONNECTING,
 	CONNECTED,
 	DISCONNECTED
 }
-export enum VoteOptions {
-	Have = 1,
-	HaveNot = 2,
-	Kinda = 3
-}
-
-export type Player = {
-	id: string;
-	name: string;
-	score: number;
-
-	this_round: {
-		vote: string;
-		voted: boolean;
-	};
-	connected: boolean;
-};
 
 export type GameRound = {
 	question: {
 		catagory: string;
 		content: string;
 	};
-	players: Player[];
+	players: _Player[];
 };
 
 export type Settings = {
@@ -36,33 +27,17 @@ export type Settings = {
 	show_debug?: boolean;
 };
 
-export type Catagories = {
-	[key: string]: Catagory;
-};
-export type Catagory = {
-	flags: {
-		is_nsfw?: boolean;
-		is_hidden?: boolean;
-	};
-	questions: string[];
-};
-
-export type Question = {
-	catagory: string;
-	content: string;
-};
-
 export type GameData = {
 	id: string;
-	players: Player[];
+	players: _Player[];
 
 	catagories: string[];
 
-	current_question: Question;
+	current_question: _Question;
 
 	history: {
-		question: Question;
-		players: Player[];
+		question: _Question;
+		players: _Player[];
 	}[];
 
 	// Control States
@@ -71,7 +46,7 @@ export type GameData = {
 	waiting_for_players: boolean;
 
 	// Local game state
-	data: Catagories;
+	data: _Catagories;
 };
 
 // Cards Against Humanity Types

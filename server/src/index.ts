@@ -5,11 +5,9 @@ import { emit, publish, send } from "./lib/socket";
 import { GameManager } from "./game-manager";
 import { engineRegistry } from "./lib/engine-registry";
 import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
-import { createCardsAgainstHumanityEngine } from "./lib/engines/cards-against-humanity";
 import { initializeRedisPool, closeRedisPool } from "./redis-pool";
 import { WebSocketService, IWebSocketService } from "./services/websocket-service";
 import { HttpService, IHttpService } from "./services/http-service";
-import { PersistenceService, IPersistenceService } from "./services/persistence-service";
 import { GameStateService, IGameStateService } from "./services/game-state-service";
 import { createDefaultMiddlewarePipeline } from "./middleware";
 import { container, SERVICE_TOKENS } from "./di";
@@ -27,36 +25,29 @@ if (missingOptional.length > 0) {
   logger.warn(`Missing optional environment variables: ${missingOptional.join(", ")}`);
 }
 
-// Initialize Redis connection pool
+// Initialize Redis connection pool — hard fail if Redis is unreachable.
 try {
   await initializeRedisPool();
-  logger.info("Redis connection pool initialized successfully");
+  logger.info("Redis connection pool initialized");
 } catch (error) {
-  logger.error(`Failed to initialize Redis pool: ${(error as Error).message}`);
-  logger.warn("Continuing with fallback mode");
+  logger.error(`Redis unavailable — cannot start: ${(error as Error).message}`);
+  process.exit(1);
 }
 
 // Register services with dependency injection container
 container.registerClass(SERVICE_TOKENS.WebSocketService, WebSocketService, 'singleton');
 container.registerClass(SERVICE_TOKENS.HttpService, HttpService, 'singleton');
-container.registerClass(
-  SERVICE_TOKENS.PersistenceService,
-  PersistenceService,
-  'singleton',
-  [SERVICE_TOKENS.HttpService]
-);
 container.registerClass(SERVICE_TOKENS.GameStateService, GameStateService, 'singleton');
 container.registerClass(
   SERVICE_TOKENS.GameManager,
   GameManager,
   'singleton',
-  [SERVICE_TOKENS.WebSocketService, SERVICE_TOKENS.HttpService, SERVICE_TOKENS.PersistenceService]
+  [SERVICE_TOKENS.WebSocketService, SERVICE_TOKENS.HttpService, SERVICE_TOKENS.GameStateService]
 );
 
 // Resolve services from container
 const webSocketService = container.resolve<IWebSocketService>(SERVICE_TOKENS.WebSocketService);
 const httpService = container.resolve<IHttpService>(SERVICE_TOKENS.HttpService);
-const persistenceService = container.resolve<IPersistenceService>(SERVICE_TOKENS.PersistenceService);
 const gameStateService = container.resolve<IGameStateService>(SERVICE_TOKENS.GameStateService);
 const gameManager = container.resolve<GameManager>(SERVICE_TOKENS.GameManager);
 
@@ -93,14 +84,15 @@ const server = Bun.serve({
         }
 
         const playing = params.get(WEBSOCKET_PARAMS.PLAYING) || "never-have-i-ever";
-        const success = server.upgrade(req, {
+        // Cast to bypass Bun's generic type inference for the WebSocket data field
+        const success = (server as any).upgrade(req, {
           headers: {
             "X-Playing": playing,
-            "X-Gameid": params.get(WEBSOCKET_PARAMS.GAME),
+            "X-Gameid": params.get(WEBSOCKET_PARAMS.GAME) ?? "",
           },
           data: {
-            game: params.get(WEBSOCKET_PARAMS.GAME),
-            player: params.get(WEBSOCKET_PARAMS.PLAYER),
+            game: params.get(WEBSOCKET_PARAMS.GAME) as string,
+            player: params.get(WEBSOCKET_PARAMS.PLAYER) as string,
             playing,
           },
         });
@@ -171,16 +163,9 @@ const server = Bun.serve({
   port: SERVER_CONFIG.PORT,
 });
 
-// Register the Never Have I Ever engine with dependency injection
-engineRegistry.register(createNeverHaveIEverEngine(webSocketService, httpService, persistenceService, gameStateService));
+// Register the Never Have I Ever engine
+engineRegistry.register(createNeverHaveIEverEngine(webSocketService, httpService, gameStateService));
 
-// Register Cards Against Humanity engine
-engineRegistry.register(createCardsAgainstHumanityEngine(gameManager, gameStateService));
-
-// Auto-save games periodically
-setInterval(async () => {
-  await gameManager.saveActiveGames();
-}, SERVER_CONFIG.GAME_SAVE_INTERVAL);
 
 logger.info(`Server running at http://${server.hostname}:${server.port}/`);
 logger.info(`Log level: ${process.env.LOG_LEVEL || 'INFO'}`);

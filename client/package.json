@@ -53,6 +53,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@nhie/shared": "workspace:*",
     "@sveltejs/adapter-vercel": "^5.10.2",
     "caniuse-lite": "^1.0.30001746",
     "figlet": "^1.9.3",

@@ -1,23 +1,11 @@
 import { getRedisPool } from "./redis-pool";
-import logger from "./logger";
 
-// Get client from the connection pool
-export const getClient = async () => {
-  const pool = getRedisPool();
-  return await pool.getClient();
-};
+export const getClient = async () => getRedisPool().getClient();
 
-// For backward compatibility, provide a default client
-export const client = new Proxy({}, {
-  get: (target, prop) => {
-    if (process.env.NODE_ENV === 'test') {
-      // Return mock functions during testing
-      return () => Promise.resolve(null);
-    }
-    // For non-test environments, delegate to the real client from pool
-    return async (...args: any[]) => {
-      const realClient = await getClient();
-      return (realClient as any)[prop](...args);
-    };
-  }
-}) as any;
+// Proxy used by HttpService (ValkeyJSON helper) — delegates to real client.
+export const client = new Proxy({} as any, {
+  get: (_target, prop) => async (...args: any[]) => {
+    const c = await getClient();
+    return (c as any)[prop](...args);
+  },
+});

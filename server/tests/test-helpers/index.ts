@@ -10,4 +10,4 @@ export * from './factories';
 export * from './assertions';
 
 // Re-export commonly used testing utilities
-export { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+export { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';

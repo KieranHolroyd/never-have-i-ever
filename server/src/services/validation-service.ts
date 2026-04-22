@@ -7,7 +7,7 @@ import {
   GameFullError,
   RateLimitError
 } from "../errors/index";
-import { IGameState, IPlayer, ICAHGameState, INHIEGameState } from "../types";
+import { NHIEGameState, NHIEPlayer } from "@nhie/shared";
 import logger from "../logger";
 
 // Rate limiting store (in production, use Redis)
@@ -71,7 +71,7 @@ export class ValidationService {
   /**
    * Validates game state for operations
    */
-  static validateGameState(gameState: IGameState, operation: string, requiredPhase?: string): void {
+  static validateGameState(gameState: NHIEGameState, operation: string, requiredPhase?: string): void {
     if (!gameState) {
       throw new ValidationError("Game state is required");
     }
@@ -88,7 +88,7 @@ export class ValidationService {
   /**
    * Validates player state for operations
    */
-  static validatePlayerState(player: IPlayer, operation: string, requiredConnected: boolean = true): void {
+  static validatePlayerState(player: NHIEPlayer, operation: string, requiredConnected: boolean = true): void {
     if (!player) {
       throw new ValidationError("Player is required");
     }
@@ -101,7 +101,7 @@ export class ValidationService {
   /**
    * Validates that a game is not full
    */
-  static validateGameCapacity(gameState: IGameState, maxPlayers: number = this.MAX_PLAYERS_DEFAULT): void {
+  static validateGameCapacity(gameState: NHIEGameState, maxPlayers: number = this.MAX_PLAYERS_DEFAULT): void {
     const connectedPlayers = gameState.players.filter(p => p.connected).length;
     if (connectedPlayers >= maxPlayers) {
       throw new GameFullError(maxPlayers);
@@ -111,7 +111,7 @@ export class ValidationService {
   /**
    * Validates player uniqueness in game
    */
-  static validatePlayerUniqueness(gameState: IGameState, playerName: string, excludePlayerId?: string): void {
+  static validatePlayerUniqueness(gameState: NHIEGameState, playerName: string, excludePlayerId?: string): void {
     const existingPlayer = gameState.players.find(p =>
       p.name.toLowerCase() === playerName.toLowerCase() &&
       p.id !== excludePlayerId &&
@@ -144,7 +144,7 @@ export class ValidationService {
   /**
    * Validates vote submission for Never Have I Ever
    */
-  static validateVoteSubmission(gameState: INHIEGameState, playerId: string, vote: number): void {
+  static validateVoteSubmission(gameState: NHIEGameState, playerId: string, vote: number): void {
     this.validateGameState(gameState, "vote");
 
     const player = gameState.players.find(p => p.id === playerId);
@@ -163,7 +163,7 @@ export class ValidationService {
   /**
    * Validates CAH card submission
    */
-  static validateCAHSubmission(gameState: ICAHGameState, playerId: string, cardIds: string[]): void {
+  static validateCAHSubmission(gameState: any, playerId: string, cardIds: string[]): void {
     this.validateGameState(gameState, "submit_cards");
 
     const player = gameState.players.find(p => p.id === playerId) as any;
@@ -201,7 +201,7 @@ export class ValidationService {
   /**
    * Validates CAH judging
    */
-  static validateCAHJudge(gameState: ICAHGameState, judgeId: string, winnerId: string): void {
+  static validateCAHJudge(gameState: any, judgeId: string, winnerId: string): void {
     this.validateGameState(gameState, "judge_cards");
 
     const judge = gameState.players.find(p => p.id === judgeId) as any;
@@ -258,7 +258,7 @@ export class ValidationService {
    * Comprehensive game operation validation
    */
   static validateGameOperation(
-    gameState: IGameState,
+    gameState: NHIEGameState,
     playerId: string,
     operation: string,
     data?: any
@@ -284,28 +284,27 @@ export class ValidationService {
 
       case 'select_categories':
         if (gameState.gameType === 'never-have-i-ever') {
-          const nhieState = gameState as INHIEGameState;
           if (data?.categories) {
-            this.validateCategorySelection(data.categories, Object.keys(nhieState.data));
+            this.validateCategorySelection(data.categories, gameState.catagories);
           }
         }
         break;
 
       case 'vote':
         if (gameState.gameType === 'never-have-i-ever') {
-          this.validateVoteSubmission(gameState as INHIEGameState, playerId, data?.option);
+          this.validateVoteSubmission(gameState as NHIEGameState, playerId, data?.option);
         }
         break;
 
       case 'submit_cards':
-        if (gameState.gameType === 'cards-against-humanity') {
-          this.validateCAHSubmission(gameState as ICAHGameState, playerId, data?.cardIds || []);
+        if ((gameState as any).gameType === 'cards-against-humanity') {
+          this.validateCAHSubmission(gameState, playerId, data?.cardIds || []);
         }
         break;
 
       case 'judge_cards':
-        if (gameState.gameType === 'cards-against-humanity') {
-          this.validateCAHJudge(gameState as ICAHGameState, playerId, data?.winnerId);
+        if ((gameState as any).gameType === 'cards-against-humanity') {
+          this.validateCAHJudge(gameState, playerId, data?.winnerId);
         }
         break;
     }

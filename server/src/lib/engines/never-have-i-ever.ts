@@ -1,551 +1,358 @@
 import type { GameEngine } from "../../types";
 import type { GameSocket } from "../router";
-import { config } from "../../config";
-import { select_question } from "../questions";
-import { deepCopy, sanitizeGameState, requirePlayer } from "../../utils";
-import { IWebSocketService } from "../../services/websocket-service";
-import { IHttpService } from "../../services/http-service";
-import { IPersistenceService } from "../../services/persistence-service";
+import type { IWebSocketService } from "../../services/websocket-service";
+import type { IHttpService } from "../../services/http-service";
 import type { IGameStateService } from "../../services/game-state-service";
-import type { NHIEGameState, NHIEPlayer } from "../../types";
+import type { NHIEPlayer, NHIEGameState } from "@nhie/shared";
 import { ingestEvent } from "../../axiom";
 import { ValidationError } from "../../errors";
+import logger from "../../logger";
 
-// Helper function to shuffle array (if needed for future features)
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
+const VOTE_SCORES: Record<string, number> = {
+  Have: 1,
+  "Have Not": 0,
+  Kinda: 0.5,
+};
 
-/**
- * Factory to create the Never Have I Ever engine.
- *
- * Notes on architecture:
- * - This engine maintains its own in-memory game state per `gameId`.
- * - Broadcasting is handled via the WebSocket service provided by dependency injection
- * - Clients are subscribed to the `gameId` topic on join so that publishes
- *   reach all players in the same game. We also send the message directly to
- *   the initiating client via `sendToClient` for immediate feedback.
- */
+const VOTE_LABELS: Record<number, string> = {
+  1: "Have",
+  2: "Have Not",
+  3: "Kinda",
+};
+
+// ── In-memory timeout handles (not persisted — only this process's timers) ──
+const roundTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
 export function createNeverHaveIEverEngine(
-  webSocketService: IWebSocketService,
+  wsService: IWebSocketService,
   httpService: IHttpService,
-  persistenceService: IPersistenceService,
   gameStateService: IGameStateService
 ): GameEngine {
-  async function getGame(gameId: string): Promise<NHIEGameState | null> {
-    const game = await gameStateService.getGame(gameId);
-    return game && 'catagories' in game ? game as NHIEGameState : null;
-  }
+  // ── Broadcast helper ────────────────────────────────────────────────────
 
-  async function createNHIEGame(gameId: string): Promise<NHIEGameState> {
-    const questionsList = await httpService.getQuestionsList();
-
-    const game: NHIEGameState = {
-      id: gameId,
-      gameType: 'never-have-i-ever' as const,
-      players: [],
-      phase: 'category_select',
-      current_question: { catagory: "", content: "" },
-      catagories: [],
-      data: deepCopy(questionsList),
-      history: [],
-      waitingForPlayers: false,
-      gameCompleted: false,
-    };
-    await gameStateService.setGame(gameId, game);
-    return game;
-  }
-
-  /**
-   * Broadcast a message to all players in a game by publishing to the
-   * `gameId` topic and also directly sending to the invoking client.
-   */
-  function broadcastToGame(ws: GameSocket, op: string, data: any, toClient: boolean = false): void {
-    try {
-      webSocketService.broadcastToGameAndClient(ws, op, data);
-    } catch (error) {
-      console.error("Error broadcasting to game:", error);
-    }
-  }
-
-  async function handleDisconnect(ws: GameSocket): Promise<void> {
-    const game = await getGame(ws.data.game);
+  async function broadcast(ws: GameSocket): Promise<void> {
+    const game = await gameStateService.getFullGameState(ws.data.game);
     if (!game) return;
 
-    const player = game.players.find(p => p.id === ws.data.player);
-    if (player) {
-      player.connected = false;
-      console.log(`Player ${player.name} (${player.id}) disconnected from NHIE game ${ws.data.game}`);
+    const timeoutStart = wsService.getTimeoutStart(ws.data.game) ?? 0;
+    const payload: NHIEGameState = {
+      ...game,
+      timeout_start: timeoutStart,
+      timeout_duration: wsService.getRoundTimeoutMs(),
+    };
+    wsService.broadcastToGameAndClient(ws, "game_state", { game: payload });
+  }
 
-      await gameStateService.setGame(ws.data.game, game);
-      // Broadcast updated game state
-      const gameState = sanitizeNHIEGameState(game);
-      broadcastToGame(ws, "game_state", { game: gameState });
+  // ── Round advancement ───────────────────────────────────────────────────
+
+  async function advanceToNextQuestion(ws: GameSocket): Promise<void> {
+    const gameId = ws.data.game;
+
+    // Clear any running timeout
+    clearRoundTimeout(gameId);
+
+    // Persist current question to history before selecting the next one
+    const currentState = await gameStateService.getFullGameState(gameId);
+    if (currentState && currentState.current_question.catagory !== "") {
+      await gameStateService.pushHistory(gameId, {
+        question: currentState.current_question,
+        players: currentState.players,
+      });
     }
-  }
 
-  function sanitizeNHIEGameState(game: NHIEGameState): any {
-    // Similar to sanitizeGameState but for NHIE structure
-    const sanitized = deepCopy(game);
-
-    // Remove sensitive data if needed
-    // For now, return as-is since NHIE doesn't have sensitive data like CAH cards
-
-    return sanitized;
-  }
-
-  function allPlayersVoted(game: NHIEGameState): boolean {
-    const connectedPlayers = game.players.filter(p => p.connected);
-    return connectedPlayers.every(player => player.this_round.voted);
-  }
-
-  function proceedToNextRound(ws: GameSocket, game: NHIEGameState): void {
-    // Clear the timeout since all players voted
-    if (game.round_timeout) {
-      clearTimeout(game.round_timeout);
-      game.round_timeout = undefined;
+    // Pick a random question from a random selected category (SPOP)
+    const categories = await gameStateService.getSelectedCategories(gameId);
+    if (categories.length === 0) {
+      await gameStateService.setGameMeta(gameId, {
+        gameCompleted: "1",
+        phase: "game_over",
+        waitingForPlayers: "0",
+      });
+      await broadcast(ws);
+      return;
     }
-    webSocketService.deleteTimeoutStart(game.id);
 
-    // Reset waiting state
-    game.waitingForPlayers = false;
+    // Shuffle categories and try each until we find one with questions remaining
+    const shuffled = [...categories].sort(() => Math.random() - 0.5);
+    let picked: string | null = null;
+    let question: string | null = null;
 
-    ingestEvent({
-      gameID: game.id,
-      event: "round_completed",
-      details: { all_players_voted: true },
+    for (const cat of shuffled) {
+      question = await gameStateService.popRandomQuestion(gameId, cat);
+      if (question !== null) {
+        picked = cat;
+        break;
+      }
+      // Category exhausted — remove it from the selected set
+      await gameStateService.removeCategory(gameId, cat);
+    }
+
+    if (!picked || question === null) {
+      // All questions exhausted
+      await gameStateService.setGameMeta(gameId, {
+        gameCompleted: "1",
+        phase: "game_over",
+        waitingForPlayers: "0",
+      });
+      await broadcast(ws);
+      return;
+    }
+
+    // Reset player votes for the new round
+    await gameStateService.resetAllPlayerVotes(gameId);
+
+    await gameStateService.setGameMeta(gameId, {
+      phase: "waiting",
+      waitingForPlayers: "1",
+      current_q_cat: picked,
+      current_q_content: question,
+      timeout_start: "",
     });
 
-    // Proceed to next question
-    handleNextQuestion(ws, {});
+    ingestEvent({ gameID: gameId, event: "next_question", details: { category: picked } });
+
+    wsService.broadcastToGameAndClient(ws, "new_round", {});
+    await broadcast(ws);
   }
 
-  function skipCurrentRound(ws: GameSocket, game: NHIEGameState): void {
-    // Clear the timeout since manually skipped
-    if (game.round_timeout) {
-      clearTimeout(game.round_timeout);
-      game.round_timeout = undefined;
+  // ── Timeout helpers ─────────────────────────────────────────────────────
+
+  function clearRoundTimeout(gameId: string): void {
+    const t = roundTimeouts.get(gameId);
+    if (t !== undefined) {
+      clearTimeout(t);
+      roundTimeouts.delete(gameId);
     }
-    webSocketService.deleteTimeoutStart(game.id);
-
-    // Reset waiting state
-    game.waitingForPlayers = false;
-
-    ingestEvent({
-      gameID: game.id,
-      event: "round_skipped",
-      playerID: ws.data.player,
-      details: { manual_skip: true },
-    });
-
-    // Proceed to next question
-    handleNextQuestion(ws, {});
+    wsService.deleteTimeoutStart(gameId);
   }
 
-  async function handleNextQuestion(ws: GameSocket, data: any): Promise<void> {
-    try {
-      const game = await getGame(ws.data.game);
-      if (!game) {
-        throw new Error("Game not found");
-      }
+  async function startRoundTimeout(ws: GameSocket): Promise<void> {
+    const gameId = ws.data.game;
+    if (roundTimeouts.has(gameId)) return; // already started
 
-      // Allow manual skip if in waiting state - only if all players have voted
-      if (game.waitingForPlayers) {
-        const connectedPlayers = game.players.filter(p => p.connected);
-        const votedPlayers = connectedPlayers.filter(p => p.this_round.voted);
+    const timeoutStart = Date.now();
+    wsService.setTimeoutStart(gameId, timeoutStart);
+    await gameStateService.setGameMeta(gameId, { timeout_start: String(timeoutStart) });
 
-        if (votedPlayers.length === connectedPlayers.length) {
-          skipCurrentRound(ws, game);
-        } else {
-          webSocketService.sendToClient(ws, "error", {
-            message: `Cannot skip - waiting for all players to vote (${votedPlayers.length}/${connectedPlayers.length})`
-          });
-        }
-        return;
-      }
+    const handle = setTimeout(async () => {
+      roundTimeouts.delete(gameId);
+      logger.info(`Round timeout fired for game ${gameId}`);
 
-      // Clear any existing timeout
-      if (game.round_timeout) {
-        clearTimeout(game.round_timeout);
-        game.round_timeout = undefined;
-      }
-      webSocketService.deleteTimeoutStart(ws.data.game);
+      const meta = await gameStateService.getGameMeta(gameId);
+      if (!meta || meta.waitingForPlayers !== "1") return;
 
-      // Add current round to history if there's an active question
-      if (game.history && game.current_question.catagory !== "") {
-        game.history.push({
-          question: game.current_question,
-          players: deepCopy(game.players),
-        });
-      }
-
-      // Select new question
-      game.current_question = select_question(game);
-
-      // Reset player votes for new round
-      game.players.forEach(player => {
-        player.this_round = { vote: null, voted: false };
+      ingestEvent({ gameID: gameId, event: "round_timeout" });
+      wsService.broadcastToGame(gameId, "round_timeout", {
+        message: "Round timed out — moving to next question",
       });
 
-      // Set waiting state
-      game.waitingForPlayers = true;
-      game.phase = 'waiting';
+      await advanceToNextQuestion(ws);
+    }, wsService.getRoundTimeoutMs());
 
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "next_question",
-        playerID: ws.data.player,
-        details: { question: game.current_question },
-      });
+    roundTimeouts.set(gameId, handle);
 
-      const gameState = game.gameCompleted
-        ? deepCopy({ ...game, history: game.history })
-        : sanitizeNHIEGameState(game);
-
-      // Include timeout info for waiting state
-      const gameStateWithTimeout = game.waitingForPlayers
-        ? {
-          ...gameState,
-          timeout_start: webSocketService.getTimeoutStart(ws.data.game) || 0,
-          timeout_duration: webSocketService.getRoundTimeoutMs()
-        }
-        : gameState;
-
-      console.log('[DEBUG] Sending game state:', {
-        waitingForPlayers: game.waitingForPlayers,
-        timeout_start: (gameStateWithTimeout as any).timeout_start,
-        timeout_duration: (gameStateWithTimeout as any).timeout_duration
-      });
-
-      await gameStateService.setGame(ws.data.game, game);
-      broadcastToGame(ws, "game_state", { game: gameStateWithTimeout }, true);
-      broadcastToGame(ws, "new_round", {});
-    } catch (error) {
-      console.error("Error in handleNextQuestion:", error);
-      webSocketService.sendToClient(ws, "error", { message: "Failed to get next question" });
-    }
+    // Re-broadcast so clients get the timeout_start timestamp
+    await broadcast(ws);
   }
+
+  // ── Handlers ────────────────────────────────────────────────────────────
 
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
+    // -----------------------------------------------------------------------
     join_game: async (ws, data) => {
       const { create, playername } = data;
-      let game = await getGame(ws.data.game);
+      const gameId = ws.data.game;
 
-      console.log(`Player ${playername} (${ws.data.player}) joined NHIE game ${ws.data.game}`);
-
-      if (!game) {
-        if (!create) {
-          throw new Error("Game not found");
-        }
-        game = await createNHIEGame(ws.data.game);
+      const exists = await gameStateService.gameExists(gameId);
+      if (!exists) {
+        if (!create) throw new Error("Game not found");
+        await gameStateService.createGame(gameId);
       }
 
-      // Check if player already exists
-      let player = game.players.find(p => p.id === ws.data.player);
-
-      if (!player) {
-        player = {
+      const existing = await gameStateService.getPlayer(gameId, ws.data.player);
+      if (!existing) {
+        const player: NHIEPlayer = {
           id: ws.data.player,
           name: playername,
           score: 0,
           connected: true,
           this_round: { vote: null, voted: false },
         };
-        game.players.push(player);
+        await gameStateService.addPlayer(gameId, player);
       } else {
-        // Treat repeat joins idempotently without special reconnect handling
-        player.connected = true;
+        await gameStateService.updatePlayerConnected(gameId, ws.data.player, true);
       }
 
-      // Subscribe this client to the game topic and notifications channel
       try {
-        ws.subscribe(ws.data.game);
+        ws.subscribe(gameId);
         ws.subscribe("notifications");
-      } catch (_) {
-        // Ignore subscribe errors in tests or environments without a bus
-      }
+      } catch (_) { /* no-op in test env */ }
 
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "player_joined",
-        playerID: ws.data.player,
-        details: { name: playername },
-      });
+      wsService.addWebSocket(gameId, ws);
 
-      // Store WebSocket instance for broadcasting
-      webSocketService.addWebSocket(ws.data.game, ws);
+      ingestEvent({ gameID: gameId, event: "player_joined", playerID: ws.data.player, details: { name: playername } });
 
-      await gameStateService.setGame(ws.data.game, game);
-      const gameState = sanitizeNHIEGameState(game);
-      broadcastToGame(ws, "game_state", {
-        id: ws.data.game,
-        game: gameState,
-      }, true);
+      await broadcast(ws);
     },
 
-    select_categories: async (ws, data) => {
-      const game = await getGame(ws.data.game);
-      if (!game) {
-        throw new Error("Game not found");
-      }
-      game.phase = 'category_select';
-
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "category_selection_started",
-        playerID: ws.data.player,
-      });
-
-      await gameStateService.setGame(ws.data.game, game);
-      await gameStateService.setGame(ws.data.game, game);
-      const gameState = sanitizeNHIEGameState(game);
-      broadcastToGame(ws, "game_state", { game: gameState }, true);
+    // -----------------------------------------------------------------------
+    select_categories: async (ws, _data) => {
+      await gameStateService.setGameMeta(ws.data.game, { phase: "category_select" });
+      await broadcast(ws);
     },
 
+    // -----------------------------------------------------------------------
     select_category: async (ws, data) => {
-      if (!data.catagory) {
-        throw new ValidationError("Category is required");
-      }
+      if (!data.catagory) throw new ValidationError("Category is required");
+      const gameId = ws.data.game;
 
-      const game = await getGame(ws.data.game);
-      if (!game) {
-        throw new Error("Game not found");
-      }
-
-      const categoryIndex = game.catagories.indexOf(data.catagory);
-
-      if (categoryIndex === -1) {
-        game.catagories.push(data.catagory);
+      const selected = await gameStateService.getSelectedCategories(gameId);
+      if (selected.includes(data.catagory)) {
+        await gameStateService.removeCategory(gameId, data.catagory);
       } else {
-        game.catagories.splice(categoryIndex, 1);
+        await gameStateService.addCategory(gameId, data.catagory);
       }
 
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "category_selected",
-        playerID: ws.data.player,
-        details: { catagory: data.catagory },
-      });
-
-      await gameStateService.setGame(ws.data.game, game);
-      const gameState = sanitizeNHIEGameState(game);
-      broadcastToGame(ws, "game_state", { game: gameState }, true);
+      ingestEvent({ gameID: gameId, event: "category_toggled", playerID: ws.data.player, details: { catagory: data.catagory } });
+      await broadcast(ws);
     },
 
-    confirm_selections: async (ws, data) => {
-      const game = await getGame(ws.data.game);
-      if (!game) {
-        throw new Error("Game not found");
+    // -----------------------------------------------------------------------
+    confirm_selections: async (ws, _data) => {
+      const gameId = ws.data.game;
+      const selected = await gameStateService.getSelectedCategories(gameId);
+      if (selected.length === 0) throw new ValidationError("At least one category must be selected");
+
+      // Load the master question list and seed per-category question SETs
+      const allQuestions = await httpService.getQuestionsList();
+      await Promise.all(
+        selected.map(async (cat) => {
+          const qs = allQuestions[cat]?.questions ?? [];
+          await gameStateService.initCategoryQuestions(gameId, cat, qs);
+        })
+      );
+
+      ingestEvent({ gameID: gameId, event: "category_selection_completed", playerID: ws.data.player, details: { selected_categories: selected } });
+
+      await advanceToNextQuestion(ws);
+    },
+
+    // -----------------------------------------------------------------------
+    next_question: async (ws, _data) => {
+      const meta = await gameStateService.getGameMeta(ws.data.game);
+      if (!meta) throw new Error("Game not found");
+
+      if (meta.waitingForPlayers === "1") {
+        // Only allow skip if all connected players have voted
+        const players = await gameStateService.getPlayers(ws.data.game);
+        const connected = players.filter(p => p.connected);
+        const voted = connected.filter(p => p.this_round.voted);
+        if (voted.length < connected.length) {
+          wsService.sendToClient(ws, "error", {
+            message: `Cannot skip — waiting for players to vote (${voted.length}/${connected.length})`,
+          });
+          return;
+        }
       }
 
-      if (game.catagories.length === 0) {
-        throw new ValidationError("At least one category must be selected");
-      }
-
-      game.phase = 'waiting';
-
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "category_selection_completed",
-        playerID: ws.data.player,
-        details: { selected_categories: game.catagories },
-      });
-
-      await gameStateService.setGame(ws.data.game, game);
-      broadcastToGame(ws, "game_state", { game }, true);
+      await advanceToNextQuestion(ws);
     },
 
-    next_question: async (ws, data) => {
-      await handleNextQuestion(ws, data);
-    },
-
+    // -----------------------------------------------------------------------
     vote: async (ws, data) => {
-      const game = await getGame(ws.data.game);
-      if (!game) {
-        throw new Error("Game not found");
-      }
+      const gameId = ws.data.game;
 
       if (!data.option || data.option < 1 || data.option > 3) {
         throw new ValidationError("Invalid vote option");
       }
 
-      const player = game.players.find(p => p.id === ws.data.player);
-      if (!player) {
-        throw new Error("Player not found");
+      const player = await gameStateService.getPlayer(gameId, ws.data.player);
+      if (!player) throw new Error("Player not found");
+
+      const newVoteLabel = VOTE_LABELS[data.option as 1 | 2 | 3];
+
+      // Undo previous vote score
+      if (player.this_round.voted && player.this_round.vote) {
+        const undo = -(VOTE_SCORES[player.this_round.vote] ?? 0);
+        if (undo !== 0) await gameStateService.incrPlayerScore(gameId, ws.data.player, undo);
       }
 
-      // Handle vote changes (undo previous vote)
-      if (player.this_round.voted) {
-        // Undo previous vote
-        switch (player.this_round.vote) {
-          case "Have":
-            player.score -= 1;
-            break;
-          case "Have Not":
-            break;
-          case "Kinda":
-            player.score -= 0.5;
-            break;
-        }
-        player.this_round.voted = false;
+      // Apply new vote score
+      const delta = VOTE_SCORES[newVoteLabel] ?? 0;
+      if (delta !== 0) await gameStateService.incrPlayerScore(gameId, ws.data.player, delta);
+
+      await gameStateService.updatePlayerVote(gameId, ws.data.player, newVoteLabel, true);
+
+      ingestEvent({ gameID: gameId, event: "vote_cast", playerID: ws.data.player, details: { vote: data.option, vote_str: newVoteLabel } });
+
+      // Re-fetch updated player for the broadcast
+      const updated = await gameStateService.getPlayer(gameId, ws.data.player);
+      wsService.broadcastToGameAndClient(ws, "vote_cast", { player: updated, vote: newVoteLabel });
+
+      // Start timeout on first vote in this round
+      const meta = await gameStateService.getGameMeta(gameId);
+      if (meta?.waitingForPlayers === "1" && !roundTimeouts.has(gameId)) {
+        await startRoundTimeout(ws);
       }
 
-      // Apply new vote
-      switch (data.option) {
-        case 1: // Have
-          player.score += 1;
-          player.this_round = { vote: "Have", voted: true };
-          break;
-        case 2: // Have Not
-          player.this_round = { vote: "Have Not", voted: true };
-          break;
-        case 3: // Kinda
-          player.score += 0.5;
-          player.this_round = { vote: "Kinda", voted: true };
-          break;
+      // If all connected players have voted, advance immediately
+      const players = await gameStateService.getPlayers(gameId);
+      const connected = players.filter(p => p.connected);
+      if (connected.length > 0 && connected.every(p => p.this_round.voted)) {
+        await advanceToNextQuestion(ws);
+        return;
       }
 
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "vote_cast",
-        playerID: ws.data.player,
-        details: { vote: data.option, vote_str: player.this_round.vote },
-      });
+      await broadcast(ws);
+    },
 
-      broadcastToGame(ws, "vote_cast", { player, vote: player.this_round.vote });
+    // -----------------------------------------------------------------------
+    reset_game: async (ws, _data) => {
+      const gameId = ws.data.game;
+      clearRoundTimeout(gameId);
 
-      // Start timeout on first vote if not already started
-      if (game.waitingForPlayers && !game.round_timeout) {
-        console.log('[DEBUG] Starting timeout on first vote');
-        const timeoutStart = Date.now();
-        webSocketService.setTimeoutStart(ws.data.game, timeoutStart);
+      // Capture current players before deleting
+      const players = await gameStateService.getPlayers(gameId);
 
-        game.round_timeout = setTimeout(async () => {
-          await handleRoundTimeout(ws.data.game, ws);
-        }, webSocketService.getRoundTimeoutMs());
+      await gameStateService.deleteGame(gameId);
+      await gameStateService.createGame(gameId);
 
-        // Send updated game state with timeout info
-        const gameState = sanitizeNHIEGameState(game);
-        const gameStateWithTimeout = {
-          ...gameState,
-          timeout_start: timeoutStart,
-          timeout_duration: webSocketService.getRoundTimeoutMs()
-        };
-        await gameStateService.setGame(ws.data.game, game);
-        console.log('[DEBUG] Sending timeout start game state:', {
-          timeout_start: timeoutStart,
-          timeout_duration: webSocketService.getRoundTimeoutMs()
+      // Re-add players with zeroed scores
+      for (const p of players) {
+        await gameStateService.addPlayer(gameId, {
+          ...p,
+          score: 0,
+          connected: p.connected,
+          this_round: { vote: null, voted: false },
         });
-        broadcastToGame(ws, "game_state", { game: gameStateWithTimeout }, true);
-      } else {
-        console.log('[DEBUG] Vote cast, no timeout start needed');
-        await gameStateService.setGame(ws.data.game, game);
-        const gameState = sanitizeNHIEGameState(game);
-        broadcastToGame(ws, "game_state", { game: gameState }, true);
-      }
-    },
-
-    reset_game: async (ws, data) => {
-      const game = await getGame(ws.data.game);
-      if (!game) {
-        throw new Error("Game not found");
       }
 
-      const questionsList = await httpService.getQuestionsList();
-
-      // Clear any existing timeout
-      if (game.round_timeout) {
-        clearTimeout(game.round_timeout);
-        game.round_timeout = undefined;
-      }
-      webSocketService.deleteTimeoutStart(ws.data.game);
-
-      // Reset game state
-      game.catagories = [];
-      game.history = [];
-      game.phase = 'category_select';
-      game.gameCompleted = false;
-      game.waitingForPlayers = false;
-      game.current_question = { catagory: "", content: "" };
-      game.data = deepCopy(questionsList);
-
-      // Reset all players
-      game.players.forEach(player => {
-        player.score = 0;
-        player.this_round = { vote: null, voted: false };
-      });
-
-      ingestEvent({
-        gameID: ws.data.game,
-        event: "game_reset",
-        playerID: ws.data.player,
-        details: { final_state: game },
-      });
-
-      const gameState = sanitizeNHIEGameState(game);
-      broadcastToGame(ws, "game_state", { game: gameState }, true);
+      ingestEvent({ gameID: gameId, event: "game_reset", playerID: ws.data.player });
+      await broadcast(ws);
     },
 
-    ping: async (ws, data) => {
-      // Simple ping handler
-      webSocketService.sendToClient(ws, "pong", {});
+    // -----------------------------------------------------------------------
+    ping: async (ws, _data) => {
+      wsService.sendToClient(ws, "pong", {});
     },
 
-    reconnect_status: async (ws, data) => {
-      // Server no longer performs reconnect attempts; always report not reconnecting
-      webSocketService.sendToClient(ws, "reconnect_status", {
+    reconnect_status: async (ws, _data) => {
+      wsService.sendToClient(ws, "reconnect_status", {
         reconnecting: false,
         attemptCount: 0,
         nextAttemptIn: 0,
       });
     },
 
-    disconnect: async (ws, data) => {
-      await handleDisconnect(ws);
+    disconnect: async (ws, _data) => {
+      const gameId = ws.data.game;
+      await gameStateService.updatePlayerConnected(gameId, ws.data.player, false);
+      wsService.removeWebSocket(gameId, ws);
+
+      ingestEvent({ gameID: gameId, event: "player_disconnected", playerID: ws.data.player });
+      await broadcast(ws);
     },
   };
 
-  async function handleRoundTimeout(gameId: string, ws: GameSocket): Promise<void> {
-    console.log('[DEBUG] Round timeout triggered for game:', gameId);
-    const game = await getGame(gameId);
-    if (!game || !game.waitingForPlayers) {
-      console.log('[DEBUG] Timeout cancelled - game not in waiting state');
-      return;
-    }
-
-    // Clear the timeout
-    game.round_timeout = undefined;
-    webSocketService.deleteTimeoutStart(gameId);
-
-    // Reset waiting state
-    game.waitingForPlayers = false;
-
-    console.log('[DEBUG] Round timeout processed, proceeding to next question');
-    ingestEvent({
-      gameID: gameId,
-      event: "round_timeout",
-      details: {
-        connected_players: game.players.filter(p => p.connected).length,
-        voted_players: game.players.filter(p => p.connected && p.this_round.voted).length
-      },
-    });
-
-    // Send timeout notification to all clients
-    broadcastToGame(ws, "round_timeout", {
-      message: "Round timed out - proceeding to next question"
-    });
-
-    // Proceed to next question
-    await handleNextQuestion(ws, {});
-  }
-
-  return {
-    type: "never-have-i-ever",
-    handlers,
-  };
+  return { type: "never-have-i-ever", handlers };
 }

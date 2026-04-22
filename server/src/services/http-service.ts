@@ -1,9 +1,8 @@
-import { GameData, Catagories, CatagoriesSchema } from "../types";
+import { Catagories, CatagoriesSchema } from "../types";
 import { config } from "../config";
 import { client } from "../redis_client";
 import Database from "bun:sqlite";
 import { ValkeyJSON } from "../utils/json";
-import { sanitizeGameState } from "../utils";
 import { PushEvent } from "@octokit/webhooks-types";
 import logger from "../logger";
 
@@ -11,7 +10,6 @@ export interface IHttpService {
   getQuestionsList(): Promise<Catagories>;
   handleCategories(): Promise<Response>;
   handleCAHPacks(): Promise<Response>;
-  handleGame(games: Map<string, GameData>, request: Request): Promise<Response>;
   handleGithubWebhook(request: Request, server: any, deploymentInProgress: boolean): Promise<Response>;
 }
 
@@ -186,38 +184,6 @@ export class HttpService implements IHttpService {
       'KinderPerfect: Tween Expansion Pack',
     ];
     return !cleanPacks.some(clean => packName.includes(clean));
-  }
-
-  async handleGame(games: Map<string, GameData>, request: Request): Promise<Response> {
-    try {
-      const url = new URL(request.url);
-      const gameId = url.searchParams.get("id");
-
-      if (!gameId) {
-        return new Response(JSON.stringify({ error: "no_gameid" }), {
-          status: 400,
-        });
-      }
-
-      const game = games.get(gameId);
-      if (!game) {
-        return new Response(JSON.stringify({ error: "game_not_found" }), {
-          status: 404,
-        });
-      }
-
-      const gameState = {
-        ...sanitizeGameState(game),
-        active: game.players.filter((p) => p.connected).length > 0,
-      };
-
-      return new Response(JSON.stringify(gameState), { status: 200 });
-    } catch (error) {
-      console.error("Error fetching game:", error);
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
-        status: 500,
-      });
-    }
   }
 
   async handleGithubWebhook(request: Request, server: any, deploymentInProgress: boolean): Promise<Response> {

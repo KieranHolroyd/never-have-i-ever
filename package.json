@@ -1,0 +1,5 @@
+{
+  "name": "never-have-i-ever",
+  "private": true,
+  "workspaces": ["client", "server", "packages/shared"]
+}
