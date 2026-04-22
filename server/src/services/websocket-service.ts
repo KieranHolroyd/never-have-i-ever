@@ -19,7 +19,7 @@ export interface IWebSocketService {
 }
 
 export class WebSocketService implements IWebSocketService {
-  private readonly ROUND_TIMEOUT_MS = 10000; // 10 seconds
+  private readonly ROUND_TIMEOUT_MS = 30000; // 30 seconds
 
   // Track timeout start times for sync across clients
   private timeoutStarts: Map<string, number> = new Map();

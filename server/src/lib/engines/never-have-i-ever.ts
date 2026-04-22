@@ -20,14 +20,15 @@ const VOTE_LABELS: Record<number, string> = {
   3: "Kinda",
 };
 
-// ── In-memory timeout handles (not persisted — only this process's timers) ──
-const roundTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-
 export function createNeverHaveIEverEngine(
   wsService: IWebSocketService,
   httpService: IHttpService,
   gameStateService: IGameStateService
 ): GameEngine {
+  // ── In-memory timeout handles (not persisted — only this process's timers) ──
+  const roundTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  // ── Guard against concurrent advances for the same game ──
+  const advancingGames = new Set<string>();
   // ── Broadcast helper ────────────────────────────────────────────────────
 
   async function broadcast(ws: GameSocket): Promise<void> {
@@ -48,6 +49,11 @@ export function createNeverHaveIEverEngine(
   async function advanceToNextQuestion(ws: GameSocket): Promise<void> {
     const gameId = ws.data.game;
 
+    // Prevent double-advance race (e.g. last vote + timer firing simultaneously)
+    if (advancingGames.has(gameId)) return;
+    advancingGames.add(gameId);
+
+    try {
     // Clear any running timeout
     clearRoundTimeout(gameId);
 
@@ -113,6 +119,9 @@ export function createNeverHaveIEverEngine(
 
     wsService.broadcastToGameAndClient(ws, "new_round", {});
     await broadcast(ws);
+    } finally {
+      advancingGames.delete(gameId);
+    }
   }
 
   // ── Timeout helpers ─────────────────────────────────────────────────────
@@ -126,14 +135,8 @@ export function createNeverHaveIEverEngine(
     wsService.deleteTimeoutStart(gameId);
   }
 
-  async function startRoundTimeout(ws: GameSocket): Promise<void> {
+  function scheduleTimeout(ws: GameSocket, delayMs: number): void {
     const gameId = ws.data.game;
-    if (roundTimeouts.has(gameId)) return; // already started
-
-    const timeoutStart = Date.now();
-    wsService.setTimeoutStart(gameId, timeoutStart);
-    await gameStateService.setGameMeta(gameId, { timeout_start: String(timeoutStart) });
-
     const handle = setTimeout(async () => {
       roundTimeouts.delete(gameId);
       logger.info(`Round timeout fired for game ${gameId}`);
@@ -147,12 +150,53 @@ export function createNeverHaveIEverEngine(
       });
 
       await advanceToNextQuestion(ws);
-    }, wsService.getRoundTimeoutMs());
-
+    }, delayMs);
     roundTimeouts.set(gameId, handle);
+  }
+
+  async function startRoundTimeout(ws: GameSocket): Promise<void> {
+    const gameId = ws.data.game;
+    if (roundTimeouts.has(gameId)) return; // already started
+
+    const timeoutStart = Date.now();
+    wsService.setTimeoutStart(gameId, timeoutStart);
+    await gameStateService.setGameMeta(gameId, { timeout_start: String(timeoutStart) });
+
+    scheduleTimeout(ws, wsService.getRoundTimeoutMs());
 
     // Re-broadcast so clients get the timeout_start timestamp
     await broadcast(ws);
+  }
+
+  /**
+   * Called on join_game to restore a timer that was lost due to a server restart.
+   * Reads the stored timeout_start from Redis and reschedules with remaining time,
+   * or advances immediately if the timer has already expired.
+   * Returns true if it triggered an immediate advance (caller should skip broadcast).
+   */
+  async function maybeRestoreTimeout(ws: GameSocket): Promise<boolean> {
+    const gameId = ws.data.game;
+    if (roundTimeouts.has(gameId)) return false; // timer still running — nothing to restore
+
+    const meta = await gameStateService.getGameMeta(gameId);
+    if (!meta || meta.waitingForPlayers !== "1") return false;
+
+    const storedStart = meta.timeout_start ? Number(meta.timeout_start) : 0;
+    if (storedStart === 0) return false; // timer never started this round
+
+    const remaining = wsService.getRoundTimeoutMs() - (Date.now() - storedStart);
+    wsService.setTimeoutStart(gameId, storedStart); // restore in-memory state
+
+    if (remaining <= 0) {
+      // Timer expired while server was down — advance now
+      logger.info(`Restoring expired timeout for game ${gameId}; advancing immediately`);
+      await advanceToNextQuestion(ws);
+      return true;
+    }
+
+    logger.info(`Restoring round timeout for game ${gameId}; ${remaining}ms remaining`);
+    scheduleTimeout(ws, remaining);
+    return false;
   }
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -192,7 +236,9 @@ export function createNeverHaveIEverEngine(
 
       ingestEvent({ gameID: gameId, event: "player_joined", playerID: ws.data.player, details: { name: playername } });
 
-      await broadcast(ws);
+      // Re-arm the round timer if server restarted while a round was in progress
+      const advanced = await maybeRestoreTimeout(ws);
+      if (!advanced) await broadcast(ws);
     },
 
     // -----------------------------------------------------------------------
