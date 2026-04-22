@@ -18,9 +18,9 @@
 # ========================================================================
 
 # Use specific version for better caching and reproducibility
-FROM oven/bun:1.2-slim
+FROM oven/bun:1.3-slim
 
-# Set working directory
+# Set working directory to workspace root
 WORKDIR /app
 
 # Install system dependencies in a single layer for better caching
@@ -34,25 +34,36 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& apt-get clean
 
-# Copy package files first for better layer caching
-# This allows Docker to cache dependency installation
-COPY package.json bun.lockb* ./
+# Copy workspace root package.json and lockfile for workspace resolution
+COPY package.json bun.lock* ./
 
-# Install dependencies with frozen lockfile for reproducible builds
+# Copy shared workspace package (required dependency)
+COPY packages/shared/ ./packages/shared/
+
+# Create a stub for the client workspace so bun can resolve the workspace graph
+# The client is listed in root workspaces but not needed at runtime
+RUN mkdir -p client && echo '{"name":"app","private":true}' > client/package.json
+
+# Copy server package files for dependency installation
+COPY server/package.json ./server/
+
+# Install all workspace dependencies from root
 # Use cache mount for bun cache to speed up subsequent builds
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install --frozen-lockfile
+	bun install
 
 # Copy static assets that don't change often
 # This allows better layer caching for subsequent builds
-COPY assets/data.json ./assets/
+COPY server/assets/data.json ./server/assets/
 
 # Create necessary directories
-RUN mkdir -p /app/assets/games
+RUN mkdir -p /app/server/assets/games
 
 # Copy source code (put this last as it changes most frequently)
-COPY src/ ./src/
-COPY tsconfig.json ./
+COPY server/src/ ./server/src/
+COPY server/tsconfig.json ./server/
+
+WORKDIR /app/server
 
 # Expose port
 EXPOSE 3000
