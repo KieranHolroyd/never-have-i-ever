@@ -12,6 +12,11 @@ export class GameManager {
     private gameStateService?: IGameStateService
   ) {}
 
+  async gameExists(gameId: string): Promise<boolean> {
+    if (!this.gameStateService) return false;
+    return this.gameStateService.gameExists(gameId);
+  }
+
   async handleCategories(): Promise<Response> {
     return await this.httpService.handleCategories();
   }

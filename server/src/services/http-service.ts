@@ -22,7 +22,7 @@ export class HttpService implements IHttpService {
 
     if (!questionsList) {
       // Load from database if not in cache (categories are in main assets directory)
-      const dbPath = `${import.meta.dir}/../assets/db.sqlite`;
+      const dbPath = `${import.meta.dir}/../../assets/db.sqlite`;
       const db = new Database(dbPath);
 
       try {

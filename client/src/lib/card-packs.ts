@@ -13,7 +13,7 @@ export async function getCardPacks(): Promise<CardPack[]> {
 	}
 
 	try {
-		const response = await fetch(env.PUBLIC_API_URL + '/cah-packs');
+		const response = await fetch(env.PUBLIC_API_URL + 'api/cah-packs');
 		if (!response.ok) {
 			throw new Error(`Failed to fetch card packs: ${response.status}`);
 		}

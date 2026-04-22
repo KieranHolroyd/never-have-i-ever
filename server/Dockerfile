@@ -54,7 +54,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 
 # Copy static assets that don't change often
 # This allows better layer caching for subsequent builds
-COPY server/assets/data.json ./server/assets/
+COPY server/assets/data.json server/assets/db.sqlite ./server/assets/
 
 # Create necessary directories
 RUN mkdir -p /app/server/assets/games

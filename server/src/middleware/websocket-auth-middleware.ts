@@ -11,7 +11,7 @@ export interface WebSocketMiddleware {
 }
 
 export class WebSocketAuthMiddleware {
-  static authenticate(context: WebSocketContext, next: () => Promise<void>): Promise<void> {
+  static async authenticate(context: WebSocketContext, next: () => Promise<void>): Promise<void> {
     const { ws, gameManager } = context;
 
     // Validate required metadata
@@ -20,16 +20,9 @@ export class WebSocketAuthMiddleware {
     }
 
     // Validate game exists
-    const game = gameManager['games'].get(ws.data.game);
-    if (!game) {
+    const exists = await gameManager.gameExists(ws.data.game);
+    if (!exists) {
       throw new Error("Game not found");
-    }
-
-    // Validate player exists in game (for joined players)
-    const playerExists = game.players.some(p => p.id === ws.data.player);
-    if (!playerExists) {
-      // Allow new players to join, but validate they have a name when joining
-      // This will be checked in the join handler
     }
 
     return next();
