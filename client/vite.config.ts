@@ -1,9 +1,11 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import Icons from 'unplugin-icons/vite';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
 	plugins: [
+		tailwindcss(),
 		sveltekit(),
 		Icons({
 			compiler: 'svelte',
@@ -11,6 +13,9 @@ export default defineConfig({
 		})
 	],
 	server: {
+		fs: {
+			allow: ['..']
+		},
 		proxy: {
 			'/api': {
 				target: 'http://localhost:3000',
