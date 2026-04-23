@@ -92,9 +92,9 @@ export class HttpService implements IHttpService {
         };
 
         if (row.card_type === "black") {
-          pack.blackCards = row.card_count;
+          pack.blackCards = Number(row.card_count);
         } else if (row.card_type === "white") {
-          pack.whiteCards = row.card_count;
+          pack.whiteCards = Number(row.card_count);
         }
 
         packsMap.set(row.pack_name, pack);

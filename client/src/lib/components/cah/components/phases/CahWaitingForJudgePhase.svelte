@@ -11,7 +11,7 @@
 <div class="space-y-4">
 	<!-- Status banner -->
 	<div class="rounded-2xl border border-amber-400/20 bg-amber-500/[0.07] p-5 text-center">
-<p class="text-[11px] font-black uppercase tracking-[0.3em] text-amber-400/60">Judging</p>
+		<p class="text-[11px] font-black uppercase tracking-[0.3em] text-amber-400/60">Judging</p>
 		<h2 class="mt-1 text-xl font-black text-white">Judge is deciding</h2>
 		<p class="mt-1 text-sm text-white/40">
 			All {submissions.length} submission{submissions.length === 1 ? '' : 's'} are in — waiting for the judge's pick.

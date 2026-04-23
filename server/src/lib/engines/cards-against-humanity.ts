@@ -207,6 +207,15 @@ export function createCardsAgainstHumanityEngine(
           isJudge: false,
         };
         await cahService.addPlayer(gameId, player);
+
+        // Deal cards to players who join while the game is already in progress
+        const joinMeta = await cahService.getGameMeta(gameId);
+        if (joinMeta && joinMeta.selectedPacks.length > 0 && joinMeta.phase !== "waiting") {
+          const cards = await drawWhiteCards(gameId, joinMeta.handSize);
+          if (cards.length > 0) {
+            await cahService.updatePlayerHand(gameId, ws.data.player, cards);
+          }
+        }
       } else {
         const nextName = typeof playername === "string" && playername.trim().length > 0
           ? playername.trim()
@@ -260,6 +269,12 @@ export function createCardsAgainstHumanityEngine(
       const meta = await cahService.getGameMeta(gameId);
       if (!meta) {
         wsService.sendToClient(ws, "error", { message: "Game not found" });
+        return;
+      }
+
+      // Prevent packs from being re-selected once already chosen
+      if (meta.selectedPacks.length > 0) {
+        wsService.sendToClient(ws, "error", { message: "Packs already selected" });
         return;
       }
 
@@ -345,6 +360,12 @@ export function createCardsAgainstHumanityEngine(
         return;
       }
 
+      // Reject duplicate card IDs in the submission (e.g. ["W1","W1"] for pick:2)
+      if (new Set(cardIds).size !== required) {
+        wsService.sendToClient(ws, "error", { message: "Duplicate cards in submission" });
+        return;
+      }
+
       // Validate cards are in player's hand
       const handIds = new Set(player.hand.map(c => c.id));
       const validIds = cardIds.filter(id => handIds.has(id));
@@ -406,6 +427,14 @@ export function createCardsAgainstHumanityEngine(
 
       if (!judge.isJudge) {
         wsService.sendToClient(ws, "error", { message: "Only the judge can select a winner" });
+        return;
+      }
+
+      // Verify the winner is an actual submitter (prevents scoring an arbitrary player ID)
+      const submissions = await cahService.getSubmissions(gameId);
+      const submitterIds = new Set(submissions.map(s => s.playerId));
+      if (!submitterIds.has(winnerPlayerId)) {
+        wsService.sendToClient(ws, "error", { message: "Invalid winner: player did not submit cards" });
         return;
       }
 

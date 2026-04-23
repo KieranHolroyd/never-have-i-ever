@@ -406,12 +406,12 @@
 								onClearSelection={clearSelected}
 								requiredCards={(gameState as CAHGameState).currentBlackCard?.pick ?? 1}
 							/>
-						{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge}
-							<CahJudgingPhase
-								submissions={(gameState as CAHGameState).submittedCards || []}
-								onSelectWinner={selectWinner}
-							/>
-						{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
+					{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge === true}
+						<CahJudgingPhase
+							submissions={(gameState as CAHGameState).submittedCards || []}
+							onSelectWinner={selectWinner}
+						/>
+					{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge === false}
 							<CahWaitingForJudgePhase
 								submissions={(gameState as CAHGameState).submittedCards || []}
 							/>
