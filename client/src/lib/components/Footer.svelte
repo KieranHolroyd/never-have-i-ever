@@ -2,16 +2,12 @@
 	import { version } from '$lib/version';
 </script>
 
-<footer class="mt-10 pb-8 text-center text-slate-300">
-	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-		<div
-			class="inline-flex items-center gap-4 rounded-full border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm px-4 py-2 text-sm"
-		>
-			<span>v{version}</span>
-			<span class="opacity-60">•</span>
-			<a href="/" class="hover:text-white">Home</a>
-			<span class="opacity-60">•</span>
-			<a href="/suggest" class="hover:text-white">Contact</a>
-		</div>
+<footer class="mt-16 pb-10 border-t border-zinc-800/50 pt-6">
+	<div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-zinc-500">
+		<span class="font-mono text-xs tracking-tight">v{version}</span>
+		<nav class="flex items-center gap-5">
+			<a href="/" class="hover:text-zinc-200 transition-colors">Home</a>
+			<a href="/suggest" class="hover:text-zinc-200 transition-colors">Contact</a>
+		</nav>
 	</div>
 </footer>

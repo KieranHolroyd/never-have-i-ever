@@ -28,41 +28,49 @@
 	}
 </script>
 
-<div class="max-w-md mx-auto mt-10">
-	<div
-		class="rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 p-6"
-	>
-		<h1 class="relative pl-12 text-xl font-bold">
-			<IcRoundAccountCircle class="absolute left-0 top-[-2px] text-white h-10 w-10" />
-			{LocalPlayer.name !== null ? `Hello ${LocalPlayer.name}` : 'Choose your nickname'}
-		</h1>
-		<p class="mt-2 text-slate-300 text-sm">
-			{#if LocalPlayer.name === null}
-				You need to choose a nickname first!
-			{:else}
-				You can change your nickname at any time.
+<div class="min-h-[60vh] flex items-center justify-center py-12 px-4">
+	<div class="w-full max-w-sm">
+		<div class="mb-8 text-center">
+			<div
+				class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-zinc-800 mb-4"
+			>
+				<IcRoundAccountCircle class="h-8 w-8 text-zinc-300" />
+			</div>
+			<h1 class="text-2xl font-bold text-white">
+				{LocalPlayer.name !== null ? `Hey, ${LocalPlayer.name}` : 'Choose a nickname'}
+			</h1>
+			<p class="mt-2 text-zinc-400 text-sm">
+				{LocalPlayer.name === null
+					? 'Pick a name before you jump in.'
+					: 'You can update your nickname at any time.'}
+			</p>
+		</div>
+
+		<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+			<label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2" for="name">
+				Nickname
+			</label>
+			<input
+				class="block w-full rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500
+					px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition"
+				type="text"
+				id="name"
+				name="name"
+				placeholder="e.g. P. Flynn"
+				bind:value={nickname}
+				onkeydown={(e) => (e.key === 'Enter' ? choose_nickname() : null)}
+			/>
+			{#if error !== ''}
+				<p class="mt-2 text-xs text-red-400">{error}</p>
 			{/if}
-		</p>
-		<label class="block w-full text-left uppercase text-xs font-bold mt-4 mb-1" for="name"
-			>Nickname</label
-		>
-		<input
-			class="block w-full rounded-md text-slate-900 bg-slate-100 placeholder-slate-500 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-			type="text"
-			id="name"
-			name="name"
-			placeholder="P. Flynn"
-			bind:value={nickname}
-			onkeydown={(e) => (e.key === 'Enter' ? choose_nickname() : null)}
-		/>
-		<button
-			class="mt-4 w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-			onclick={choose_nickname}
-		>
-			Confirm Selection
-		</button>
-		{#if error !== ''}
-			<p class="mt-2 leading-none text-xs text-red-400">{error}</p>
-		{/if}
+			<button
+				class="mt-4 w-full rounded-lg bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600
+					px-4 py-2.5 text-white font-semibold text-sm transition-colors
+					focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+				onclick={choose_nickname}
+			>
+				{LocalPlayer.name === null ? 'Set nickname' : 'Update nickname'}
+			</button>
+		</div>
 	</div>
 </div>

@@ -27,30 +27,33 @@
 </script>
 
 <div use:clickOutside={() => (show = false)}>
-	<div class="fixed z-20 top-16 left-2">
+	<!-- Trigger: sits in top-right corner, visually integrated with the horizontal navbar -->
+	<div class="fixed z-50 top-2 right-2">
 		<button
-			class="relative rounded-full p-2 bg-slate-700/40 text-slate-100 backdrop-blur-sm border border-slate-500/50 shadow hover:bg-slate-600/50 transition {show
-				? 'transform rotate-90'
-				: 'transform'}"
+			class="rounded-md p-1.5 transition-colors {show
+				? 'bg-zinc-800 text-white'
+				: 'text-zinc-400 hover:text-white hover:bg-zinc-800'}"
 			onclick={() => (show = !show)}
+			aria-label="Settings"
 		>
 			{#if show}
-				<MdiClose class="h-7 w-7" />
+				<MdiClose class="h-5 w-5" />
 			{:else}
-				<MdiSettings class="h-7 w-7" />
+				<MdiSettings class="h-5 w-5" />
 			{/if}
 		</button>
 	</div>
 
+	<!-- Right-side slide-in panel -->
 	<div
 		class="{show
 			? 'pointer-events-auto opacity-100 translate-x-0'
-			: 'pointer-events-none opacity-0 -translate-x-4'} transition duration-200 prose dark:prose-invert z-10 fixed top-0 left-0 py-3 pl-[4.5rem] pr-4 min-w-full md:min-w-[24rem] bg-slate-800/75 text-slate-100 backdrop-blur-md border border-slate-600/60 rounded-lg shadow-xl"
+			: 'pointer-events-none opacity-0 translate-x-4'} transition duration-200 prose dark:prose-invert z-40 fixed top-0 right-0 py-5 px-5 w-full md:w-80 min-h-screen bg-zinc-900/95 text-zinc-100 backdrop-blur-md border-l border-zinc-700/60 shadow-2xl"
 	>
-		<h1 class="mb-2">Settings</h1>
+		<h1 class="mt-2 mb-4 text-xl">Settings</h1>
 		<label class="my-[2px] block">
 			<div
-				class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-slate-600/50 bg-slate-700/40 hover:bg-slate-700/60 transition"
+				class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
 			>
 				<input
 					type="checkbox"
@@ -64,7 +67,7 @@
 			</div>
 			<label class="my-[2px] block">
 				<div
-					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-slate-600/50 bg-slate-700/40 hover:bg-slate-700/60 transition"
+					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
 				>
 					<input
 						type="checkbox"
@@ -79,7 +82,7 @@
 			</label>
 			<label class="my-[2px] block">
 				<div
-					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-slate-600/50 bg-slate-700/40 hover:bg-slate-700/60 transition"
+					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
 				>
 					<input
 						type="checkbox"
@@ -94,7 +97,7 @@
 			</label>
 			<label class="my-[2px] block">
 				<div
-					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-slate-600/50 bg-slate-700/40 hover:bg-slate-700/60 transition"
+					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
 				>
 					<input
 						type="checkbox"
@@ -108,7 +111,7 @@
 				</div>
 			</label>
 			<button
-				class="mt-2 w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+				class="mt-4 w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
 				onclick={save_settings}
 			>
 				<MdiSave class="inline-block mr-2" /> Save

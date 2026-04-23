@@ -39,13 +39,12 @@
 	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 
-<!-- Global background + container -->
-<div class="min-h-screen bg-gradient-to-b from-slate-800 to-slate-900 text-slate-100">
-	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all pl-16 lg:pl-0">
+<div class="min-h-screen bg-zinc-950 text-zinc-100">
+	<Navbar />
+	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 		{@render children()}
-		<Toaster />
-		<Settings />
-		<Navbar />
 		<Footer />
 	</div>
+	<Toaster />
+	<Settings />
 </div>
