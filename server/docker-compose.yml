@@ -27,7 +27,7 @@ services:
       POSTGRES_PASSWORD: c64c0c9f0871e20c2f2b2e8664dfc9153bce12e303751e89c20f731012f36cee
       POSTGRES_DB: nhie
     volumes:
-      - /var/pgdata:/var/lib/postgresql/data
+      - /var/pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nhie -d nhie"]
       interval: 5s
