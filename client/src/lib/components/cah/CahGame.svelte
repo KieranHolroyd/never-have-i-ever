@@ -279,6 +279,14 @@
 		wsManager?.selectPacks(packs);
 	}
 
+	const showPackSelection = $derived.by(() => {
+		if (!gameState) {
+			return optimisticPhase === 'pack_selection';
+		}
+
+		return gameState.phase === 'waiting' && (gameState.selectedPacks?.length || 0) === 0 && optimisticPhase !== 'waiting';
+	});
+
 	onMount(() => {
 		connect();
 		return () => {
@@ -301,186 +309,171 @@
 	});
 </script>
 
-<div class="max-w-6xl mx-auto p-4">
-	<div
-		class="rounded-2xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow-xl ring-1 ring-white/5 p-6"
-	>
-		<div class="flex items-center justify-between mb-6">
-			<h1 class="text-3xl font-bold">Cards Against Humanity</h1>
-			<ConnectionStatus showPing={true} />
-		</div>
+{#if showPackSelection}
+	<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
+{:else}
+	<div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_48%,#020617_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+		<div class="mx-auto max-w-7xl">
+			<section class="relative overflow-hidden rounded-[32px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-[0_25px_80px_rgba(2,6,23,0.5)] ring-1 ring-white/5 backdrop-blur-xl sm:p-6 lg:p-8">
+				<div class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/6 to-transparent"></div>
+				<div class="relative">
+					<div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+						<div>
+							<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Cards Against Humanity</p>
+							<h1 class="mt-2 text-3xl font-bold text-white sm:text-4xl">Play the table, not the layout</h1>
+							<p class="mt-2 max-w-2xl text-sm text-slate-400 sm:text-base">
+								The board keeps the prompt, player status, and your actions in fixed zones so the round stays readable on desktop and thumb-friendly on mobile.
+							</p>
+						</div>
+						<ConnectionStatus showPing={true} />
+					</div>
 
-		<ErrorDisplay />
+					<ErrorDisplay />
 
-		{#if gameState}
-			<!-- Game Header -->
-			<CahGameHeader gameState={gameState as CAHGameState} />
+					{#if gameState}
+						<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
+							<div class="space-y-6">
+								<CahGameHeader gameState={gameState as CAHGameState} />
+								<CahBlackCard gameState={gameState as CAHGameState} />
 
-			<!-- Players List -->
-			<CahPlayerList gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} />
-
-			<!-- Current Black Card -->
-			<CahBlackCard gameState={gameState as CAHGameState} />
-
-			<!-- Game Content Based on Phase -->
-			{#key gameState.phase}
-				{#if gameState.phase === 'waiting'}
-					{#if optimisticPhase === 'waiting'}
-						<!-- Optimistic waiting overlay until server acknowledges pack selection -->
-						<div class="text-center py-12" data-testid="cah-waiting">
-							<div class="mb-6">
-								<div
-									class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
-								>
-									<svg
-										class="w-8 h-8 text-slate-400 animate-pulse"
-										fill="currentColor"
-										viewBox="0 0 20 20"
-									>
-										<path
-											fill-rule="evenodd"
-											d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-											clip-rule="evenodd"
+								{#key gameState.phase}
+									{#if gameState.phase === 'waiting'}
+										{#if optimisticPhase === 'waiting'}
+											<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm" data-testid="cah-waiting">
+												<div class="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80">
+													<svg class="h-8 w-8 animate-pulse text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
+															clip-rule="evenodd"
+														/>
+													</svg>
+												</div>
+												<h2 class="text-2xl font-bold text-white">Waiting for players</h2>
+												<p class="mx-auto mt-2 max-w-md text-slate-400">The room is being prepared. New players can still join while the server confirms the pack setup.</p>
+											</section>
+										{:else}
+											<CahWaitingPhase gameState={gameState as CAHGameState} />
+										{/if}
+									{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}
+										<CahJudgeSelectingPhase gameState={gameState as CAHGameState} />
+									{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && !(currentPlayer as CAHPlayer).isJudge}
+										{@const hasSubmitted = (gameState as CAHGameState).submittedCards?.some(
+											(s) => s.playerId === (currentPlayer as CAHPlayer).id
+										) ?? false}
+										<CahSelectingPhase
+											currentPlayer={currentPlayer as CAHPlayer}
+											{selectedCardIds}
+											{hasSubmitted}
+											gameState={gameState as CAHGameState}
+											onCardSelect={toggleSelectCard}
+											onSubmitCards={(ids: string[]) => submitCards(ids)}
+											onClearSelection={clearSelected}
+											requiredCards={(gameState as CAHGameState).currentBlackCard?.pick ?? 1}
 										/>
-									</svg>
-								</div>
-								<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
-								<p class="text-slate-400 max-w-md mx-auto">
-									The game will begin once more players join the room.
-								</p>
+									{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge}
+										<CahJudgingPhase
+											submissions={(gameState as CAHGameState).submittedCards || []}
+											onSelectWinner={selectWinner}
+										/>
+									{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
+										<CahWaitingForJudgePhase submissions={(gameState as CAHGameState).submittedCards || []} />
+									{:else if (gameState as CAHGameState).phase === 'scoring'}
+										{@const cahState = gameState as CAHGameState}
+										{@const winnerPlayer = cahState.players.find((p) => p.id === cahState.roundWinner) || null}
+										{@const winnerSubmission =
+											cahState.submittedCards?.find((s) => s.playerId === cahState.roundWinner) || null}
+										<CahScoringPhase {winnerPlayer} {winnerSubmission} />
+									{:else if (gameState as CAHGameState).phase === 'game_over'}
+										<CahGameOverPhase
+											gameState={gameState as CAHGameState}
+											currentPlayerId={LocalPlayer.id}
+											onResetGame={resetGame}
+										/>
+									{/if}
+								{/key}
+							</div>
+
+							<div class="lg:sticky lg:top-6 lg:self-start">
+								<CahPlayerList gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} />
 							</div>
 						</div>
-					{:else if ((gameState as CAHGameState).selectedPacks?.length || 0) === 0}
-						<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
+					{:else if optimisticPhase === 'waiting'}
+						<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
+							<div class="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80">
+								<svg class="h-8 w-8 animate-pulse text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+									<path
+										fill-rule="evenodd"
+										d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</div>
+							<h2 class="text-2xl font-bold text-white">Waiting for players</h2>
+							<p class="mx-auto mt-2 max-w-md text-slate-400">The table is initializing. As soon as the server confirms the new pack set, the room will open for players.</p>
+						</section>
 					{:else}
-						<CahWaitingPhase gameState={gameState as CAHGameState} />
+						<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
+							<p class="text-lg text-slate-300">Connecting to game...</p>
+						</section>
 					{/if}
-				{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}
-					<CahJudgeSelectingPhase gameState={gameState as CAHGameState} />
-				{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && !(currentPlayer as CAHPlayer).isJudge}
-					{@const hasSubmitted = (gameState as CAHGameState).submittedCards?.some(
-						(s) => s.playerId === (currentPlayer as CAHPlayer).id
-					) ?? false}
-					<CahSelectingPhase
-						currentPlayer={currentPlayer as CAHPlayer}
-						{selectedCardIds}
-						{hasSubmitted}
-						gameState={gameState as CAHGameState}
-						onCardSelect={toggleSelectCard}
-						onSubmitCards={(ids) => submitCards(ids)}
-						onClearSelection={clearSelected}
-						requiredCards={(gameState as CAHGameState).currentBlackCard?.pick ?? 1}
-					/>
-				{:else if (gameState as CAHGameState).phase === 'judging' && (currentPlayer as CAHPlayer)?.isJudge}
-					<CahJudgingPhase
-						submissions={(gameState as CAHGameState).submittedCards || []}
-						onSelectWinner={selectWinner}
-					/>
-				{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
-					<CahWaitingForJudgePhase submissions={(gameState as CAHGameState).submittedCards || []} />
-				{:else if (gameState as CAHGameState).phase === 'scoring'}
-					{@const cahState = gameState as CAHGameState}
-					{@const winnerPlayer = cahState.players.find((p) => p.id === cahState.roundWinner) || null}
-					{@const winnerSubmission =
-						cahState.submittedCards?.find((s) => s.playerId === cahState.roundWinner) || null}
-					<CahScoringPhase {winnerPlayer} {winnerSubmission} />
-				{:else if (gameState as CAHGameState).phase === 'game_over'}
-					<CahGameOverPhase
-						gameState={gameState as CAHGameState}
-						currentPlayerId={LocalPlayer.id}
-						onResetGame={resetGame}
-					/>
-				{/if}
-			{/key}
-		{:else}
-			<!-- Optimistic fallback UI while awaiting first server state -->
-			{#if optimisticPhase === 'pack_selection'}
-				<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
-			{:else if optimisticPhase === 'waiting'}
-				<div class="text-center py-12">
-					<div class="mb-6">
-						<div
-							class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
-						>
-							<svg
-								class="w-8 h-8 text-slate-400 animate-pulse"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-						</div>
-						<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
-						<p class="text-slate-400 max-w-md mx-auto">
-							The game will begin once more players join the room.
-						</p>
-					</div>
-				</div>
-			{:else}
-				<div class="text-center py-8">
-					<p class="text-lg opacity-70">Connecting to game...</p>
-				</div>
-			{/if}
-		{/if}
 
-		<!-- Debug Controls -->
-		{#if $settings?.show_debug}
-			<div class="mt-8 pt-6 border-t border-slate-700/50">
-				<h4 class="text-sm font-semibold mb-3 opacity-70">Debug Controls</h4>
-				<div class="flex flex-wrap gap-2 items-center mb-4">
-					<button
-						class="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors"
-						onclick={() => wsManager?.ping()}
-					>
-						Ping
-					</button>
-					<button
-						class="px-3 py-2 bg-red-600 hover:bg-red-500 rounded text-sm font-medium transition-colors"
-						onclick={resetGame}
-					>
-						Reset Game
-					</button>
-					<span class="mx-2 opacity-50">|</span>
-					<button
-						class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors"
-						onclick={addBot}
-					>
-						Add Bot
-					</button>
-					<button
-						class="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 rounded text-sm font-medium transition-colors"
-						onclick={() => addBots(2)}
-					>
-						Add 2 Bots
-					</button>
-					<button
-						class="px-3 py-2 bg-slate-600 hover:bg-slate-500 rounded text-sm font-medium transition-colors"
-						onclick={killAllBots}
-					>
-						Kill All Bots
-					</button>
-				</div>
-
-				{#if bots.length > 0}
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-						{#each bots as b (b.id)}
-							<div class="flex items-center justify-between bg-slate-700/40 rounded-md px-3 py-2">
-								<div>
-									<div class="text-sm font-medium">{b.name}</div>
-									<div class="text-xs opacity-70">{b.id.slice(0, 8)}…</div>
-								</div>
-								<div class="text-xs {b.connected ? 'text-green-400' : 'text-red-400'}">
-									{b.connected ? 'connected' : 'disconnected'}
-								</div>
+					{#if $settings?.show_debug}
+						<div class="mt-8 border-t border-slate-700/50 pt-6">
+							<h4 class="mb-3 text-sm font-semibold opacity-70">Debug Controls</h4>
+							<div class="mb-4 flex flex-wrap items-center gap-2">
+								<button
+									class="rounded bg-blue-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-blue-500"
+									onclick={() => wsManager?.ping()}
+								>
+									Ping
+								</button>
+								<button
+									class="rounded bg-red-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-red-500"
+									onclick={resetGame}
+								>
+									Reset Game
+								</button>
+								<span class="mx-2 opacity-50">|</span>
+								<button
+									class="rounded bg-emerald-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-emerald-500"
+									onclick={addBot}
+								>
+									Add Bot
+								</button>
+								<button
+									class="rounded bg-emerald-700 px-3 py-2 text-sm font-medium transition-colors hover:bg-emerald-600"
+									onclick={() => addBots(2)}
+								>
+									Add 2 Bots
+								</button>
+								<button
+									class="rounded bg-slate-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-500"
+									onclick={killAllBots}
+								>
+									Kill All Bots
+								</button>
 							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-		{/if}
+
+							{#if bots.length > 0}
+								<div class="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+									{#each bots as b (b.id)}
+										<div class="flex items-center justify-between rounded-md bg-slate-700/40 px-3 py-2">
+											<div>
+												<div class="text-sm font-medium">{b.name}</div>
+												<div class="text-xs opacity-70">{b.id.slice(0, 8)}…</div>
+											</div>
+											<div class="text-xs {b.connected ? 'text-green-400' : 'text-red-400'}">
+												{b.connected ? 'connected' : 'disconnected'}
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			</section>
+		</div>
 	</div>
-</div>
+{/if}

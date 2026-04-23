@@ -4,7 +4,7 @@
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { Status, VoteOptions, type Player, type Catagories } from '$lib/types';
+	import { Status, VoteOptions, type Player, type Catagories, type NHIEGameState } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
 	import { toast } from '$lib/toast';
@@ -34,7 +34,7 @@
 
 	let connection: Status = $state(Status.CONNECTING);
 	let error: string | null = $state(null);
-	let player_id: string | null = null;
+	let player_id: string | null = $state(null);
 	let errors: any[] = $state([]);
 	let players: Player[] = $state([]);
 
@@ -50,6 +50,7 @@
 		content: string;
 		catagory: string;
 	} | null = $state(null);
+	let pendingVote: VoteOptions | null = $state(null);
 	let conf_reset_display = $state(false);
 	let categories_click = $state(false);
 
@@ -85,13 +86,36 @@
 		votes: []
 	};
 
-	const share_data = {
-		title: 'Never Have I Ever ~ games.kieran.dev',
-		text: 'play Never Have I Ever with me!',
-		url: `https://games.kieran.dev/play/${id}/never-have-i-ever`
+	function getShareData() {
+		return {
+			title: 'Never Have I Ever ~ games.kieran.dev',
+			text: 'play Never Have I Ever with me!',
+			url: `https://games.kieran.dev/play/${id}/never-have-i-ever`
+		};
+	}
+
+	const voteLabels: Record<VoteOptions, string> = {
+		[VoteOptions.Have]: 'Have',
+		[VoteOptions.HaveNot]: 'Have Not',
+		[VoteOptions.Kinda]: 'Kinda'
 	};
 
+	let connectedPlayers = $derived(players.filter((player) => player.connected));
+	let connectedPlayerCount = $derived(connectedPlayers.length);
+	let votedPlayerCount = $derived(
+		connectedPlayers.filter((player) => player.this_round.voted).length
+	);
+	let allConnectedPlayersVoted = $derived(
+		connectedPlayerCount > 0 && votedPlayerCount === connectedPlayerCount
+	);
+	let canAdvanceRound = $derived(!game_state.waiting_for_players || allConnectedPlayersVoted);
+	let acknowledgedVote = $derived(
+		players.find((player) => player.id === player_id)?.this_round.vote ?? null
+	);
+
 	async function share_game() {
+		const share_data = getShareData();
+
 		if (navigator.share) {
 			posthog.capture('game_shared', { method: 'native', game_type: 'never-have-i-ever' });
 			await navigator.share(share_data);
@@ -166,13 +190,70 @@
 		}, 2500);
 	}
 
+	function setTransientError(message: string, duration = 2500) {
+		error = message;
+		setTimeout(() => {
+			if (error === message) {
+				error = null;
+			}
+		}, duration);
+	}
+
+	function sendSocketAction(payload: Record<string, unknown>): boolean {
+		if (!socket || socket.readyState !== WebSocket.OPEN) {
+			setTransientError('Connection lost. Reconnecting...');
+			return false;
+		}
+
+		socket.send(JSON.stringify(payload));
+		return true;
+	}
+
+	function syncGameState(nextGame: NHIEGameState) {
+		const previousQuestion = current_question?.content;
+		const nextQuestion = nextGame.current_question?.content;
+
+		if (!game_state.game_completed && nextGame.gameCompleted) {
+			posthog.capture('nhie_game_completed', {
+				player_count: (nextGame.players ?? []).length,
+				history_count: (nextGame.history ?? []).length
+			});
+		}
+
+		game_state = {
+			catagory_select: nextGame.phase === 'category_select',
+			game_completed: nextGame.gameCompleted,
+			waiting_for_players: nextGame.waitingForPlayers || false,
+			current_catagory: nextGame.catagories,
+			history: nextGame.history
+		};
+
+		current_question = nextGame.current_question;
+		players = nextGame.players;
+
+		if (game_state.catagory_select || previousQuestion !== nextQuestion) {
+			pendingVote = null;
+		}
+	}
+
+	function isVoteActive(option: VoteOptions) {
+		if (acknowledgedVote) {
+			return acknowledgedVote === voteLabels[option];
+		}
+
+		return pendingVote === option;
+	}
+
 	function toggleSelection(catagory: string) {
-		let newState = game_state;
+		const isSelected = game_state.current_catagory.includes(catagory);
+		const current_catagory = isSelected
+			? game_state.current_catagory.filter((selected) => selected !== catagory)
+			: [...game_state.current_catagory, catagory];
 
-		if (!newState.current_catagory.includes(catagory)) newState.current_catagory.push(catagory);
-		else newState.current_catagory.splice(newState.current_catagory.indexOf(catagory), 1);
-
-		game_state = { ...newState };
+		game_state = {
+			...game_state,
+			current_catagory
+		};
 	}
 	function confirmSelections() {
 		if (game_state.current_catagory.length > 0) {
@@ -180,24 +261,27 @@
 				category_count: game_state.current_catagory.length,
 				categories: game_state.current_catagory
 			});
-			socket?.send(JSON.stringify({ op: 'confirm_selections' }));
+			sendSocketAction({ op: 'confirm_selections' });
 		} else {
-			error = 'You must select at least one catagory';
-			setTimeout(() => {
-				error = null;
-			}, 2500);
+			setTransientError('You must select at least one catagory');
 		}
 	}
 	function selectCatagories() {
-		socket?.send(JSON.stringify({ op: 'select_categories' }));
+		sendSocketAction({ op: 'select_categories' });
 	}
 	function selectQuestion() {
+		if (!canAdvanceRound) {
+			return;
+		}
+
 		posthog.capture('nhie_next_question');
-		socket?.send(JSON.stringify({ op: 'next_question' }));
+		sendSocketAction({ op: 'next_question' });
 	}
 	function reset() {
 		posthog.capture('game_reset', { game_type: 'never-have-i-ever' });
-		socket?.send(JSON.stringify({ op: 'reset_game' }));
+		if (!sendSocketAction({ op: 'reset_game' })) {
+			return;
+		}
 		conf_reset_display = false;
 
 		// Clear timeout on reset
@@ -211,16 +295,27 @@
 	}
 
 	function emitSelectCatagory(catagory: string) {
-		socket?.send(JSON.stringify({ op: 'select_category', catagory }));
+		toggleSelection(catagory);
+
+		if (!sendSocketAction({ op: 'select_category', catagory })) {
+			toggleSelection(catagory);
+		}
 	}
 
 	function vote(option: VoteOptions) {
-		console.log('[DEBUG] Voting:', option);
+		if (!current_question?.content) {
+			return;
+		}
+
 		posthog.capture('nhie_vote_cast', {
 			vote: option,
 			category: current_question?.catagory
 		});
-		socket?.send(JSON.stringify({ op: 'vote', option }));
+		pendingVote = option;
+		if (!sendSocketAction({ op: 'vote', option })) {
+			pendingVote = null;
+			return;
+		}
 		if (browser && 'vibrate' in navigator) {
 			try {
 				(navigator as any).vibrate?.(10);
@@ -284,19 +379,7 @@
 							players: data.game.players
 						});
 
-						game_state.current_catagory = data.game.catagories;
-						game_state.catagory_select = data.game.phase === 'category_select';
-						if (!game_state.game_completed && data.game.gameCompleted) {
-							posthog.capture('nhie_game_completed', {
-								player_count: (data.game.players ?? []).length,
-								history_count: (data.game.history ?? []).length
-							});
-						}
-						game_state.game_completed = data.game.gameCompleted;
-						game_state.waiting_for_players = data.game.waitingForPlayers || false;
-						game_state.history = data.game.history;
-
-						current_question = data.game.current_question;
+						syncGameState(data.game as NHIEGameState);
 
 						// Handle server-synced timeout (starts when first vote is cast)
 						if (
@@ -340,10 +423,10 @@
 							timeout_start = 0;
 							timeout_duration = 0;
 						}
-						players = data.game.players;
 						break;
 					case 'new_round':
 						current_round.votes = [];
+						pendingVote = null;
 						if (browser) {
 							window.navigator.vibrate([100, 50, 100]);
 						}
@@ -366,6 +449,7 @@
 						break;
 					case 'error':
 						errors = [...errors, data];
+						pendingVote = null;
 						break;
 					case 'github_push':
 						setTimeout(() => {
@@ -740,7 +824,7 @@
 				{/if}
 				<div class="panel card">
 					<p class="panel-heading">Players</p>
-					{#each players.filter((p) => p.connected) as player, index (player.id)}
+					{#each connectedPlayers as player, index (player.id)}
 						<div
 							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote ?? 'null']} transition-colors duration-300 ease-out`}
 							in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: quintOut }}
@@ -770,9 +854,7 @@
 							Round in Progress
 						</h3>
 						<div class="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
-							{players?.filter((p) => p.connected && p.this_round.voted).length || 0} / {players?.filter(
-								(p) => p.connected
-							).length || 0} players voted
+							{votedPlayerCount} / {connectedPlayerCount} players voted
 						</div>
 						{#if timeout_start === 0}
 							<div class="text-xs text-yellow-600 dark:text-yellow-400">
@@ -818,21 +900,24 @@
 					class="w-full grid grid-cols-9 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-700/60"
 				>
 					<button
-						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)]"
+						class={`col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)] ${isVoteActive(VoteOptions.Have) ? 'bg-emerald-700/70' : ''}`}
 						onclick={() => vote(VoteOptions.Have)}
+						aria-pressed={isVoteActive(VoteOptions.Have)}
 						data-testid="have-button"
 					>
 						Have
 					</button>
 					<button
-						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 transition-all duration-200 ease-out hover:text-sky-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-sky-400/40 hover:shadow-[0_8px_24px_-12px_rgba(56,189,248,0.6)]"
+						class={`col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 transition-all duration-200 ease-out hover:text-sky-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-sky-400/40 hover:shadow-[0_8px_24px_-12px_rgba(56,189,248,0.6)] ${isVoteActive(VoteOptions.Kinda) ? 'bg-sky-700/70' : ''}`}
 						onclick={() => vote(VoteOptions.Kinda)}
+						aria-pressed={isVoteActive(VoteOptions.Kinda)}
 					>
 						Kinda
 					</button>
 					<button
-						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-rose-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-rose-400/40 hover:shadow-[0_8px_24px_-12px_rgba(244,63,94,0.6)]"
+						class={`col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-rose-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-rose-400/40 hover:shadow-[0_8px_24px_-12px_rgba(244,63,94,0.6)] ${isVoteActive(VoteOptions.HaveNot) ? 'bg-rose-700/70' : ''}`}
 						onclick={() => vote(VoteOptions.HaveNot)}
+						aria-pressed={isVoteActive(VoteOptions.HaveNot)}
 						data-testid="have-not-button"
 					>
 						Have not
@@ -850,12 +935,10 @@
 					<button
 						class="col-span-5 text-white bg-emerald-600 hover:bg-emerald-500 text-3xl md:text-5xl py-4"
 						onclick={() => selectQuestion()}
-						disabled={game_state.waiting_for_players &&
-							(players?.filter((p) => p.connected && p.this_round.voted).length || 0) !==
-								(players?.filter((p) => p.connected).length || 1)}
+						disabled={!canAdvanceRound}
 					>
 						{#if game_state.waiting_for_players}
-							{#if (players?.filter((p) => p.connected && p.this_round.voted).length || 0) === (players?.filter((p) => p.connected).length || 1)}
+							{#if allConnectedPlayersVoted}
 								Skip Round
 							{:else}
 								Waiting for Votes

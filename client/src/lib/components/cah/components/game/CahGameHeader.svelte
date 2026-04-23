@@ -10,20 +10,19 @@
 	let { gameState }: Props = $props();
 </script>
 
-<div class="bg-slate-800/50 rounded-lg p-4 mb-4">
-	<div class="flex items-center justify-between mb-3">
-		<div class="flex items-center gap-4">
-			<div class="text-2xl font-bold text-white">
-				Round {gameState.currentRound}
+<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6">
+	<div class="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+		<div class="flex items-end gap-4">
+			<div>
+				<p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Round</p>
+				<div class="mt-2 text-3xl font-bold text-white">{gameState.currentRound}</div>
 			</div>
-			<div class="text-sm text-slate-400">
-				of {gameState.maxRounds}
-			</div>
+			<div class="pb-1 text-sm text-slate-400">of {gameState.maxRounds}</div>
 		</div>
 
 		<!-- Phase Indicator -->
 		<div
-			class="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium {getPhaseColor(
+			class="flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium {getPhaseColor(
 				gameState.phase
 			)}"
 		>
@@ -66,6 +65,16 @@
 		</div>
 	</div>
 
-	<!-- Progress Bar -->
-	<CahProgressBar value={gameState.currentRound} max={gameState.maxRounds} variant="gradient" />
-</div>
+	<div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+		<div>
+			<div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+				<span>Game progress</span>
+				<span>{Math.round((gameState.currentRound / gameState.maxRounds) * 100)}%</span>
+			</div>
+			<CahProgressBar value={gameState.currentRound} max={gameState.maxRounds} variant="gradient" />
+		</div>
+		<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
+			{gameState.players.filter((player) => player.connected).length} active player{gameState.players.filter((player) => player.connected).length === 1 ? '' : 's'}
+		</div>
+	</div>
+</section>

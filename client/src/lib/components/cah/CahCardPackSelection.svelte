@@ -5,8 +5,10 @@
 	import MdiCrown from '~icons/mdi/crown';
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import type { CardPack, SelectedPacks } from '$lib/types';
-	import { getCardPacks, getCachedCardPacks, calculateTotalCards } from '$lib/card-packs';
+	import { getCardPacks, calculateTotalCards } from '$lib/card-packs';
 	import posthog from 'posthog-js';
+
+	const BASE_PACK_ID = 'CAH Base Set';
 
 	interface Props {
 		gameId: string;
@@ -48,7 +50,7 @@
 			cardPacks = packs;
 
 			// Initialize with CAH Base Set selected by default if available
-			const basePack = packs.find((pack) => pack.id === 'CAH Base Set');
+			const basePack = packs.find((pack) => pack.id === BASE_PACK_ID);
 			if (basePack) {
 				selectedPacks[basePack.id] = true;
 			}
@@ -62,14 +64,14 @@
 
 	$effect(() => {
 		// Ensure base game is always selected (can't be deselected)
-		const basePack = cardPacks.find((pack) => pack.id === 'CAH Base Set');
+		const basePack = cardPacks.find((pack) => pack.id === BASE_PACK_ID);
 		if (basePack && !selectedPacks[basePack.id]) {
 			selectedPacks[basePack.id] = true;
 		}
 	});
 
 	function togglePack(packId: string) {
-		const basePack = cardPacks.find((pack) => pack.id === 'CAH Base Set');
+		const basePack = cardPacks.find((pack) => pack.id === BASE_PACK_ID);
 		if (basePack && packId === basePack.id) return; // Base game cannot be deselected
 
 		selectedPacks[packId] = !selectedPacks[packId];
@@ -154,19 +156,22 @@
 	let shouldShowMoreButton = $derived(
 		totalFilteredPacks > 6 && !searchQuery.trim() && !showAllPacks
 	);
+	let selectedPackList = $derived(cardPacks.filter((pack) => selectedIds.includes(pack.id)));
 </script>
 
-<div class="min-h-screen bg-slate-900 text-white">
-	<!-- Header -->
-	<header class="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700">
-		<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-			<div class="flex items-center justify-between">
+<div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.12),_transparent_30%),linear-gradient(180deg,#020617_0%,#0f172a_55%,#020617_100%)] text-white">
+	<header class="border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl">
+		<div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+			<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 				<div>
-					<h1 class="text-3xl font-bold">Select Card Packs</h1>
-					<p class="text-slate-300 mt-1">Choose which card packs to include in your game</p>
+					<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Cards Against Humanity</p>
+					<h1 class="mt-2 text-3xl font-bold text-white sm:text-4xl">Build the table’s card mix</h1>
+					<p class="mt-2 max-w-2xl text-sm text-slate-300 sm:text-base">
+						Choose a base of official packs, then widen the tone with NSFW or community decks. The summary stays visible so you can see the game size before starting.
+					</p>
 				</div>
 				<button
-					class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-white font-semibold shadow hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
+					class="inline-flex items-center gap-2 self-start rounded-xl border border-slate-700/70 bg-slate-900/80 px-4 py-2.5 text-sm font-semibold text-white shadow hover:border-slate-600 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
 					onclick={goBack}
 				>
 					<MdiClose class="h-5 w-5" />
@@ -176,10 +181,10 @@
 		</div>
 	</header>
 
-	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+	<main class="mx-auto max-w-7xl px-4 py-8 pb-28 sm:px-6 lg:px-8 lg:pb-8">
 		{#if isStarting}
-			<div class="text-center py-8" data-testid="cah-waiting">
-				<h1 class="text-3xl font-bold">Select Card Packs</h1>
+			<section class="rounded-[32px] border border-slate-700/70 bg-slate-900/75 px-6 py-10 text-center shadow-[0_25px_80px_rgba(2,6,23,0.5)] ring-1 ring-white/5 backdrop-blur-xl" data-testid="cah-waiting">
+				<h1 class="text-3xl font-bold">Starting game</h1>
 				<div class="mt-6">
 					<div
 						class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
@@ -196,72 +201,83 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-2xl font-bold text-white mb-2">Waiting for Players</h2>
+					<h2 class="text-2xl font-bold text-white mb-2">Waiting for players</h2>
 					<p class="text-slate-400 max-w-md mx-auto">
-						The game will begin once more players join the room.
+						The selected packs are being sent to the server. The room will open as soon as the table is ready.
 					</p>
 				</div>
-			</div>
+			</section>
 		{/if}
-		<!-- Filters -->
-		<section class="mb-8">
-			<div class="flex flex-col gap-4">
-				<!-- Search Bar -->
-				<div class="relative">
-					<input
-						type="text"
-						bind:value={searchQuery}
-						placeholder="Search card packs..."
-						class="w-full px-4 py-3 pl-10 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-					/>
-					<svg
-						class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-						/>
-					</svg>
-				</div>
 
-				<!-- Filter Checkboxes -->
-				<div class="flex flex-wrap gap-4 items-center">
-					<div class="flex items-center gap-3">
-						<label class="flex items-center gap-2 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={showNSFW}
-								class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-							/>
-							<span class="text-sm font-medium">Show NSFW packs</span>
-						</label>
-					</div>
-					<div class="flex items-center gap-3">
-						<label class="flex items-center gap-2 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={showCommunity}
-								class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-							/>
-							<span class="text-sm font-medium">Show community packs</span>
-						</label>
-					</div>
-				</div>
-			</div>
-		</section>
+		<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+			<div class="space-y-6">
+				<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6">
+					<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+						<div class="space-y-4">
+							<div class="relative">
+								<input
+									type="text"
+									bind:value={searchQuery}
+									placeholder="Search card packs..."
+									class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 pl-11 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+								/>
+								<svg
+									class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+									/>
+								</svg>
+							</div>
 
-		<!-- Loading/Error States -->
-		{#if isLoadingPacks}
-			<section class="mb-8">
-				<div class="text-center py-12">
-					<div
-						class="inline-flex items-center justify-center w-12 h-12 bg-slate-800 rounded-full mb-4"
-					>
+							<div class="flex flex-wrap gap-3">
+								<label class="inline-flex items-center gap-3 rounded-full border border-slate-700/70 bg-slate-950/70 px-4 py-2 text-sm font-medium text-slate-200 cursor-pointer transition-colors hover:border-slate-600">
+									<input
+										type="checkbox"
+										bind:checked={showNSFW}
+										class="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
+									/>
+									<span>Show NSFW packs</span>
+								</label>
+								<label class="inline-flex items-center gap-3 rounded-full border border-slate-700/70 bg-slate-950/70 px-4 py-2 text-sm font-medium text-slate-200 cursor-pointer transition-colors hover:border-slate-600">
+									<input
+										type="checkbox"
+										bind:checked={showCommunity}
+										class="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
+									/>
+									<span>Show community packs</span>
+								</label>
+							</div>
+						</div>
+
+						<div class="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+							<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+								<div class="text-xs uppercase tracking-[0.22em] text-slate-500">Visible packs</div>
+								<div class="mt-2 text-2xl font-semibold text-white">{totalFilteredPacks}</div>
+							</div>
+							<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+								<div class="text-xs uppercase tracking-[0.22em] text-slate-500">Selected</div>
+								<div class="mt-2 text-2xl font-semibold text-white">{selectedIds.length}</div>
+							</div>
+							<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+								<div class="text-xs uppercase tracking-[0.22em] text-slate-500">Deck size</div>
+								<div class="mt-2 text-2xl font-semibold text-white">{totals.totalWhite + totals.totalBlack}</div>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				{#if isLoadingPacks}
+					<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/75 p-8 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
+						<div
+							class="inline-flex items-center justify-center w-12 h-12 bg-slate-800 rounded-full mb-4"
+						>
 						<svg class="w-6 h-6 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24">
 							<circle
 								class="opacity-25"
@@ -278,16 +294,14 @@
 							/>
 						</svg>
 					</div>
-					<h3 class="text-xl font-bold text-white mb-2">Loading Card Packs</h3>
-					<p class="text-slate-400">Fetching available card packs from the server...</p>
-				</div>
-			</section>
-		{:else if loadError}
-			<section class="mb-8">
-				<div class="text-center py-12">
-					<div
-						class="inline-flex items-center justify-center w-12 h-12 bg-red-900/20 rounded-full mb-4"
-					>
+						<h3 class="text-xl font-bold text-white mb-2">Loading card packs</h3>
+						<p class="text-slate-400">Fetching available card packs from the server...</p>
+					</section>
+				{:else if loadError}
+					<section class="rounded-[28px] border border-red-500/20 bg-red-950/20 p-8 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
+						<div
+							class="inline-flex items-center justify-center w-12 h-12 bg-red-900/20 rounded-full mb-4"
+						>
 						<svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -297,49 +311,58 @@
 							/>
 						</svg>
 					</div>
-					<h3 class="text-xl font-bold text-white mb-2">Failed to Load Card Packs</h3>
-					<p class="text-red-400 mb-4">{loadError}</p>
-					<button
-						class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-white font-semibold hover:bg-slate-600 transition"
-						onclick={loadCardPacks}
-					>
-						Try Again
-					</button>
-				</div>
-			</section>
-		{:else}
-			<!-- Card Packs Grid -->
-			<section class="mb-8">
-				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+						<h3 class="text-xl font-bold text-white mb-2">Failed to load card packs</h3>
+						<p class="text-red-300 mb-4">{loadError}</p>
+						<button
+							class="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2 text-white font-semibold hover:bg-slate-600 transition"
+							onclick={loadCardPacks}
+						>
+							Try again
+						</button>
+					</section>
+				{:else}
+					<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6">
+						<div class="mb-5 flex items-center justify-between gap-3">
+							<div>
+								<h2 class="text-xl font-semibold text-white">Available packs</h2>
+								<p class="mt-1 text-sm text-slate-400">Official packs stay first so the baseline game is easy to keep clean and readable.</p>
+							</div>
+							{#if searchQuery.trim()}
+								<div class="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+									Searching
+								</div>
+							{/if}
+						</div>
+
+						<div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
 					{#each filteredPacks as pack (pack.id)}
 						{@const isSelected = selectedPacks[pack.id]}
-						{@const isBaseGame = pack.id === 'Base Set'}
+						{@const isBaseGame = pack.id === BASE_PACK_ID}
 
 						<button
-							class="relative rounded-2xl border transition-all duration-200 cursor-pointer text-left w-full
+							class="relative flex h-full min-h-[15.5rem] flex-col rounded-[24px] border transition-all duration-200 cursor-pointer text-left w-full
 							{isSelected
-								? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
-								: 'border-slate-700/70 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800/70'}"
+								? 'border-cyan-400 bg-cyan-500/10 ring-2 ring-cyan-400/25 shadow-[0_18px_50px_rgba(34,211,238,0.12)]'
+								: 'border-slate-700/70 bg-slate-950/70 hover:-translate-y-0.5 hover:border-slate-600 hover:bg-slate-900'}"
 							onclick={() => togglePack(pack.id)}
 						>
-							<div class="p-6">
-								<!-- Pack Header -->
-								<div class="flex items-start justify-between mb-3">
+							<div class="flex h-full flex-col p-5">
+								<div class="flex items-start justify-between gap-3 mb-3">
 									<div class="flex-1">
 										<div class="flex items-center gap-2 mb-1">
-											<h3 class="text-xl font-bold">{pack.name}</h3>
+											<h3 class="text-lg font-bold text-white">{pack.name}</h3>
 											{#if pack.isOfficial}
 												<MdiCrown class="h-5 w-5 text-yellow-500" />
 											{/if}
 										</div>
-										<p class="text-sm text-slate-300">
+										<p class="text-sm text-slate-400">
 											{pack.isOfficial ? 'Official' : 'Community'}
 										</p>
 									</div>
 									{#if isSelected}
 										<div class="flex-shrink-0 ml-3">
 											<div
-												class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center"
+												class="w-7 h-7 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg"
 											>
 												<MdiCheck class="h-4 w-4 text-white" />
 											</div>
@@ -347,96 +370,138 @@
 									{/if}
 								</div>
 
-								<!-- Pack Description -->
-								<p class="text-sm text-slate-400 mb-4 leading-relaxed">
+								<p class="text-sm text-slate-300 mb-5 leading-relaxed">
 									{pack.isOfficial
 										? 'Official Cards Against Humanity pack'
 										: 'Community-created card pack'}
 								</p>
 
-								<!-- Pack Stats -->
-								<div class="flex items-center justify-between text-xs text-slate-500 mb-4">
-									<span>{pack.blackCards} black cards</span>
-									<span>{pack.whiteCards} white cards</span>
+								<div class="mt-auto grid grid-cols-2 gap-3 text-sm text-slate-300">
+									<div class="rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2">
+										<div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Black</div>
+										<div class="mt-1 font-semibold text-white">{pack.blackCards}</div>
+									</div>
+									<div class="rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2">
+										<div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">White</div>
+										<div class="mt-1 font-semibold text-white">{pack.whiteCards}</div>
+									</div>
+								</div>
+
+								<div class="mt-4 flex items-center justify-between text-xs font-medium text-slate-400">
 									{#if pack.isNSFW}
-										<span class="text-red-400 font-medium">NSFW</span>
+										<span class="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-red-300">NSFW</span>
 									{:else}
-										<span class="text-green-400 font-medium">Clean</span>
+										<span class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-300">Clean</span>
+									{/if}
+
+									{#if isBaseGame}
+										<span class="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-cyan-200">Required pack</span>
+									{:else if isSelected}
+										<span class="text-cyan-200">Selected</span>
+									{:else}
+										<span class="text-slate-500">Tap to select</span>
 									{/if}
 								</div>
-
-								<!-- Selection Indicator -->
-								{#if isBaseGame}
-									<div class="text-xs text-emerald-400 font-medium">Required pack</div>
-								{/if}
 							</div>
-
-							<!-- Hover overlay for non-selected packs -->
-							{#if !isSelected && !isBaseGame}
-								<div
-									class="absolute inset-0 rounded-2xl bg-slate-900/80 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
-								>
-									<span class="text-sm font-medium text-white">Click to select</span>
-								</div>
-							{/if}
 						</button>
 					{/each}
-				</div>
+						</div>
 
-				<!-- Show More Button -->
-				{#if shouldShowMoreButton}
-					<div class="flex justify-center mt-6">
-						<button
-							class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-6 py-3 text-white font-semibold hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
-							onclick={() => (showAllPacks = true)}
-						>
-							<span>Show More ({totalFilteredPacks - 6} more)</span>
-							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M19 9l-7 7-7-7"
-								/>
-							</svg>
-						</button>
-					</div>
+						{#if shouldShowMoreButton}
+							<div class="mt-6 flex justify-center">
+								<button
+									class="inline-flex items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-950/70 px-6 py-3 text-white font-semibold hover:border-slate-600 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
+									onclick={() => (showAllPacks = true)}
+								>
+									<span>Show more ({totalFilteredPacks - 6})</span>
+									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 9l-7 7-7-7"
+										/>
+									</svg>
+								</button>
+							</div>
+						{/if}
+					</section>
 				{/if}
-			</section>
-		{/if}
+			</div>
 
-		<!-- Game Summary & Start -->
-		<section class="bg-slate-800/50 rounded-2xl border border-slate-700/70 p-6">
-			<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-				<!-- Summary -->
-				<div>
-					<h3 class="text-lg font-bold mb-2">Game Summary</h3>
-					<div class="flex items-center gap-6 text-sm text-slate-300">
-						<div class="flex items-center gap-2">
-							<MdiAccountGroup class="h-4 w-4" />
-							<span>{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''} selected</span>
+			<aside class="hidden xl:block xl:sticky xl:top-6 xl:self-start">
+				<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/80 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
+					<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Game Summary</p>
+					<h2 class="mt-2 text-2xl font-semibold text-white">Ready the deck</h2>
+					<p class="mt-2 text-sm text-slate-400">Keep an eye on the total card pool so the round pacing feels right for the table.</p>
+
+					<div class="mt-5 grid gap-3">
+						<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+							<div class="flex items-center gap-2 text-sm text-slate-300">
+								<MdiAccountGroup class="h-4 w-4" />
+								<span>{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''} selected</span>
+							</div>
 						</div>
-						<div>
-							<span class="text-slate-400">Total cards:</span>
-							<span class="font-medium ml-1"
-								>{totals.totalBlack} black, {totals.totalWhite} white</span
-							>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+								<div class="text-xs uppercase tracking-[0.22em] text-slate-500">Black cards</div>
+								<div class="mt-2 text-xl font-semibold text-white">{totals.totalBlack}</div>
+							</div>
+							<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+								<div class="text-xs uppercase tracking-[0.22em] text-slate-500">White cards</div>
+								<div class="mt-2 text-xl font-semibold text-white">{totals.totalWhite}</div>
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Start Button -->
-				<div class="flex-shrink-0">
+					<div class="mt-5">
+						<div class="mb-3 text-sm font-semibold text-white">Selected packs</div>
+						<div class="space-y-2">
+							{#each selectedPackList.slice(0, 6) as pack (pack.id)}
+								<div class="flex items-center justify-between rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3">
+									<div class="min-w-0 pr-3">
+										<div class="truncate text-sm font-medium text-white">{pack.name}</div>
+										<div class="text-xs text-slate-500">{pack.isOfficial ? 'Official' : 'Community'}</div>
+									</div>
+									<div class="text-xs font-semibold text-slate-300">{pack.blackCards + pack.whiteCards}</div>
+								</div>
+							{/each}
+							{#if selectedPackList.length > 6}
+								<div class="rounded-2xl border border-slate-700/70 bg-slate-950/50 px-4 py-3 text-sm text-slate-400">
+									+ {selectedPackList.length - 6} more pack{selectedPackList.length - 6 === 1 ? '' : 's'}
+								</div>
+							{/if}
+						</div>
+					</div>
+
 					<button
-						class="group inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-6 py-3 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+						class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-500 px-6 py-3 text-white font-semibold shadow-lg hover:from-emerald-500 hover:to-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={startGame}
 						disabled={selectedIds.length === 0}
 					>
-						<span>Start Game</span>
+						<span>Start game</span>
+					</button>
+				</section>
+			</aside>
+		</div>
+
+		<div class="sticky bottom-3 z-20 xl:hidden">
+			<section class="rounded-[24px] border border-slate-700/70 bg-slate-950/95 p-4 shadow-[0_18px_50px_rgba(2,6,23,0.65)] ring-1 ring-white/5 backdrop-blur-sm">
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<div class="text-sm font-semibold text-white">{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''} selected</div>
+						<div class="text-sm text-slate-400">{totals.totalBlack} black and {totals.totalWhite} white cards ready</div>
+					</div>
+					<button
+						class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-emerald-500 hover:to-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
+						onclick={startGame}
+						disabled={selectedIds.length === 0}
+					>
+						Start game
 					</button>
 				</div>
-			</div>
-		</section>
+			</section>
+		</div>
 	</main>
 </div>
 

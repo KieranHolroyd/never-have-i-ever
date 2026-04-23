@@ -11,36 +11,42 @@
 </script>
 
 {#if gameState.currentBlackCard}
-	<div class="mb-6">
-		<div class="flex items-center justify-between mb-3">
-			<h3 class="text-lg font-semibold">Black Card</h3>
-			{#if gameState.currentBlackCard.pick > 1}
+	<section class="rounded-[28px] border border-slate-700/70 bg-slate-950/90 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] ring-1 ring-white/5 sm:p-6" in:fade={{ duration: 150 }}>
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+			<div>
+				<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Prompt</p>
+				<h3 class="mt-2 text-lg font-semibold text-white">Black Card</h3>
+				<p class="mt-1 text-sm text-slate-400">Read this first, then build the funniest answer.</p>
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
 				<CahBadge variant="info" size="sm" showIcon={true}>
-					Pick {gameState.currentBlackCard.pick}
+					Judge picks winner
 				</CahBadge>
-			{/if}
-		</div>
-		<div
-			class="bg-gradient-to-br from-slate-900 to-black border border-slate-700 rounded-lg p-6 text-center shadow-2xl"
-			in:fade={{ duration: 150 }}
-		>
-			<div in:scale={{ start: 0.98, duration: 150 }}>
-				<div class="flex items-center justify-center mb-4">
-					<div class="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center">
-						<span class="text-xs font-bold text-slate-400">Q</span>
-					</div>
-				</div>
-				<p class="text-xl font-medium text-white leading-relaxed">
-					{gameState.currentBlackCard.text}
-				</p>
 				{#if gameState.currentBlackCard.pick > 1}
-					<div class="mt-4 pt-4 border-t border-slate-700/50">
-						<p class="text-sm text-slate-400">
-							Select exactly {gameState.currentBlackCard.pick} white cards to complete this prompt
-						</p>
-					</div>
+					<CahBadge variant="info" size="sm" showIcon={true}>
+						Pick {gameState.currentBlackCard.pick}
+					</CahBadge>
 				{/if}
 			</div>
 		</div>
-	</div>
+
+		<div class="mt-5 rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(15,23,42,0.45),rgba(2,6,23,0.98))] p-6 text-center sm:p-8" in:scale={{ start: 0.98, duration: 150 }}>
+			<div class="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 shadow-inner shadow-black/50">
+				<span class="text-xs font-bold uppercase tracking-[0.3em] text-slate-300">Q</span>
+			</div>
+			<p class="mx-auto max-w-3xl text-[1.3rem] font-medium leading-relaxed text-white sm:text-[1.65rem]">
+				{gameState.currentBlackCard.text}
+			</p>
+			<div class="mt-5 flex flex-wrap items-center justify-center gap-3 border-t border-white/10 pt-5 text-sm text-slate-300">
+				<div class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+					Round {gameState.currentRound} of {gameState.maxRounds}
+				</div>
+				<div class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+					{gameState.currentBlackCard.pick > 1
+						? `Select exactly ${gameState.currentBlackCard.pick} white cards`
+						: 'Select your single best white card'}
+				</div>
+			</div>
+		</div>
+	</section>
 {/if}
