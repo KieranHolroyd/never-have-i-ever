@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { CAHPlayer, CAHSubmission } from '$lib/types';
 
 	interface Props {
@@ -7,6 +8,16 @@
 	}
 
 	let { winnerPlayer, winnerSubmission }: Props = $props();
+
+	// Countdown to next round (matches server's 5-second auto-advance)
+	let countdown = $state(5);
+	onMount(() => {
+		const interval = setInterval(() => {
+			countdown = Math.max(0, countdown - 1);
+			if (countdown === 0) clearInterval(interval);
+		}, 1000);
+		return () => clearInterval(interval);
+	});
 </script>
 
 <div class="text-center py-12">

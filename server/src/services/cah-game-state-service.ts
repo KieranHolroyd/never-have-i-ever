@@ -3,6 +3,21 @@ import { cahGames, cahGamePlayers, cahSubmissions } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import logger from "../logger";
 
+// Deterministic Fisher-Yates shuffle seeded by a number.
+// Same seed → same order on every call (stable within a round).
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const a = [...arr];
+  let s = seed | 0;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = Math.imul(s ^ (s >>> 15), s | 1);
+    s ^= s + Math.imul(s ^ (s >>> 7), s | 61);
+    s = (s ^ (s >>> 14)) >>> 0;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // ── Shared card types (mirror what the client expects) ────────────────────────
 
 export type CAHBlackCard = {
@@ -236,7 +251,7 @@ export class CAHGameStateService implements ICAHGameStateService {
     const meta = await this.getGameMeta(gameId);
     if (!meta) return null;
 
-    const [allPlayers, submissions] = await Promise.all([
+    const [allPlayers, rawSubmissions] = await Promise.all([
       this.getPlayers(gameId),
       this.getSubmissions(gameId),
     ]);
@@ -246,6 +261,18 @@ export class CAHGameStateService implements ICAHGameStateService {
       ...p,
       hand: p.id === requestingPlayerId ? p.hand : [],
     }));
+
+    // Hide player names and shuffle submission order during selecting/judging phases.
+    // This prevents players from knowing who submitted what until the round is over.
+    let submissions: CAHSubmission[];
+    if (meta.phase === "selecting" || meta.phase === "judging") {
+      submissions = seededShuffle(rawSubmissions, meta.currentRound).map(s => ({
+        ...s,
+        playerName: "",
+      }));
+    } else {
+      submissions = rawSubmissions;
+    }
 
     const connectedCount = allPlayers.filter(p => p.connected).length;
 

@@ -10,6 +10,16 @@
 
 	const connectedPlayers = $derived(gameState.players.filter((p) => p.connected));
 	const isReady = $derived(connectedPlayers.length >= 3);
+
+	let copied = $state(false);
+
+	function copyInviteLink() {
+		const url = window.location.href;
+		navigator.clipboard.writeText(url).then(() => {
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+		});
+	}
 </script>
 
 <div class="text-center py-12" data-testid="cah-waiting">
@@ -73,5 +83,36 @@
 				Need {3 - connectedPlayers.length} more player(s)
 			</div>
 		{/if}
+	</div>
+
+	<!-- Invite Link -->
+	<div class="max-w-sm mx-auto mt-6">
+		<p class="text-sm text-slate-400 mb-2">Invite friends to join</p>
+		<button
+			class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all duration-200
+			{copied
+				? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+				: 'bg-slate-700/60 border-slate-600/50 text-slate-300 hover:bg-slate-700 hover:border-slate-500'}"
+			onclick={copyInviteLink}
+		>
+			{#if copied}
+				<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+					<path
+						fill-rule="evenodd"
+						d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 101.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+				<span class="text-sm font-medium">Link copied!</span>
+			{:else}
+				<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+					<path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+					<path
+						d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
+					/>
+				</svg>
+				<span class="text-sm font-medium">Copy invite link</span>
+			{/if}
+		</button>
 	</div>
 </div>

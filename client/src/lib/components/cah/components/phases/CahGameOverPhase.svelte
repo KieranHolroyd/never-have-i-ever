@@ -95,7 +95,7 @@
 									{/if}
 								</div>
 								<div class="text-sm text-slate-400">
-									Played {gameState.maxRounds} rounds
+									Played {gameState.currentRound} round{gameState.currentRound === 1 ? '' : 's'}
 								</div>
 							</div>
 						</div>

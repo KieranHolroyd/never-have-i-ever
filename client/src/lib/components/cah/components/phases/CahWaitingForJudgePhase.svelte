@@ -21,37 +21,30 @@
 				/>
 			</svg>
 		</div>
-		<h2 class="text-2xl font-bold text-white mb-2">Waiting for Judgment</h2>
+		<h2 class="text-2xl font-bold text-white mb-2">The Judge is Deciding...</h2>
 		<p class="text-slate-400 max-w-md mx-auto">
-			The judge is reviewing all submissions and will choose the winner soon.
+			All {submissions.length} submission{submissions.length === 1 ? '' : 's'} are in. Waiting for the judge to pick a winner.
 		</p>
 	</div>
 
-	<!-- Submissions Display -->
+	<!-- Anonymous Submissions Display -->
 	<div class="max-w-4xl mx-auto">
 		<h3 class="text-lg font-semibold text-white mb-4">All Submissions</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			{#each submissions as submission, index (submission.playerId)}
+			{#each submissions as submission, index (index)}
 				<div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600/50">
-					<!-- Submission Header -->
+					<!-- Anonymous Header -->
 					<div class="flex items-center gap-3 mb-3">
-						<div class="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
+						<div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
 							<span class="text-sm font-bold text-white">{index + 1}</span>
 						</div>
-						<div class="flex items-center gap-2">
-							<div class="w-5 h-5 bg-slate-500 rounded-full flex items-center justify-center">
-								<span class="text-xs font-bold text-white"
-									>{submission.playerName.charAt(0).toUpperCase()}</span
-								>
-							</div>
-							<span class="text-sm text-slate-300">{submission.playerName}</span>
-						</div>
+						<span class="text-sm text-slate-400 font-medium">Submission #{index + 1}</span>
 					</div>
 
 					<!-- Cards -->
 					<div class="space-y-2">
 						{#each submission.cards as card (card.id)}
-							<div class="bg-white text-black rounded p-3 border-l-4 border-slate-400">
+							<div class="bg-white text-black rounded p-3 border-l-4 border-purple-400">
 								<p class="text-sm leading-relaxed">{card.text}</p>
 							</div>
 						{/each}

@@ -454,9 +454,48 @@ export function createCardsAgainstHumanityEngine(
 
     disconnect: async (ws, _data) => {
       const gameId = ws.data.game;
-      await cahService.updatePlayerConnected(gameId, ws.data.player, false);
+      const disconnectingId = ws.data.player;
+
+      await cahService.updatePlayerConnected(gameId, disconnectingId, false);
       wsService.handleDisconnect(ws);
-      ingestEvent({ gameID: gameId, event: "cah_player_disconnected", playerID: ws.data.player });
+      ingestEvent({ gameID: gameId, event: "cah_player_disconnected", playerID: disconnectingId });
+
+      const meta = await cahService.getGameMeta(gameId);
+
+      if (meta?.phase === "selecting") {
+        // If the disconnecting player was the last non-judge who hadn't submitted,
+        // auto-advance to judging now.
+        const [players, submissions] = await Promise.all([
+          cahService.getPlayers(gameId),
+          cahService.getSubmissions(gameId),
+        ]);
+        const nonJudges = players.filter(p => p.connected && !p.isJudge);
+        const submittedIds = new Set(submissions.map(s => s.playerId));
+        const allSubmitted = nonJudges.length > 0 && nonJudges.every(p => submittedIds.has(p.id));
+        if (allSubmitted) {
+          await cahService.setGameMeta(gameId, { phase: "judging" });
+          ingestEvent({ gameID: gameId, event: "cah_all_submitted" });
+        }
+      } else if (meta?.phase === "judging" && meta.currentJudge === disconnectingId) {
+        // Judge left mid-round — auto-pick a random winner so the game doesn't freeze.
+        const submissions = await cahService.getSubmissions(gameId);
+        if (submissions.length > 0) {
+          const winner = submissions[Math.floor(Math.random() * submissions.length)];
+          await Promise.all([
+            cahService.incrPlayerScore(gameId, winner.playerId, 1),
+            cahService.setGameMeta(gameId, { roundWinner: winner.playerId, phase: "scoring" }),
+          ]);
+          ingestEvent({ gameID: gameId, event: "cah_winner_selected", details: { winner: winner.playerId, reason: "judge_disconnected" } });
+          const timer = setTimeout(async () => {
+            scoringTimers.delete(gameId);
+            try { await advanceRound(gameId); } catch (err) {
+              logger.error(`CAH advanceRound error for ${gameId}:`, err);
+            }
+          }, 5000);
+          scoringTimers.set(gameId, timer);
+        }
+      }
+
       await broadcastAll(gameId);
     },
 
