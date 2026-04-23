@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { CAHGameState } from '$lib/types';
-	import CahProgressBar from '../shared/CahProgressBar.svelte';
 
 	interface Props {
 		gameState: CAHGameState;
@@ -22,108 +21,71 @@
 	}
 </script>
 
-<section
-	class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
-	data-testid="cah-waiting"
->
-	<div class="mb-6">
-		<div
-			class="inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80 mb-4"
-		>
-			<svg class="h-8 w-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-				<path
-					fill-rule="evenodd"
-					d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-					clip-rule="evenodd"
-				/>
-			</svg>
-		</div>
-		<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Lobby</p>
-		<h2 class="mt-2 text-2xl font-bold text-white mb-2">
-			{#if gameState.waitingForPlayers}
-				Waiting for Players
-			{:else}
-				Preparing Game
-			{/if}
-		</h2>
-		<p class="text-slate-400 max-w-md mx-auto">
-			{#if gameState.waitingForPlayers}
-				The game will begin once more players join the room.
-			{:else}
-				Setting up the game... Get ready for some hilarious moments!
-			{/if}
-		</p>
-	</div>
-
-	<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:text-left">
-		<div class="rounded-2xl border border-slate-700/70 bg-slate-950/60 p-5">
-			<div class="flex items-center justify-between text-sm text-slate-400 mb-2">
-				<span>Players</span>
-				<span>{connectedPlayers.length}/∞</span>
+<div class="space-y-4" data-testid="cah-waiting">
+	<!-- Status -->
+	<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-6">
+		<div class="flex items-start justify-between gap-4">
+			<div>
+				<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30">Lobby</p>
+				<h2 class="mt-1 text-xl font-black text-white">
+					{isReady ? 'Ready to start' : 'Waiting for players'}
+				</h2>
+				<p class="mt-1 text-sm text-white/40">
+					{isReady
+						? 'Enough players are in — the game will begin shortly.'
+						: `Need ${3 - connectedPlayers.length} more player${3 - connectedPlayers.length === 1 ? '' : 's'} to start.`}
+				</p>
 			</div>
-			<CahProgressBar
-				value={Math.min(connectedPlayers.length * 25, 100)}
-				max={100}
-				variant={isReady ? 'gradient' : 'default'}
-			/>
-			{#if isReady}
-				<div
-					class="mt-3 flex items-center justify-center gap-2 text-sm text-green-400 lg:justify-start"
-				>
-					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-						<path
-							fill-rule="evenodd"
-							d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-					Ready to start!
-				</div>
-			{:else}
-				<div
-					class="mt-3 flex items-center justify-center gap-2 text-sm text-amber-400 lg:justify-start"
-				>
-					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-						<path
-							fill-rule="evenodd"
-							d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-					Need {3 - connectedPlayers.length} more player(s)
-				</div>
-			{/if}
+			<div
+				class="shrink-0 rounded-full border px-3 py-1.5 text-sm font-bold
+				{isReady
+					? 'border-green-400/20 bg-green-500/[0.08] text-green-400/80'
+					: 'border-white/10 bg-white/[0.05] text-white/40'}"
+			>
+				{connectedPlayers.length} / 3+
+			</div>
 		</div>
 
-		<div class="rounded-2xl border border-slate-700/70 bg-slate-950/60 p-5">
-			<p class="text-sm font-semibold text-white">Invite friends to join</p>
-			<p class="mt-1 text-sm text-slate-400">Share this room link so the table can fill quickly.</p>
-			<button
-				class="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all duration-200
-				{copied
-					? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-					: 'bg-slate-700/60 border-slate-600/50 text-slate-300 hover:bg-slate-700 hover:border-slate-500'}"
-				onclick={copyInviteLink}
-			>
-				{#if copied}
-					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-						<path
-							fill-rule="evenodd"
-							d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 101.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-					<span class="text-sm font-medium">Link copied!</span>
-				{:else}
-					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-						<path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-						<path
-							d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
-						/>
-					</svg>
-					<span class="text-sm font-medium">Copy invite link</span>
-				{/if}
-			</button>
+		<!-- Progress -->
+		<div class="mt-5 h-[3px] overflow-hidden rounded-full bg-white/10">
+			<div
+				class="h-[3px] rounded-full transition-all duration-500 {isReady
+					? 'bg-green-400'
+					: 'bg-white'}"
+				style="width: {Math.min((connectedPlayers.length / 3) * 100, 100)}%"
+			></div>
 		</div>
 	</div>
-</section>
+
+	<!-- Invite link -->
+	<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-5">
+		<p class="text-sm font-bold text-white/70">Invite friends</p>
+		<p class="mt-0.5 text-sm text-white/30">Share the room link to fill the table.</p>
+		<button
+			class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition-all duration-200
+			{copied
+				? 'border-green-400/20 bg-green-500/[0.08] text-green-400'
+				: 'border-white/10 bg-white/[0.05] text-white/50 hover:border-white/20 hover:bg-white/[0.08] hover:text-white/70'}"
+			onclick={copyInviteLink}
+		>
+			{#if copied}
+				<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+					<path
+						fill-rule="evenodd"
+						d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 101.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+				Link copied!
+			{:else}
+				<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+					<path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+					<path
+						d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
+					/>
+				</svg>
+				Copy invite link
+			{/if}
+		</button>
+	</div>
+</div>

@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { env } from '$env/dynamic/public';
+	import { buildSocketUrl } from '$lib/socket-url';
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { Status, VoteOptions, type Player, type Catagories, type NHIEGameState } from '$lib/types';
+	import {
+		Status,
+		VoteOptions,
+		type Player,
+		type Catagories,
+		type NHIEGameState
+	} from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
 	import { toast } from '$lib/toast';
@@ -351,10 +358,18 @@
 	function setupsock() {
 		// Prevent attaching duplicate listeners to an existing socket
 		if (socket !== null) return;
-		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
-		const sock_params = `?playing=never-have-i-ever&game=${id}&player=${player_id}`;
+		const nextPlayerId = player_id ?? LocalPlayer.id;
+		if (!nextPlayerId) {
+			console.log('[DEBUG] Cannot create socket without a player id');
+			return;
+		}
+		const socketUrl = buildSocketUrl(env.PUBLIC_SOCKET_URL, {
+			playing: 'never-have-i-ever',
+			game: id,
+			player: nextPlayerId
+		});
 		try {
-			socket = new WebSocket(sock_url + sock_params);
+			socket = new WebSocket(socketUrl);
 		} catch (e) {
 			console.log(`[DEBUG] Failed to create socket: ${e}`);
 			scheduleReconnect();
@@ -744,7 +759,7 @@
 								{:else}
 									<label class="my-[2px]">
 										<div
-										class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-zinc-700/50 duration-75"
+											class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-zinc-700/50 duration-75"
 											in:fly={{
 												y: 6,
 												duration: 260,

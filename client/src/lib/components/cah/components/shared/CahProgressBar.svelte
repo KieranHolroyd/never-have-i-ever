@@ -9,7 +9,7 @@
 
 	let { value, max = 100, label, size = 'md', variant = 'default' }: Props = $props();
 
-	const percentage = Math.min((value / max) * 100, 100);
+	const percentage = $derived(Math.min((value / max) * 100, 100));
 
 	const sizeClasses = {
 		sm: 'h-2',

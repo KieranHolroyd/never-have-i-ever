@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { CAHGameState } from '$lib/types';
-	import CahBadge from '../shared/CahBadge.svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	interface Props {
 		gameState: CAHGameState;
@@ -11,52 +10,47 @@
 </script>
 
 {#if gameState.currentBlackCard}
-	<section
-		class="rounded-[28px] border border-slate-700/70 bg-slate-950/90 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] ring-1 ring-white/5 sm:p-6"
-		in:fade={{ duration: 150 }}
-	>
-		<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Prompt</p>
-				<h3 class="mt-2 text-lg font-semibold text-white">Black Card</h3>
-				<p class="mt-1 text-sm text-slate-400">Read this first, then build the funniest answer.</p>
-			</div>
-			<div class="flex flex-wrap items-center gap-2">
-				<CahBadge variant="info" size="sm" showIcon={true}>Judge picks winner</CahBadge>
-				{#if gameState.currentBlackCard.pick > 1}
-					<CahBadge variant="info" size="sm" showIcon={true}>
-						Pick {gameState.currentBlackCard.pick}
-					</CahBadge>
-				{/if}
+	<div in:fade={{ duration: 150 }} class="flex gap-5 items-start">
+		<!-- Physical black card -->
+		<div
+			class="relative flex min-h-[13rem] w-full max-w-sm shrink-0 flex-col justify-between rounded-2xl bg-black p-6 shadow-[0_8px_40px_rgba(0,0,0,0.7)] sm:min-h-[15rem] sm:p-8"
+		>
+			{#if gameState.currentBlackCard.pick > 1}
+				<div
+					class="absolute right-4 top-4 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+				>
+					Pick {gameState.currentBlackCard.pick}
+				</div>
+			{/if}
+
+			<p class="pr-14 text-xl font-black leading-snug text-white sm:text-2xl">
+				{gameState.currentBlackCard.text}
+			</p>
+
+			<div class="mt-4 flex items-end justify-between border-t border-white/10 pt-4">
+				<span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/30"
+					>Cards Against Humanity</span
+				>
+				<span class="text-xs font-bold text-white/25"
+					>{gameState.currentRound}/{gameState.maxRounds}</span
+				>
 			</div>
 		</div>
 
-		<div
-			class="mt-5 rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(15,23,42,0.45),rgba(2,6,23,0.98))] p-6 text-center sm:p-8"
-			in:scale={{ start: 0.98, duration: 150 }}
-		>
-			<div
-				class="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 shadow-inner shadow-black/50"
-			>
-				<span class="text-xs font-bold uppercase tracking-[0.3em] text-slate-300">Q</span>
-			</div>
-			<p
-				class="mx-auto max-w-3xl text-[1.3rem] font-medium leading-relaxed text-white sm:text-[1.65rem]"
-			>
-				{gameState.currentBlackCard.text}
+		<!-- Instruction callout -->
+		<div class="hidden flex-1 sm:block">
+			<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/25 mb-3">
+				How to play this round
 			</p>
-			<div
-				class="mt-5 flex flex-wrap items-center justify-center gap-3 border-t border-white/10 pt-5 text-sm text-slate-300"
-			>
-				<div class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-					Round {gameState.currentRound} of {gameState.maxRounds}
-				</div>
-				<div class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-					{gameState.currentBlackCard.pick > 1
-						? `Select exactly ${gameState.currentBlackCard.pick} white cards`
-						: 'Select your single best white card'}
-				</div>
-			</div>
+			<p class="text-sm text-white/50 leading-relaxed">
+				{#if gameState.currentBlackCard.pick > 1}
+					Choose <strong class="text-white/80">{gameState.currentBlackCard.pick} white cards</strong
+					> in order. The judge will see all submissions anonymously.
+				{:else}
+					Choose your <strong class="text-white/80">single best white card</strong> to complete the prompt.
+					The judge picks the funniest answer.
+				{/if}
+			</p>
 		</div>
-	</section>
+	</div>
 {/if}

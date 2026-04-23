@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { CAHGameState } from '$lib/types';
-	import CahBadge from '../shared/CahBadge.svelte';
 	import { sortPlayersByScore, getPlayerInitials } from '../../utils/cah-utils';
 	import { fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
@@ -20,95 +19,78 @@
 	);
 </script>
 
-<section
-	class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-4 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-5"
->
-	<div class="mb-4 flex items-start justify-between gap-3">
-		<div>
-			<p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Table</p>
-			<h3 class="mt-1 text-lg font-semibold text-white">Players</h3>
-			<p class="mt-1 text-sm text-slate-400">{connectedPlayers.length} connected in this round</p>
-		</div>
+<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] overflow-hidden">
+	<!-- Header -->
+	<div class="border-b border-white/[0.07] px-4 py-3 flex items-center justify-between">
+		<span class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30">Leaderboard</span>
 		{#if playersNeeded > 0}
-			<div
-				class="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200"
-			>
-				<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-					<path
-						fill-rule="evenodd"
-						d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-						clip-rule="evenodd"
-					/>
-				</svg>
-				Need {playersNeeded} more
-			</div>
+			<span class="text-[11px] font-bold text-amber-400/70">Need {playersNeeded} more</span>
+		{:else}
+			<span class="text-[11px] font-bold text-white/20">{connectedPlayers.length} players</span>
 		{/if}
 	</div>
 
-	<div class="flex gap-3 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
-		{#each sortedPlayers as player (player.id)}
+	<!-- Player rows -->
+	<div class="divide-y divide-white/[0.05]">
+		{#each sortedPlayers as player, i (player.id)}
 			{@const isCurrentPlayer = player.id === currentPlayerId}
 			{@const hasSubmitted = submittedPlayerIds.has(player.id)}
-			<article
-				class="min-w-[16rem] rounded-2xl border p-4 transition-all duration-200 lg:min-w-0
+			<div
+				class="flex items-center gap-3 px-4 py-3 transition-colors
 				{player.isJudge
-					? 'border-amber-400/40 bg-amber-500/10 shadow-[0_12px_30px_rgba(245,158,11,0.12)]'
+					? 'bg-amber-500/[0.07]'
 					: isCurrentPlayer
-						? 'border-cyan-400/35 bg-cyan-500/10 shadow-[0_12px_30px_rgba(34,211,238,0.10)]'
-						: 'border-slate-700/70 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-800'}"
-				in:fly={{ y: 8, duration: 200 }}
-				animate:flip
+						? 'bg-white/[0.05]'
+						: 'hover:bg-white/[0.03]'}"
+				in:fly={{ y: 6, duration: 180 }}
+				animate:flip={{ duration: 200 }}
 			>
-				<div class="flex items-start gap-3">
-					<div
-						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 text-sm font-bold text-white shadow-inner shadow-black/30"
-					>
-						{getPlayerInitials(player.name)}
-					</div>
-					<div class="min-w-0 flex-1">
-						<div class="flex items-start justify-between gap-3">
-							<div class="min-w-0">
-								<p class="truncate text-sm font-semibold text-white">{player.name}</p>
-								<p class="mt-1 text-xs text-slate-400">
-									{#if player.isJudge}
-										Reading submissions
-									{:else if gameState.phase === 'selecting' && hasSubmitted}
-										Cards locked in
-									{:else if gameState.phase === 'selecting'}
-										Still choosing
-									{:else}
-										Watching the round
-									{/if}
-								</p>
-							</div>
-							<div class="text-right">
-								<div class="text-xl font-semibold text-white">{player.score}</div>
-								<div class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Points</div>
-							</div>
-						</div>
-					</div>
+				<!-- Rank -->
+				<span class="w-4 shrink-0 text-center text-xs font-black text-white/20">{i + 1}</span>
+
+				<!-- Avatar -->
+				<div
+					class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black
+					{player.isJudge
+						? 'bg-amber-500/20 text-amber-200'
+						: isCurrentPlayer
+							? 'bg-white/20 text-white'
+							: 'bg-white/10 text-white/60'}"
+				>
+					{getPlayerInitials(player.name)}
 				</div>
 
-				<div class="mt-4 flex flex-wrap items-center gap-2">
-					{#if player.isJudge}
-						<CahBadge variant="judge" size="sm" showIcon={true}>Judge</CahBadge>
-					{/if}
-					{#if isCurrentPlayer}
-						<CahBadge variant="your-turn" size="sm" showIcon={true}>You</CahBadge>
-					{/if}
-					{#if gameState.phase === 'selecting' && !player.isJudge && isCurrentPlayer}
-						<CahBadge variant="info" size="sm" showIcon={true}>Play Cards</CahBadge>
-					{/if}
-					<div
-						class="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-300"
-					>
-						<svg class="h-3.5 w-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
-							<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-						</svg>
-						{player.hand?.length ?? 0} cards
-					</div>
+				<!-- Name + status -->
+				<div class="min-w-0 flex-1">
+					<p class="truncate text-sm font-bold {isCurrentPlayer ? 'text-white' : 'text-white/70'}">
+						{player.name}
+						{#if isCurrentPlayer}<span class="text-white/30 font-normal"> (you)</span>{/if}
+					</p>
+					<p class="text-[11px] text-white/30">
+						{#if player.isJudge}
+							judging
+						{:else if gameState.phase === 'selecting' && hasSubmitted}
+							submitted ✓
+						{:else if gameState.phase === 'selecting'}
+							choosing…
+						{:else}
+							watching
+						{/if}
+					</p>
 				</div>
-			</article>
+
+				<!-- Score -->
+				<div class="shrink-0 text-right">
+					<span class="text-xl font-black {i === 0 ? 'text-white' : 'text-white/50'}"
+						>{player.score}</span
+					>
+					{#if player.isJudge}
+						<div class="text-[10px] font-black uppercase tracking-widest text-amber-500/70">
+							judge
+						</div>
+					{/if}
+				</div>
+			</div>
 		{/each}
 	</div>
-</section>
+</div>

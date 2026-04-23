@@ -208,15 +208,25 @@ export function createCardsAgainstHumanityEngine(
         };
         await cahService.addPlayer(gameId, player);
       } else {
-        await cahService.updatePlayerConnected(gameId, ws.data.player, true);
-        // Restore hand if player has none and deck is available
-        if (existing.hand.length === 0) {
-          const meta = await cahService.getGameMeta(gameId);
-          if (meta && meta.selectedPacks.length > 0 && meta.phase !== "waiting") {
-            const needed = meta.handSize;
+        const nextName = typeof playername === "string" && playername.trim().length > 0
+          ? playername.trim()
+          : existing.name;
+
+        await cahService.addPlayer(gameId, {
+          ...existing,
+          name: nextName,
+          connected: true,
+        });
+
+        // Refill reconnecting players back to the configured hand size when
+        // they missed draws while disconnected.
+        const meta = await cahService.getGameMeta(gameId);
+        if (meta && meta.selectedPacks.length > 0 && meta.phase !== "waiting") {
+          const needed = meta.handSize - existing.hand.length;
+          if (needed > 0) {
             const cards = await drawWhiteCards(gameId, needed);
             if (cards.length > 0) {
-              await cahService.updatePlayerHand(gameId, ws.data.player, cards);
+              await cahService.updatePlayerHand(gameId, ws.data.player, [...existing.hand, ...cards]);
             }
           }
         }

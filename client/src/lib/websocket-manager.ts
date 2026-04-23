@@ -1,5 +1,6 @@
 import { env } from '$env/dynamic/public';
 import { Status } from './types';
+import { buildSocketUrl } from './socket-url';
 
 export interface WebSocketManagerConfig {
 	gameId: string;
@@ -34,11 +35,14 @@ export class WebSocketManager {
 			this.reconnectTimeout = null;
 		}
 
-		const sock_url = env.PUBLIC_SOCKET_URL ?? 'ws://localhost:3000/';
-		const sock_params = `?playing=${this.config.gameType}&game=${this.config.gameId}&player=${this.config.playerId}`;
+		const socketUrl = buildSocketUrl(env.PUBLIC_SOCKET_URL, {
+			playing: this.config.gameType,
+			game: this.config.gameId,
+			player: this.config.playerId
+		});
 
 		try {
-			this.socket = new WebSocket(sock_url + sock_params);
+			this.socket = new WebSocket(socketUrl);
 			this.setupEventListeners();
 		} catch (e) {
 			console.error('Failed to create WebSocket:', e);

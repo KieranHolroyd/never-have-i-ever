@@ -173,52 +173,30 @@
 
 	<main class="mx-auto max-w-7xl px-4 py-8 pb-28 sm:px-6 lg:px-8 lg:pb-8">
 		{#if isStarting}
-			<section
-				class="rounded-[32px] border border-slate-700/70 bg-slate-900/75 px-6 py-10 text-center shadow-[0_25px_80px_rgba(2,6,23,0.5)] ring-1 ring-white/5 backdrop-blur-xl"
+			<div
+				class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] px-6 py-10 text-center"
 				data-testid="cah-waiting"
 			>
-				<h1 class="text-3xl font-bold">Starting game</h1>
-				<div class="mt-6">
-					<div
-						class="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-full mb-4"
-					>
-						<svg
-							class="w-8 h-8 text-slate-400 animate-pulse"
-							fill="currentColor"
-							viewBox="0 0 20 20"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-2xl font-bold text-white mb-2">Waiting for players</h2>
-					<p class="text-slate-400 max-w-md mx-auto">
-						The selected packs are being sent to the server. The room will open as soon as the table
-						is ready.
-					</p>
-				</div>
-			</section>
+				<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/25">Starting</p>
+				<h2 class="mt-2 text-2xl font-black text-white">Waiting for players</h2>
+				<p class="mt-2 text-sm text-white/40">Packs sent to server. Room opens when the table is ready.</p>
+			</div>
 		{/if}
 
 		<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-			<div class="space-y-6">
-				<section
-					class="rounded-[28px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
-				>
+			<div class="space-y-4">
+				<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-4 sm:p-5">
 					<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-						<div class="space-y-4">
+						<div class="space-y-3">
 							<div class="relative">
 								<input
 									type="text"
 									bind:value={searchQuery}
 									placeholder="Search card packs..."
-									class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 pl-11 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+									class="w-full rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 pl-10 text-sm text-white placeholder-white/25 focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
 								/>
 								<svg
-									class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+									class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -232,19 +210,21 @@
 								</svg>
 							</div>
 
-							<div class="flex flex-wrap gap-3">
+							<div class="flex flex-wrap gap-2">
 								<label
-									class="inline-flex items-center gap-3 rounded-full border border-slate-700/70 bg-slate-950/70 px-4 py-2 text-sm font-medium text-slate-200 cursor-pointer transition-colors hover:border-slate-600"
+									class="inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 text-sm font-bold cursor-pointer transition-colors
+									{showNSFW ? 'border-white/20 bg-white/[0.08] text-white' : 'border-white/[0.07] bg-transparent text-white/40 hover:border-white/15'}"
 								>
 									<input
 										type="checkbox"
 										bind:checked={showNSFW}
-										class="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
-									/>
-									<span>Show NSFW packs</span>
-								</label>
-								<label
-									class="inline-flex items-center gap-3 rounded-full border border-slate-700/70 bg-slate-950/70 px-4 py-2 text-sm font-medium text-slate-200 cursor-pointer transition-colors hover:border-slate-600"
+									class="rounded border-white/20 bg-white/10 text-white"
+								/>
+								<span>NSFW packs</span>
+							</label>
+							<label
+								class="inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 text-sm font-bold cursor-pointer transition-colors
+								{showCommunity ? 'border-white/20 bg-white/[0.08] text-white' : 'border-white/[0.07] bg-transparent text-white/40 hover:border-white/15'}"
 								>
 									<input
 										type="checkbox"
@@ -273,7 +253,7 @@
 							</div>
 						</div>
 					</div>
-				</section>
+				</div>
 
 				{#if isLoadingPacks}
 					<section
@@ -332,106 +312,77 @@
 						</button>
 					</section>
 				{:else}
-					<section
-						class="rounded-[28px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
-					>
-						<div class="mb-5 flex items-center justify-between gap-3">
+					<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-4 sm:p-5">
+						<div class="mb-4 flex items-center justify-between gap-3">
 							<div>
-								<h2 class="text-xl font-semibold text-white">Available packs</h2>
-								<p class="mt-1 text-sm text-slate-400">
-									Official packs stay first so the baseline game is easy to keep clean and readable.
-								</p>
+								<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/25">Packs</p>
+								<h2 class="mt-0.5 text-lg font-black text-white">Available packs</h2>
 							</div>
 							{#if searchQuery.trim()}
-								<div
-									class="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200"
-								>
+								<div class="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-bold text-white/50">
 									Searching
 								</div>
 							{/if}
 						</div>
 
-						<div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+						<div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
 							{#each filteredPacks as pack (pack.id)}
 								{@const isSelected = selectedPacks[pack.id]}
 								{@const isBaseGame = pack.id === BASE_PACK_ID}
 
 								<button
-									class="relative flex h-full min-h-[15.5rem] flex-col rounded-[24px] border transition-all duration-200 cursor-pointer text-left w-full
+									class="relative flex h-full min-h-[13rem] flex-col rounded-xl border transition-all duration-150 cursor-pointer text-left w-full
 							{isSelected
-										? 'border-cyan-400 bg-cyan-500/10 ring-2 ring-cyan-400/25 shadow-[0_18px_50px_rgba(34,211,238,0.12)]'
-										: 'border-slate-700/70 bg-slate-950/70 hover:-translate-y-0.5 hover:border-slate-600 hover:bg-slate-900'}"
+										? 'border-white/30 bg-white/[0.06] shadow-[0_4px_20px_rgba(255,255,255,0.07)]'
+										: 'border-white/[0.07] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]'}"
 									onclick={() => togglePack(pack.id)}
 								>
-									<div class="flex h-full flex-col p-5">
-										<div class="flex items-start justify-between gap-3 mb-3">
+									<div class="flex h-full flex-col p-4">
+										<div class="flex items-start justify-between gap-3 mb-2">
 											<div class="flex-1">
-												<div class="flex items-center gap-2 mb-1">
-													<h3 class="text-lg font-bold text-white">{pack.name}</h3>
+												<div class="flex items-center gap-1.5 mb-0.5">
+													<h3 class="text-sm font-black text-white leading-tight">{pack.name}</h3>
 													{#if pack.isOfficial}
-														<MdiCrown class="h-5 w-5 text-yellow-500" />
+														<MdiCrown class="h-3.5 w-3.5 text-amber-400/70 shrink-0" />
 													{/if}
 												</div>
-												<p class="text-sm text-slate-400">
+												<p class="text-[11px] text-white/30">
 													{pack.isOfficial ? 'Official' : 'Community'}
 												</p>
 											</div>
 											{#if isSelected}
-												<div class="flex-shrink-0 ml-3">
-													<div
-														class="w-7 h-7 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg"
-													>
-														<MdiCheck class="h-4 w-4 text-white" />
+												<div class="flex-shrink-0">
+													<div class="flex h-5 w-5 items-center justify-center rounded-full bg-white">
+														<MdiCheck class="h-3 w-3 text-black" />
 													</div>
 												</div>
 											{/if}
 										</div>
 
-										<p class="text-sm text-slate-300 mb-5 leading-relaxed">
-											{pack.isOfficial
-												? 'Official Cards Against Humanity pack'
-												: 'Community-created card pack'}
-										</p>
-
-										<div class="mt-auto grid grid-cols-2 gap-3 text-sm text-slate-300">
-											<div class="rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2">
-												<div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-													Black
-												</div>
-												<div class="mt-1 font-semibold text-white">{pack.blackCards}</div>
+										<div class="mt-auto grid grid-cols-2 gap-2 text-sm">
+											<div class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+												<div class="text-[10px] font-black uppercase tracking-[0.2em] text-white/25">Black</div>
+												<div class="mt-0.5 font-black text-white">{pack.blackCards}</div>
 											</div>
-											<div class="rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2">
-												<div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-													White
-												</div>
-												<div class="mt-1 font-semibold text-white">{pack.whiteCards}</div>
+											<div class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+												<div class="text-[10px] font-black uppercase tracking-[0.2em] text-white/25">White</div>
+												<div class="mt-0.5 font-black text-white">{pack.whiteCards}</div>
 											</div>
 										</div>
 
-										<div
-											class="mt-4 flex items-center justify-between text-xs font-medium text-slate-400"
-										>
+										<div class="mt-3 flex items-center justify-between text-[11px]">
 											{#if pack.isNSFW}
-												<span
-													class="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-red-300"
-													>NSFW</span
-												>
+												<span class="rounded-full border border-red-500/15 bg-red-500/[0.08] px-2 py-0.5 font-bold text-red-400/80">NSFW</span>
 											{:else}
-												<span
-													class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-300"
-													>Clean</span
-												>
+												<span class="rounded-full border border-green-500/15 bg-green-500/[0.08] px-2 py-0.5 font-bold text-green-400/80">Clean</span>
 											{/if}
 
 											{#if isBaseGame}
-												<span
-													class="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-cyan-200"
-													>Required pack</span
-												>
+												<span class="font-bold text-white/25">Required</span>
 											{:else if isSelected}
-												<span class="text-cyan-200">Selected</span>
+												<span class="font-bold text-white/60">Selected</span>
 											{:else}
-												<span class="text-slate-500">Tap to select</span>
+												<span class="text-white/20">Tap to add</span>
 											{/if}
 										</div>
 									</div>
@@ -457,7 +408,7 @@
 								</button>
 							</div>
 						{/if}
-					</section>
+					</div>
 				{/if}
 			</div>
 
@@ -534,27 +485,21 @@
 		</div>
 
 		<div class="sticky bottom-3 z-20 xl:hidden">
-			<section
-				class="rounded-[24px] border border-slate-700/70 bg-slate-950/95 p-4 shadow-[0_18px_50px_rgba(2,6,23,0.65)] ring-1 ring-white/5 backdrop-blur-sm"
-			>
+			<div class="rounded-2xl border border-white/10 bg-[#111111]/95 p-4 shadow-2xl backdrop-blur-md">
 				<div class="flex items-center justify-between gap-4">
 					<div>
-						<div class="text-sm font-semibold text-white">
-							{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''} selected
-						</div>
-						<div class="text-sm text-slate-400">
-							{totals.totalBlack} black and {totals.totalWhite} white cards ready
-						</div>
+						<p class="text-sm font-bold text-white">{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''}</p>
+						<p class="text-xs text-white/35">{totals.totalBlack}B / {totals.totalWhite}W cards</p>
 					</div>
 					<button
-						class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-emerald-500 hover:to-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="rounded-xl bg-white px-6 py-3 text-sm font-black text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-30"
 						onclick={startGame}
 						disabled={selectedIds.length === 0}
 					>
 						Start game
 					</button>
 				</div>
-			</section>
+			</div>
 		</div>
 	</main>
 </div>
