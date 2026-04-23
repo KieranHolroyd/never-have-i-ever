@@ -26,6 +26,8 @@ services:
       POSTGRES_USER: nhie
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: nhie
+    ports:
+      - "5432:5432"
     volumes:
       - /var/pgdata:/var/lib/postgresql
     healthcheck:
