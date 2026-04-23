@@ -10,17 +10,17 @@
 </script>
 
 <div
-	class="w-72 pointer-events-none mx-auto py-2 text-center uppercase text-xs rounded-b-xl panel text-slate-100"
+	class="w-72 pointer-events-none mx-auto py-2 text-center uppercase text-xs rounded-b-xl panel text-zinc-200"
 >
 	{#if connection === Status.CONNECTED}
-		<p class="text-emerald-300 text-sm">
-			Connected <span class="text-white">
+		<p class="text-emerald-400 text-sm">
+			Connected <span class="text-zinc-300">
 				({players.filter((p) => p.connected).length})
 			</span>
 		</p>
 	{:else if connection === Status.DISCONNECTED}
-		<p class="text-red-300 text-sm">Disconnected</p>
+		<p class="text-red-400 text-sm">Disconnected</p>
 	{:else}
-		<p class="text-slate-300 text-sm">Connecting...</p>
+		<p class="text-zinc-400 text-sm">Connecting...</p>
 	{/if}
 </div>

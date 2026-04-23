@@ -14,7 +14,7 @@ button {
 
 /* Unified UI utilities */
 .panel {
-	@apply rounded-xl border border-slate-700/70 bg-slate-800/50 backdrop-blur-sm shadow ring-1 ring-white/5;
+	@apply rounded-xl border border-zinc-700/60 bg-zinc-900/80 backdrop-blur-sm shadow ring-1 ring-white/5;
 }
 .panel-heading {
 	@apply m-0 text-xs uppercase font-bold;

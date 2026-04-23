@@ -1,6 +1,6 @@
 export const colour_map: Record<string, string> = {
-	null: 'dark:bg-gray-800 bg-gray-400 text-white rounded-md shadow-md',
-	Have: 'bg-green-400 dark:bg-opacity-50 text-white rounded-md shadow-md',
-	Kinda: 'bg-blue-400 dark:bg-opacity-50 text-white rounded-md shadow-md',
-	'Have Not': 'bg-red-400 dark:bg-opacity-50 text-white rounded-md shadow-md'
+	null: 'bg-zinc-700/60 text-zinc-300 rounded-md shadow-md',
+	Have: 'bg-emerald-500/30 text-emerald-200 rounded-md shadow-md',
+	Kinda: 'bg-sky-500/30 text-sky-200 rounded-md shadow-md',
+	'Have Not': 'bg-rose-500/30 text-rose-200 rounded-md shadow-md'
 };

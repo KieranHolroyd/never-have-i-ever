@@ -649,7 +649,7 @@
 </script>
 
 <div
-	class="dark:text-white text-black text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]"
+	class="text-zinc-100 text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]"
 >
 	{#if !game_state.game_completed}
 		{#if game_state.catagory_select}
@@ -664,7 +664,7 @@
 				in:fade={{ duration: 260, easing: quintOut }}
 			>
 				<div in:fly={{ y: 10, duration: 300, easing: backOut }}>
-					<p class="text-xl font-semibold py-2 bg-slate-900/60 rounded-t-xl">Select Catagories</p>
+					<p class="text-xl font-semibold py-2 bg-zinc-900/60 rounded-t-xl">Select Catagories</p>
 					{#if catagories !== undefined}
 						<div class="max-h-96 overflow-auto">
 							{#each Object.entries(catagories) as [catagory_name, catagory], index (catagory_name)}
@@ -675,7 +675,7 @@
 								{:else}
 									<label class="my-[2px]">
 										<div
-											class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-slate-700/50 duration-75"
+										class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-zinc-700/50 duration-75"
 											in:fly={{
 												y: 6,
 												duration: 260,
@@ -830,7 +830,7 @@
 				in:fly={{ y: 32, duration: 320, easing: quintOut }}
 			>
 				<div
-					class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/60"
+					class="w-full grid grid-cols-9 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-700/60"
 				>
 					<button
 						class="col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)]"
@@ -854,10 +854,10 @@
 					</button>
 				</div>
 				<div
-					class="w-full grid grid-cols-9 bg-slate-900/80 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+					class="w-full grid grid-cols-9 bg-zinc-900/90 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),0.5rem)]"
 				>
 					<button
-						class="col-span-2 text-white bg-slate-700 hover:bg-rose-500 text-xl md:text-2xl py-3"
+						class="col-span-2 text-white bg-zinc-700 hover:bg-rose-600 text-xl md:text-2xl py-3"
 						onclick={() => conf_reset()}
 					>
 						<MdiUndoVariant class="w-7 h-7 mx-auto" />
@@ -880,7 +880,7 @@
 						{/if}
 					</button>
 					<button
-						class="col-span-2 text-white bg-slate-700 hover:bg-slate-600 text-xl md:text-2xl py-3"
+						class="col-span-2 text-white bg-zinc-700 hover:bg-zinc-600 text-xl md:text-2xl py-3"
 						ondblclick={() => selectCatagories()}
 						onclick={() => {
 							categories_click = true;
@@ -894,7 +894,7 @@
 
 			{#if !$settings.no_tutorials}
 				<div
-					class={`fixed bottom-4 right-4 z-50 py-2 px-4 rounded-md bg-gray-200 dark:bg-gray-800 border-t-2 dark:border-gray-600 border-gray-200 shadow pointer-events-none ${
+					class={`fixed bottom-4 right-4 z-50 py-2 px-4 rounded-md bg-zinc-800 border-t-2 border-zinc-700 shadow pointer-events-none text-zinc-300 ${
 						categories_click ? 'opacity-40' : 'opacity-0'
 					} overflow-hidden transition-all duration-200`}
 				>
@@ -917,10 +917,10 @@
 					{ title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
 				]}
 			/>
-			<ConnectionInfoPanel {connection} {players} {errors} />
+			<ConnectionInfoPanel {connection} {players} {errors} ping={client_ping} />
 		{/if}
 	{:else}
-		<h1 class="text-2xl font-semibold dark:text-white">There are no more questions</h1>
+		<h1 class="text-2xl font-semibold text-zinc-100">There are no more questions</h1>
 		{#each players as player (player.id)}
 			<p class="mx-auto max-w-lg p-3">
 				<b>{player.name}</b> has {player.score} points
@@ -934,16 +934,9 @@
 		<button class="red-button mt-4" onclick={() => reset()}>Confirm Reset</button>
 	{/if}
 	<!-- Global toasts replace per-page notification overlays -->
-	{#if connection === Status.CONNECTED}
-		<div
-			class="fixed text-xs w-[3.25rem] pointer-events-none top-[11.5rem] left-2.5 rounded-full py-0.5 px-1 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm"
-		>
-			<span class="dark:text-white text-black">{client_ping.toFixed(0)}ms</span>
-		</div>
-	{/if}
 </div>
 <div class="fixed z-20 top-[7.5rem] left-2">
 	<button class="relative rounded-full p-2 panel duration-200" title="Share!" onclick={share_game}>
-		<MdiShareOutline class="dark:text-white h-8 w-8" />
+		<MdiShareOutline class="text-zinc-100 h-8 w-8" />
 	</button>
 </div>
