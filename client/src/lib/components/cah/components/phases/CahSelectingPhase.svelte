@@ -35,16 +35,23 @@
 
 <div class="space-y-5">
 	{#if hasSubmitted}
-		<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6">
+		<section
+			class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
+		>
 			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 				<div>
-					<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Hand Locked</p>
+					<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">
+						Hand Locked
+					</p>
 					<h3 class="mt-2 text-2xl font-semibold text-white">Waiting for the rest of the table</h3>
 					<p class="mt-2 max-w-2xl text-sm text-slate-400">
-						Your answer is submitted. You can keep an eye on the table while the remaining players finish choosing.
+						Your answer is submitted. You can keep an eye on the table while the remaining players
+						finish choosing.
 					</p>
 				</div>
-				<div class="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-200">
+				<div
+					class="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-200"
+				>
 					{submittedCount} / {nonJudges.length} submitted
 				</div>
 			</div>
@@ -52,14 +59,22 @@
 			<div class="mt-5 h-2 rounded-full bg-slate-800">
 				<div
 					class="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500"
-					style="width: {nonJudges.length > 0 ? Math.round((submittedCount / nonJudges.length) * 100) : 0}%"
+					style="width: {nonJudges.length > 0
+						? Math.round((submittedCount / nonJudges.length) * 100)
+						: 0}%"
 				></div>
 			</div>
 
 			<div class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
 				<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-5">
-					<div class="flex items-center justify-center w-16 h-16 bg-cyan-500/20 rounded-full mx-auto">
-						<svg class="w-8 h-8 text-cyan-300 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+					<div
+						class="flex items-center justify-center w-16 h-16 bg-cyan-500/20 rounded-full mx-auto"
+					>
+						<svg
+							class="w-8 h-8 text-cyan-300 animate-pulse"
+							fill="currentColor"
+							viewBox="0 0 20 20"
+						>
 							<path
 								fill-rule="evenodd"
 								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -71,7 +86,8 @@
 						<p class="text-lg font-semibold text-white mb-1">Cards submitted</p>
 						<p class="text-sm text-slate-400">
 							Waiting for {nonJudges.length - submittedCount} more player{nonJudges.length -
-								submittedCount === 1
+								submittedCount ===
+							1
 								? ''
 								: 's'} to submit...
 						</p>
@@ -79,7 +95,9 @@
 				</div>
 
 				<div class="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-5">
-					<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">What happens next</p>
+					<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+						What happens next
+					</p>
 					<ul class="mt-3 space-y-2 text-sm text-slate-300">
 						<li>All players finish selecting their cards.</li>
 						<li>The judge sees every anonymous submission.</li>
@@ -89,23 +107,30 @@
 			</div>
 		</section>
 	{:else}
-		<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6">
+		<section
+			class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
+		>
 			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 				<div>
 					<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Your Hand</p>
 					<h3 class="mt-2 text-2xl font-semibold text-white">Build your answer</h3>
 					<p class="mt-2 max-w-2xl text-sm text-slate-400">
-						Pick {requiredCards} white card{requiredCards === 1 ? '' : 's'} in the order you want them played. Your current hand has {currentPlayer.hand.length} cards.
+						Pick {requiredCards} white card{requiredCards === 1 ? '' : 's'} in the order you want them
+						played. Your current hand has {currentPlayer.hand.length} cards.
 					</p>
 				</div>
-				<div class="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-200">
+				<div
+					class="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-200"
+				>
 					Selected {selectedCardIds.length} / {requiredCards}
 				</div>
 			</div>
 
 			<div class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
 				<div>
-					<div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+					<div
+						class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
+					>
 						<span>Selection progress</span>
 						<span>{Math.round((selectedCardIds.length / requiredCards) * 100)}%</span>
 					</div>
@@ -137,10 +162,17 @@
 			{#if selectedCards.length > 0}
 				<div class="mt-5 flex gap-3 overflow-x-auto pb-1">
 					{#each selectedCards as card, index (card.id)}
-						<div class="min-w-[14rem] rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 shadow-sm">
+						<div
+							class="min-w-[14rem] rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 shadow-sm"
+						>
 							<div class="mb-2 flex items-center justify-between gap-2">
-								<span class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">Play #{index + 1}</span>
-								<span class="rounded-full bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-cyan-100">Locked order</span>
+								<span class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200"
+									>Play #{index + 1}</span
+								>
+								<span
+									class="rounded-full bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-cyan-100"
+									>Locked order</span
+								>
 							</div>
 							<p class="text-sm text-white/90">{card.text}</p>
 						</div>
@@ -162,11 +194,15 @@
 					style="animation-delay: {index * 50}ms"
 				>
 					<div class="flex items-start justify-between gap-3">
-						<div class="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-xs font-bold text-white shadow-sm">
+						<div
+							class="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-xs font-bold text-white shadow-sm"
+						>
 							{index + 1}
 						</div>
 						{#if isSelected}
-							<div class="flex items-center gap-2 rounded-full bg-cyan-500 px-3 py-1 text-xs font-semibold text-white shadow-lg">
+							<div
+								class="flex items-center gap-2 rounded-full bg-cyan-500 px-3 py-1 text-xs font-semibold text-white shadow-lg"
+							>
 								<svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
 									<path
 										fill-rule="evenodd"
@@ -179,7 +215,9 @@
 						{/if}
 					</div>
 
-					<p class="mt-4 text-base leading-relaxed {isSelected ? 'text-cyan-950' : 'text-slate-900'}">
+					<p
+						class="mt-4 text-base leading-relaxed {isSelected ? 'text-cyan-950' : 'text-slate-900'}"
+					>
 						{card.text}
 					</p>
 
@@ -189,13 +227,17 @@
 						</span>
 					</div>
 
-					<div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-cyan-500/5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"></div>
+					<div
+						class="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-cyan-500/5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+					></div>
 				</button>
 			{/each}
 		</div>
 
 		<div class="sticky bottom-3 z-10 lg:bottom-4">
-			<div class="rounded-[24px] border border-slate-700/70 bg-slate-950/95 p-4 shadow-[0_18px_50px_rgba(2,6,23,0.6)] ring-1 ring-white/5 backdrop-blur-sm sm:p-5">
+			<div
+				class="rounded-[24px] border border-slate-700/70 bg-slate-950/95 p-4 shadow-[0_18px_50px_rgba(2,6,23,0.6)] ring-1 ring-white/5 backdrop-blur-sm sm:p-5"
+			>
 				<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 					<div>
 						<div class="text-sm font-semibold text-white">
@@ -211,7 +253,11 @@
 							{#if isSelectionComplete}
 								Your answer is complete and ready to lock in.
 							{:else}
-								Pick {requiredCards - selectedCardIds.length} more card{requiredCards - selectedCardIds.length === 1 ? '' : 's'} to match the black card.
+								Pick {requiredCards - selectedCardIds.length} more card{requiredCards -
+									selectedCardIds.length ===
+								1
+									? ''
+									: 's'} to match the black card.
 							{/if}
 						</p>
 					</div>

@@ -284,7 +284,11 @@
 			return optimisticPhase === 'pack_selection';
 		}
 
-		return gameState.phase === 'waiting' && (gameState.selectedPacks?.length || 0) === 0 && optimisticPhase !== 'waiting';
+		return (
+			gameState.phase === 'waiting' &&
+			(gameState.selectedPacks?.length || 0) === 0 &&
+			optimisticPhase !== 'waiting'
+		);
 	});
 
 	onMount(() => {
@@ -312,17 +316,28 @@
 {#if showPackSelection}
 	<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
 {:else}
-	<div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_48%,#020617_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+	<div
+		class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_48%,#020617_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8"
+	>
 		<div class="mx-auto max-w-7xl">
-			<section class="relative overflow-hidden rounded-[32px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-[0_25px_80px_rgba(2,6,23,0.5)] ring-1 ring-white/5 backdrop-blur-xl sm:p-6 lg:p-8">
-				<div class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/6 to-transparent"></div>
+			<section
+				class="relative overflow-hidden rounded-[32px] border border-slate-700/70 bg-slate-900/75 p-5 shadow-[0_25px_80px_rgba(2,6,23,0.5)] ring-1 ring-white/5 backdrop-blur-xl sm:p-6 lg:p-8"
+			>
+				<div
+					class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/6 to-transparent"
+				></div>
 				<div class="relative">
 					<div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 						<div>
-							<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Cards Against Humanity</p>
-							<h1 class="mt-2 text-3xl font-bold text-white sm:text-4xl">Play the table, not the layout</h1>
+							<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">
+								Cards Against Humanity
+							</p>
+							<h1 class="mt-2 text-3xl font-bold text-white sm:text-4xl">
+								Play the table, not the layout
+							</h1>
 							<p class="mt-2 max-w-2xl text-sm text-slate-400 sm:text-base">
-								The board keeps the prompt, player status, and your actions in fixed zones so the round stays readable on desktop and thumb-friendly on mobile.
+								The board keeps the prompt, player status, and your actions in fixed zones so the
+								round stays readable on desktop and thumb-friendly on mobile.
 							</p>
 						</div>
 						<ConnectionStatus showPing={true} />
@@ -331,7 +346,9 @@
 					<ErrorDisplay />
 
 					{#if gameState}
-						<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
+						<div
+							class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]"
+						>
 							<div class="space-y-6">
 								<CahGameHeader gameState={gameState as CAHGameState} />
 								<CahBlackCard gameState={gameState as CAHGameState} />
@@ -339,9 +356,18 @@
 								{#key gameState.phase}
 									{#if gameState.phase === 'waiting'}
 										{#if optimisticPhase === 'waiting'}
-											<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm" data-testid="cah-waiting">
-												<div class="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80">
-													<svg class="h-8 w-8 animate-pulse text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+											<section
+												class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm"
+												data-testid="cah-waiting"
+											>
+												<div
+													class="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80"
+												>
+													<svg
+														class="h-8 w-8 animate-pulse text-slate-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
 														<path
 															fill-rule="evenodd"
 															d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
@@ -350,7 +376,10 @@
 													</svg>
 												</div>
 												<h2 class="text-2xl font-bold text-white">Waiting for players</h2>
-												<p class="mx-auto mt-2 max-w-md text-slate-400">The room is being prepared. New players can still join while the server confirms the pack setup.</p>
+												<p class="mx-auto mt-2 max-w-md text-slate-400">
+													The room is being prepared. New players can still join while the server
+													confirms the pack setup.
+												</p>
 											</section>
 										{:else}
 											<CahWaitingPhase gameState={gameState as CAHGameState} />
@@ -358,9 +387,10 @@
 									{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}
 										<CahJudgeSelectingPhase gameState={gameState as CAHGameState} />
 									{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && !(currentPlayer as CAHPlayer).isJudge}
-										{@const hasSubmitted = (gameState as CAHGameState).submittedCards?.some(
-											(s) => s.playerId === (currentPlayer as CAHPlayer).id
-										) ?? false}
+										{@const hasSubmitted =
+											(gameState as CAHGameState).submittedCards?.some(
+												(s) => s.playerId === (currentPlayer as CAHPlayer).id
+											) ?? false}
 										<CahSelectingPhase
 											currentPlayer={currentPlayer as CAHPlayer}
 											{selectedCardIds}
@@ -377,12 +407,16 @@
 											onSelectWinner={selectWinner}
 										/>
 									{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
-										<CahWaitingForJudgePhase submissions={(gameState as CAHGameState).submittedCards || []} />
+										<CahWaitingForJudgePhase
+											submissions={(gameState as CAHGameState).submittedCards || []}
+										/>
 									{:else if (gameState as CAHGameState).phase === 'scoring'}
 										{@const cahState = gameState as CAHGameState}
-										{@const winnerPlayer = cahState.players.find((p) => p.id === cahState.roundWinner) || null}
+										{@const winnerPlayer =
+											cahState.players.find((p) => p.id === cahState.roundWinner) || null}
 										{@const winnerSubmission =
-											cahState.submittedCards?.find((s) => s.playerId === cahState.roundWinner) || null}
+											cahState.submittedCards?.find((s) => s.playerId === cahState.roundWinner) ||
+											null}
 										<CahScoringPhase {winnerPlayer} {winnerSubmission} />
 									{:else if (gameState as CAHGameState).phase === 'game_over'}
 										<CahGameOverPhase
@@ -395,13 +429,24 @@
 							</div>
 
 							<div class="lg:sticky lg:top-6 lg:self-start">
-								<CahPlayerList gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} />
+								<CahPlayerList
+									gameState={gameState as CAHGameState}
+									currentPlayerId={LocalPlayer.id}
+								/>
 							</div>
 						</div>
 					{:else if optimisticPhase === 'waiting'}
-						<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
-							<div class="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80">
-								<svg class="h-8 w-8 animate-pulse text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+						<section
+							class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm"
+						>
+							<div
+								class="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80"
+							>
+								<svg
+									class="h-8 w-8 animate-pulse text-slate-400"
+									fill="currentColor"
+									viewBox="0 0 20 20"
+								>
 									<path
 										fill-rule="evenodd"
 										d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
@@ -410,10 +455,15 @@
 								</svg>
 							</div>
 							<h2 class="text-2xl font-bold text-white">Waiting for players</h2>
-							<p class="mx-auto mt-2 max-w-md text-slate-400">The table is initializing. As soon as the server confirms the new pack set, the room will open for players.</p>
+							<p class="mx-auto mt-2 max-w-md text-slate-400">
+								The table is initializing. As soon as the server confirms the new pack set, the room
+								will open for players.
+							</p>
 						</section>
 					{:else}
-						<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm">
+						<section
+							class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-6 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm"
+						>
 							<p class="text-lg text-slate-300">Connecting to game...</p>
 						</section>
 					{/if}
@@ -458,7 +508,9 @@
 							{#if bots.length > 0}
 								<div class="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
 									{#each bots as b (b.id)}
-										<div class="flex items-center justify-between rounded-md bg-slate-700/40 px-3 py-2">
+										<div
+											class="flex items-center justify-between rounded-md bg-slate-700/40 px-3 py-2"
+										>
 											<div>
 												<div class="text-sm font-medium">{b.name}</div>
 												<div class="text-xs opacity-70">{b.id.slice(0, 8)}…</div>

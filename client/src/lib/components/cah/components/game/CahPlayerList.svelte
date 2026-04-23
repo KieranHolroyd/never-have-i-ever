@@ -15,10 +15,14 @@
 	const connectedPlayers = $derived(gameState.players.filter((p) => p.connected));
 	const sortedPlayers = $derived(sortPlayersByScore(connectedPlayers));
 	const playersNeeded = $derived(Math.max(0, 3 - connectedPlayers.length));
-	const submittedPlayerIds = $derived(new Set((gameState.submittedCards ?? []).map((s) => s.playerId)));
+	const submittedPlayerIds = $derived(
+		new Set((gameState.submittedCards ?? []).map((s) => s.playerId))
+	);
 </script>
 
-<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-4 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-5">
+<section
+	class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-4 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-5"
+>
 	<div class="mb-4 flex items-start justify-between gap-3">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Table</p>
@@ -26,7 +30,9 @@
 			<p class="mt-1 text-sm text-slate-400">{connectedPlayers.length} connected in this round</p>
 		</div>
 		{#if playersNeeded > 0}
-			<div class="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
+			<div
+				class="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200"
+			>
 				<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
 					<path
 						fill-rule="evenodd"
@@ -54,7 +60,9 @@
 				animate:flip
 			>
 				<div class="flex items-start gap-3">
-					<div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 text-sm font-bold text-white shadow-inner shadow-black/30">
+					<div
+						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 text-sm font-bold text-white shadow-inner shadow-black/30"
+					>
 						{getPlayerInitials(player.name)}
 					</div>
 					<div class="min-w-0 flex-1">
@@ -91,7 +99,9 @@
 					{#if gameState.phase === 'selecting' && !player.isJudge && isCurrentPlayer}
 						<CahBadge variant="info" size="sm" showIcon={true}>Play Cards</CahBadge>
 					{/if}
-					<div class="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-300">
+					<div
+						class="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-300"
+					>
 						<svg class="h-3.5 w-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
 							<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>

@@ -10,16 +10,21 @@
 </script>
 
 <div class="space-y-5">
-	<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6">
+	<section
+		class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
+	>
 		<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 			<div>
 				<p class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Judge Panel</p>
 				<h3 class="mt-2 text-2xl font-semibold text-white">Pick the round winner</h3>
 				<p class="mt-2 max-w-2xl text-sm text-slate-400">
-					Read every anonymous submission, then tap the funniest one. The winning player earns the point and becomes the next judge.
+					Read every anonymous submission, then tap the funniest one. The winning player earns the
+					point and becomes the next judge.
 				</p>
 			</div>
-			<div class="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1.5 text-sm font-semibold text-amber-200">
+			<div
+				class="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1.5 text-sm font-semibold text-amber-200"
+			>
 				<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
 					<path
 						fill-rule="evenodd"
@@ -41,7 +46,9 @@
 			>
 				<div class="flex items-start justify-between gap-3">
 					<div class="flex items-center gap-3">
-						<div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 text-sm font-bold text-amber-200 ring-1 ring-amber-400/20">
+						<div
+							class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 text-sm font-bold text-amber-200 ring-1 ring-amber-400/20"
+						>
 							{index + 1}
 						</div>
 						<div>
@@ -49,14 +56,18 @@
 							<p class="text-xs text-slate-500">Anonymous until you choose</p>
 						</div>
 					</div>
-					<div class="rounded-full border border-slate-700/70 bg-slate-900/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+					<div
+						class="rounded-full border border-slate-700/70 bg-slate-900/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+					>
 						Tap to award point
 					</div>
 				</div>
 
 				<div class="mt-4 space-y-3">
 					{#each submission.cards as card (card.id)}
-						<div class="rounded-2xl bg-white p-4 text-black shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5">
+						<div
+							class="rounded-2xl bg-white p-4 text-black shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5"
+						>
 							<p class="text-sm leading-relaxed">{card.text}</p>
 						</div>
 					{/each}

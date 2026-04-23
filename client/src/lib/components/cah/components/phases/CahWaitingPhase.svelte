@@ -22,9 +22,14 @@
 	}
 </script>
 
-<section class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6" data-testid="cah-waiting">
+<section
+	class="rounded-[28px] border border-slate-700/70 bg-slate-900/70 p-5 text-center shadow-xl ring-1 ring-white/5 backdrop-blur-sm sm:p-6"
+	data-testid="cah-waiting"
+>
 	<div class="mb-6">
-		<div class="inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80 mb-4">
+		<div
+			class="inline-flex h-16 w-16 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950/80 mb-4"
+		>
 			<svg class="h-8 w-8 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
 				<path
 					fill-rule="evenodd"
@@ -53,16 +58,18 @@
 	<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:text-left">
 		<div class="rounded-2xl border border-slate-700/70 bg-slate-950/60 p-5">
 			<div class="flex items-center justify-between text-sm text-slate-400 mb-2">
-			<span>Players</span>
-			<span>{connectedPlayers.length}/∞</span>
-		</div>
+				<span>Players</span>
+				<span>{connectedPlayers.length}/∞</span>
+			</div>
 			<CahProgressBar
 				value={Math.min(connectedPlayers.length * 25, 100)}
 				max={100}
 				variant={isReady ? 'gradient' : 'default'}
 			/>
 			{#if isReady}
-				<div class="mt-3 flex items-center justify-center gap-2 text-sm text-green-400 lg:justify-start">
+				<div
+					class="mt-3 flex items-center justify-center gap-2 text-sm text-green-400 lg:justify-start"
+				>
 					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 						<path
 							fill-rule="evenodd"
@@ -73,7 +80,9 @@
 					Ready to start!
 				</div>
 			{:else}
-				<div class="mt-3 flex items-center justify-center gap-2 text-sm text-amber-400 lg:justify-start">
+				<div
+					class="mt-3 flex items-center justify-center gap-2 text-sm text-amber-400 lg:justify-start"
+				>
 					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 						<path
 							fill-rule="evenodd"
