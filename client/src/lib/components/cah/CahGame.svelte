@@ -40,10 +40,8 @@
 	let { id }: Props = $props();
 
 	let wsManager: WebSocketManager | null = null;
-	let gameState = $gameStore;
-	let connection = $connectionStore;
-	let currentPlayer = $currentPlayerStore;
-	let error = $errorStore;
+	let gameState = $derived($gameStore);
+	let currentPlayer = $derived($currentPlayerStore);
 	let lastRound: number = $state(0);
 
 	// Optimistic UI: keep client thin but provide immediate UX while waiting

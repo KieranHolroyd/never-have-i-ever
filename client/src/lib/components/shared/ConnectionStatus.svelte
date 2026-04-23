@@ -9,7 +9,7 @@
 
 	let { showPing = false, compact = false }: Props = $props();
 
-	let connection = $connectionStore;
+	let connection = $derived($connectionStore);
 </script>
 
 {#if compact}

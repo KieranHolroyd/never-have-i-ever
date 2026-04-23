@@ -9,7 +9,7 @@
 
 	let { autoHide = true, autoHideDelay = 5000 }: Props = $props();
 
-	let error = $errorStore;
+	let error = $derived($errorStore);
 
 	// Auto-hide error after delay
 	$effect(() => {
