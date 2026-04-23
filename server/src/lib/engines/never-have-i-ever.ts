@@ -27,6 +27,8 @@ export function createNeverHaveIEverEngine(
 ): GameEngine {
   // ── In-memory timeout handles (not persisted — only this process's timers) ──
   const roundTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  // Track the active timeout duration per game so clients get an accurate countdown
+  const roundTimeoutDurations = new Map<string, number>();
   // ── Broadcast helper ────────────────────────────────────────────────────
 
   async function broadcast(ws: GameSocket): Promise<void> {
@@ -34,10 +36,11 @@ export function createNeverHaveIEverEngine(
     if (!game) return;
 
     const timeoutStart = wsService.getTimeoutStart(ws.data.game) ?? 0;
+    const timeoutDuration = roundTimeoutDurations.get(ws.data.game) ?? wsService.getRoundTimeoutMs();
     const payload: NHIEGameState = {
       ...game,
       timeout_start: timeoutStart,
-      timeout_duration: wsService.getRoundTimeoutMs(),
+      timeout_duration: timeoutDuration,
     };
     wsService.broadcastToGameAndClient(ws, "game_state", { game: payload });
   }
@@ -131,6 +134,7 @@ export function createNeverHaveIEverEngine(
       clearTimeout(t);
       roundTimeouts.delete(gameId);
     }
+    roundTimeoutDurations.delete(gameId);
     wsService.deleteTimeoutStart(gameId);
   }
 
@@ -158,10 +162,12 @@ export function createNeverHaveIEverEngine(
     if (roundTimeouts.has(gameId)) return; // already started
 
     const timeoutStart = Date.now();
+    const duration = wsService.getRoundTimeoutMs();
     wsService.setTimeoutStart(gameId, timeoutStart);
+    roundTimeoutDurations.set(gameId, duration);
     await gameStateService.setGameMeta(gameId, { timeout_start: timeoutStart });
 
-    scheduleTimeout(ws, wsService.getRoundTimeoutMs());
+    scheduleTimeout(ws, duration);
 
     // Re-broadcast so clients get the timeout_start timestamp
     await broadcast(ws);
@@ -185,6 +191,7 @@ export function createNeverHaveIEverEngine(
 
     const remaining = wsService.getRoundTimeoutMs() - (Date.now() - storedStart);
     wsService.setTimeoutStart(gameId, storedStart); // restore in-memory state
+    roundTimeoutDurations.set(gameId, wsService.getRoundTimeoutMs());
 
     if (remaining <= 0) {
       // Timer expired while server was down — advance now
@@ -311,30 +318,24 @@ export function createNeverHaveIEverEngine(
         throw new ValidationError("Invalid vote option");
       }
 
-      const player = await gameStateService.getPlayer(gameId, ws.data.player);
-      if (!player) throw new Error("Player not found");
-
       const newVoteLabel = VOTE_LABELS[data.option as 1 | 2 | 3];
+      const scoreDelta = VOTE_SCORES[newVoteLabel] ?? 0;
 
-      // Undo previous vote score
-      if (player.this_round.voted && player.this_round.vote) {
-        const undo = -(VOTE_SCORES[player.this_round.vote] ?? 0);
-        if (undo !== 0) await gameStateService.incrPlayerScore(gameId, ws.data.player, undo);
-      }
+      // Read previous vote to calculate undo delta before the transaction
+      const prev = await gameStateService.getPlayer(gameId, ws.data.player);
+      if (!prev) throw new Error("Player not found");
+      const undoDelta = (prev.this_round.voted && prev.this_round.vote)
+        ? -(VOTE_SCORES[prev.this_round.vote] ?? 0)
+        : 0;
 
-      // Apply new vote score
-      const delta = VOTE_SCORES[newVoteLabel] ?? 0;
-      if (delta !== 0) await gameStateService.incrPlayerScore(gameId, ws.data.player, delta);
-
-      await gameStateService.updatePlayerVote(gameId, ws.data.player, newVoteLabel, true);
+      // Single atomic transaction: undo old score, apply new score, record vote, check all-voted
+      const { allVoted } = await gameStateService.recordVote(
+        gameId, ws.data.player, newVoteLabel, scoreDelta, undoDelta
+      );
 
       ingestEvent({ gameID: gameId, event: "vote_cast", playerID: ws.data.player, details: { vote: data.option, vote_str: newVoteLabel } });
 
-      // Re-fetch updated player for the broadcast
-      const updated = await gameStateService.getPlayer(gameId, ws.data.player);
-      wsService.broadcastToGameAndClient(ws, "vote_cast", { player: updated, vote: newVoteLabel });
-
-      // On first vote in the round, lock in the round (prevents free skipping) and start timeout
+      // On first vote in the round, lock the round and start the timeout
       const meta = await gameStateService.getGameMeta(gameId);
       if (meta?.waitingForPlayers === false) {
         await gameStateService.setGameMeta(gameId, { waitingForPlayers: true });
@@ -343,11 +344,20 @@ export function createNeverHaveIEverEngine(
         await startRoundTimeout(ws);
       }
 
-      // If all connected players have voted, advance immediately
-      const players = await gameStateService.getPlayers(gameId);
-      const connected = players.filter(p => p.connected);
-      if (connected.length > 0 && connected.every(p => p.this_round.voted)) {
-        await advanceToNextQuestion(ws);
+      if (allVoted) {
+        // Cancel any running timeout (e.g. the 30s skip timer), then give
+        // everyone a 10-second results window before advancing.
+        clearRoundTimeout(gameId);
+        const RESULTS_WINDOW_MS = 10_000;
+        const resultsStart = Date.now();
+        wsService.setTimeoutStart(gameId, resultsStart);
+        roundTimeoutDurations.set(gameId, RESULTS_WINDOW_MS);
+        await gameStateService.setGameMeta(gameId, {
+          waitingForPlayers: true,
+          timeout_start: resultsStart,
+        });
+        await broadcast(ws); // clients see final votes + 10s countdown
+        scheduleTimeout(ws, RESULTS_WINDOW_MS);
         return;
       }
 

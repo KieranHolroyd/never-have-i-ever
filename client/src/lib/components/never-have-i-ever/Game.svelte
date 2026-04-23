@@ -353,6 +353,16 @@
 							...current_round.votes,
 							{ player: data.player, voted: data.vote }
 						];
+						if (data.player) {
+							const existingIndex = players.findIndex((player) => player.id === data.player.id);
+							if (existingIndex === -1) {
+								players = [...players, data.player];
+							} else {
+								players = players.map((player) =>
+									player.id === data.player.id ? data.player : player
+								);
+							}
+						}
 						break;
 					case 'error':
 						errors = [...errors, data];
@@ -732,7 +742,7 @@
 					<p class="panel-heading">Players</p>
 					{#each players.filter((p) => p.connected) as player, index (player.id)}
 						<div
-							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote]} transition-colors duration-300 ease-out`}
+							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote ?? 'null']} transition-colors duration-300 ease-out`}
 							in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: quintOut }}
 							animate:flip
 							data-testid={`player-${player.name}`}

@@ -32,6 +32,8 @@ export interface IGameStateService {
   updatePlayerVote(gameId: string, playerId: string, vote: string, voted: boolean): Promise<void>;
   incrPlayerScore(gameId: string, playerId: string, delta: number): Promise<void>;
   resetAllPlayerVotes(gameId: string): Promise<void>;
+  /** Atomically undo previous vote score, apply new score, record vote, return updated player + all-voted flag. */
+  recordVote(gameId: string, playerId: string, voteLabel: string, scoreDelta: number, undoDelta: number): Promise<{ player: NHIEPlayer; allVoted: boolean }>;
 
   // ── Categories ─────────────────────────────────────────────────────────
   getSelectedCategories(gameId: string): Promise<string[]>;
@@ -166,6 +168,30 @@ export class GameStateService implements IGameStateService {
     await db.update(gamePlayers)
       .set({ round_vote: null, round_voted: false })
       .where(eq(gamePlayers.game_id, gameId));
+  }
+
+  async recordVote(gameId: string, playerId: string, voteLabel: string, scoreDelta: number, undoDelta: number): Promise<{ player: NHIEPlayer; allVoted: boolean }> {
+    return await db.transaction(async (tx) => {
+      // Undo previous score and apply new score + record vote atomically
+      const netDelta = scoreDelta + undoDelta;
+      if (netDelta !== 0) {
+        await tx.update(gamePlayers)
+          .set({ score: sql`${gamePlayers.score} + ${netDelta}` })
+          .where(and(eq(gamePlayers.game_id, gameId), eq(gamePlayers.player_id, playerId)));
+      }
+      await tx.update(gamePlayers)
+        .set({ round_vote: voteLabel, round_voted: true })
+        .where(and(eq(gamePlayers.game_id, gameId), eq(gamePlayers.player_id, playerId)));
+
+      // Read back updated player and check all-voted in same transaction
+      const rows = await tx.select().from(gamePlayers).where(eq(gamePlayers.game_id, gameId));
+      const updatedRow = rows.find(r => r.player_id === playerId);
+      if (!updatedRow) throw new Error("Player not found after vote update");
+      const player = this.rowToPlayer(updatedRow);
+      const connected = rows.filter(r => r.connected);
+      const allVoted = connected.length > 0 && connected.every(r => r.round_voted);
+      return { player, allVoted };
+    });
   }
 
   // ── Categories ─────────────────────────────────────────────────────────

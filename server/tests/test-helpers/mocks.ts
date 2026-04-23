@@ -91,6 +91,7 @@ export function createMockGameStateService(): IGameStateService {
     updatePlayerVote: mock(() => Promise.resolve()),
     incrPlayerScore: mock(() => Promise.resolve()),
     resetAllPlayerVotes: mock(() => Promise.resolve()),
+    recordVote: mock(() => Promise.resolve({ player: null as any, allVoted: false })),
     getSelectedCategories: mock(() => Promise.resolve([])),
     addCategory: mock(() => Promise.resolve()),
     removeCategory: mock(() => Promise.resolve()),
