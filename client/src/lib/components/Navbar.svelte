@@ -3,6 +3,8 @@
 	import IcBaselineHouse from '~icons/ic/baseline-house';
 	import IcBaselineContactEmail from '~icons/ic/baseline-contact-mail';
 	import IcRoundAccountCircle from '~icons/ic/round-account-circle';
+
+	const user = $derived((page.data as { user?: { nickname: string } | null }).user ?? null);
 </script>
 
 <nav class="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800/60">
@@ -33,7 +35,7 @@
 					{page.url.pathname === '/play/name' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'}"
 			>
 				<IcRoundAccountCircle class="h-4 w-4" />
-				<span class="hidden sm:inline">Profile</span>
+				<span class="hidden sm:inline">{user ? user.nickname : 'Profile'}</span>
 			</a>
 		</div>
 	</div>

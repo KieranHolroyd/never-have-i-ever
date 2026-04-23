@@ -1,7 +1,11 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { getPostHogClient } from '$lib/server/posthog';
+import { getSessionUser, SESSION_COOKIE } from '$lib/server/auth';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	const sessionId = event.cookies.get(SESSION_COOKIE);
+	event.locals.user = sessionId ? await getSessionUser(sessionId) : null;
+
 	const { pathname } = event.url;
 
 	// Reverse proxy for PostHog — route /ingest/* to PostHog EU servers

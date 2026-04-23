@@ -7,13 +7,23 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import Toaster from '$lib/components/Toaster.svelte';
 	import { UUIDv4Regex } from '$lib/regex';
+	import { LocalPlayer } from '$lib/player';
+	import { browser } from '$app/environment';
 	interface Props {
 		children: import('svelte').Snippet;
+		data: import('./$types').LayoutData;
 	}
 
-	let { children }: Props = $props();
+	let { children, data }: Props = $props();
 
 	let isPlayingGame = $derived(UUIDv4Regex.test(page.url.pathname.split('/').pop() ?? ''));
+
+	// Sync account nickname → localStorage so game components can read it
+	$effect(() => {
+		if (browser && data.user?.nickname) {
+			LocalPlayer.name = data.user.nickname;
+		}
+	});
 </script>
 
 <svelte:head>
