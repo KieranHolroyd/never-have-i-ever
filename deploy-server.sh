@@ -258,11 +258,16 @@ setup_and_verify_database() {
         exit 1
     fi
 
-    # Run CAH cards ingest
-    log_info "Ingesting Cards Against Humanity cards..."
-    if ! docker compose exec -T web bun run src/utils/ingest/cah_cards.ts; then
-        log_error "Failed to ingest CAH cards"
-        exit 1
+    # Run CAH cards ingest (skip if already populated)
+    EXISTING_CAH=$(docker compose exec -T db psql -U nhie -d nhie -tAc "SELECT COUNT(*) FROM cah_cards;" 2>/dev/null | tr -d '[:space:]')
+    if [[ -n "$EXISTING_CAH" && "$EXISTING_CAH" -gt 0 ]]; then
+        log_info "Skipping CAH cards ingest — $EXISTING_CAH cards already in database"
+    else
+        log_info "Ingesting Cards Against Humanity cards..."
+        if ! docker compose exec -T web bun run src/utils/ingest/cah_cards.ts; then
+            log_error "Failed to ingest CAH cards"
+            exit 1
+        fi
     fi
 
     # Verify row counts directly in PostgreSQL
