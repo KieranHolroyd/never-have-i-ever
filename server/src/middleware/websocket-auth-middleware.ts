@@ -12,11 +12,16 @@ export interface WebSocketMiddleware {
 
 export class WebSocketAuthMiddleware {
   static async authenticate(context: WebSocketContext, next: () => Promise<void>): Promise<void> {
-    const { ws, gameManager } = context;
+    const { ws, data, gameManager } = context;
 
     // Validate required metadata
     if (!ws.data.game || !ws.data.player || !ws.data.playing) {
       throw new Error("Missing required WebSocket metadata: game, player, or playing");
+    }
+
+    // Allow join_game(create=true) to reach the engine so it can create the game.
+    if (data?.op === "join_game" && data?.create === true) {
+      return next();
     }
 
     // Validate game exists
