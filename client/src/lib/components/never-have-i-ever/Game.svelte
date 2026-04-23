@@ -12,18 +12,6 @@
 	import { colour_map } from '$lib/colour';
 	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';
-	import { WebSocketManager } from '$lib/websocket-manager';
-	import {
-		gameStore,
-		connectionStore,
-		currentPlayerStore,
-		errorStore,
-		setError,
-		updateConnection
-	} from '$lib/stores/game-store';
-	import { validateCategorySelection, handleValidationError } from '$lib/validation';
-	import ConnectionStatus from '../shared/ConnectionStatus.svelte';
-	import ErrorDisplay from '../shared/ErrorDisplay.svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
 	import { backOut, quintOut } from 'svelte/easing';
@@ -44,10 +32,8 @@
 
 	let settings = settingsStore;
 
-	let gameState = $gameStore;
-	let connection = $connectionStore;
-	let currentPlayer = $currentPlayerStore;
-	let error = $errorStore;
+	let connection: Status = $state(Status.CONNECTING);
+	let error: string | null = $state(null);
 	let player_id: string | null = null;
 	let errors: any[] = $state([]);
 	let players: Player[] = $state([]);
@@ -288,19 +274,6 @@
 			try {
 				const data = JSON.parse(event.data);
 				switch (data.op) {
-					case 'open':
-						connection = Status.CONNECTED;
-						measure_ping();
-
-						// Check if this is a post-deployment reconnection
-						if (data.postDeploymentReconnect && should_reload_on_reconnect) {
-							console.log('[DEBUG] Post-deployment reconnection detected, reloading page...');
-							setTimeout(() => {
-								window.location.reload();
-							}, 1000); // Small delay to ensure connection is stable
-							should_reload_on_reconnect = false; // Reset flag
-						}
-						break;
 					case 'game_state':
 						console.log('[DEBUG] Game state received:', {
 							waiting_for_players: data.game.waitingForPlayers,
@@ -433,6 +406,8 @@
 
 		// socket opened
 		socket?.addEventListener('open', (event) => {
+			connection = Status.CONNECTED;
+			measure_ping();
 			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
 			posthog.capture('game_joined', { game_type: 'never-have-i-ever', game_id: id });
 			retry_count = 0;
