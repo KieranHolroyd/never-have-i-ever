@@ -6,13 +6,21 @@ type ClientCAHGameData = CAHGameState & {
 	active: boolean;
 };
 
-export async function load({ params }) {
+export async function load({ params, fetch }) {
 	if (!params.gameid) {
 		return redirect(307, '/');
 	}
 
-	// For now, return empty data - the game state will be managed via WebSocket
-	// TODO: Add API endpoint for CAH game state when needed
+	try {
+		const res = await fetch(`${env.PUBLIC_API_URL}api/cah-game?id=${params.gameid}`);
+		if (res.ok) {
+			const game = (await res.json()) as ClientCAHGameData;
+			return { game };
+		}
+	} catch {
+		// fall through to default
+	}
+
 	return {
 		game: {
 			id: params.gameid,

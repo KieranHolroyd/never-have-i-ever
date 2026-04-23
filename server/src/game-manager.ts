@@ -51,6 +51,29 @@ export class GameManager {
     }
   }
 
+  async handleCahGame(request: Request): Promise<Response> {
+    try {
+      const url = new URL(request.url);
+      const gameId = url.searchParams.get("id");
+      if (!gameId) {
+        return new Response(JSON.stringify({ error: "no_gameid" }), { status: 400 });
+      }
+      if (!this.cahGameStateService) {
+        return new Response(JSON.stringify({ error: "service_unavailable" }), { status: 503 });
+      }
+      // Pass empty string so no player's hand is exposed in the API response
+      const game = await this.cahGameStateService.getFullGameState(gameId, "");
+      if (!game) {
+        return new Response(JSON.stringify({ error: "game_not_found" }), { status: 404 });
+      }
+      const active = game.players.filter((p) => p.connected).length > 0;
+      return Response.json({ ...game, active });
+    } catch (error) {
+      logger.error("Error fetching CAH game:", error);
+      return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+    }
+  }
+
   async handleGithubWebhook(request: Request, server: any): Promise<Response> {
     this.deploymentInProgress = true;
     return await this.httpService.handleGithubWebhook(request, server, this.deploymentInProgress);

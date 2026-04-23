@@ -27,6 +27,7 @@
 	import CahBlackCard from './components/game/CahBlackCard.svelte';
 	import CahWaitingPhase from './components/phases/CahWaitingPhase.svelte';
 	import CahSelectingPhase from './components/phases/CahSelectingPhase.svelte';
+	import CahJudgeSelectingPhase from './components/phases/CahJudgeSelectingPhase.svelte';
 	import CahJudgingPhase from './components/phases/CahJudgingPhase.svelte';
 	import CahWaitingForJudgePhase from './components/phases/CahWaitingForJudgePhase.svelte';
 	import CahScoringPhase from './components/phases/CahScoringPhase.svelte';
@@ -356,10 +357,17 @@
 					{:else}
 						<CahWaitingPhase gameState={gameState as CAHGameState} />
 					{/if}
+				{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}
+					<CahJudgeSelectingPhase gameState={gameState as CAHGameState} />
 				{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && !(currentPlayer as CAHPlayer).isJudge}
+					{@const hasSubmitted = (gameState as CAHGameState).submittedCards?.some(
+						(s) => s.playerId === (currentPlayer as CAHPlayer).id
+					) ?? false}
 					<CahSelectingPhase
 						currentPlayer={currentPlayer as CAHPlayer}
 						{selectedCardIds}
+						{hasSubmitted}
+						gameState={gameState as CAHGameState}
 						onCardSelect={toggleSelectCard}
 						onSubmitCards={(ids) => submitCards(ids)}
 						onClearSelection={clearSelected}
@@ -373,11 +381,11 @@
 				{:else if (gameState as CAHGameState).phase === 'judging' && !(currentPlayer as CAHPlayer)?.isJudge}
 					<CahWaitingForJudgePhase submissions={(gameState as CAHGameState).submittedCards || []} />
 				{:else if (gameState as CAHGameState).phase === 'scoring'}
-					{@const winnerPlayer =
-						(gameState as CAHGameState)!.players.find(
-							(p) => p.id === (gameState as CAHGameState)!.roundWinner
-						) || null}
-					<CahScoringPhase {winnerPlayer} />
+					{@const cahState = gameState as CAHGameState}
+					{@const winnerPlayer = cahState.players.find((p) => p.id === cahState.roundWinner) || null}
+					{@const winnerSubmission =
+						cahState.submittedCards?.find((s) => s.playerId === cahState.roundWinner) || null}
+					<CahScoringPhase {winnerPlayer} {winnerSubmission} />
 				{:else if (gameState as CAHGameState).phase === 'game_over'}
 					<CahGameOverPhase
 						gameState={gameState as CAHGameState}

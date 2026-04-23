@@ -1,8 +1,10 @@
 <script lang="ts">
-	import type { CAHPlayer } from '$lib/types';
+	import type { CAHGameState, CAHPlayer } from '$lib/types';
 
 	interface Props {
 		currentPlayer: CAHPlayer;
+		gameState: CAHGameState;
+		hasSubmitted: boolean;
 		selectedCardIds: string[];
 		onCardSelect: (cardId: string) => void;
 		onSubmitCards: (cardIds: string[]) => void;
@@ -12,6 +14,8 @@
 
 	let {
 		currentPlayer,
+		gameState,
+		hasSubmitted,
 		selectedCardIds,
 		onCardSelect,
 		onSubmitCards,
@@ -20,9 +24,49 @@
 	}: Props = $props();
 
 	const isSelectionComplete = $derived(selectedCardIds.length === requiredCards);
+	const nonJudges = $derived(gameState.players.filter((p) => p.connected && !p.isJudge));
+	const submittedCount = $derived(gameState.submittedCards?.length ?? 0);
 </script>
 
 <div class="mb-6">
+	{#if hasSubmitted}
+		<!-- Already submitted — show waiting state -->
+		<div class="flex items-center justify-between mb-4">
+			<h3 class="text-xl font-semibold">Waiting for Others</h3>
+			<div class="text-sm text-slate-400">{submittedCount} / {nonJudges.length} submitted</div>
+		</div>
+
+		<div class="w-full bg-slate-700 rounded-full h-2 mb-6">
+			<div
+				class="h-2 rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-indigo-400"
+				style="width: {nonJudges.length > 0 ? Math.round((submittedCount / nonJudges.length) * 100) : 0}%"
+			></div>
+		</div>
+
+		<div
+			class="flex flex-col items-center justify-center gap-4 p-10 bg-slate-800/40 border border-slate-700/40 rounded-lg"
+		>
+			<div class="flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full">
+				<svg class="w-8 h-8 text-blue-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+					<path
+						fill-rule="evenodd"
+						d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div class="text-center">
+				<p class="text-lg font-semibold text-white mb-1">Cards submitted!</p>
+				<p class="text-sm text-slate-400">
+					Waiting for {nonJudges.length - submittedCount} more player{nonJudges.length -
+						submittedCount === 1
+						? ''
+						: 's'} to submit...
+				</p>
+			</div>
+		</div>
+	{:else}
+	<!-- Normal selecting UI -->
 	<div class="flex items-center justify-between mb-4">
 		<div class="flex items-center gap-3">
 			<h3 class="text-xl font-semibold">Your Hand</h3>
@@ -151,5 +195,6 @@
 				</button>
 			</div>
 		</div>
-	</div>
+		</div>
+	{/if}
 </div>

@@ -114,6 +114,9 @@ const server = Bun.serve({
       case ROUTES.CAH_PACKS_API: {
         return await gameManager.handleCAHPacks();
       }
+      case ROUTES.CAH_GAME_API: {
+        return await gameManager.handleCahGame(req);
+      }
       case ROUTES.GAME_API: {
         return await gameManager.handleGame(req);
       }
