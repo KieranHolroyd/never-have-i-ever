@@ -41,8 +41,16 @@ export class WebSocketService implements IWebSocketService {
   }
 
   broadcastToGameAndClient(ws: GameSocket, op: string, data_raw: object = {}): void {
-    this.sendToClient(ws, op, data_raw);
-    this.broadcastToGame(ws.data.game, op, data_raw);
+    const payload = JSON.stringify({ ...data_raw, op });
+    const gameSockets = this.gameWebSockets.get(ws.data.game);
+    if (!gameSockets || gameSockets.size === 0) {
+      // No tracked sockets yet — at minimum send to the initiating client
+      try { ws.send(payload); } catch (_) {}
+      return;
+    }
+    for (const sock of gameSockets) {
+      try { sock.send(payload); } catch (_) {}
+    }
   }
 
   publishToGame(ws: GameSocket, op: string, data_raw: object = {}): void {
@@ -60,17 +68,9 @@ export class WebSocketService implements IWebSocketService {
       console.log('[DEBUG] No WebSocket instances found for game:', gameId);
       return;
     }
-
-    // Publish exactly once via any connected socket to avoid duplicate messages.
-    const iterator = gameSockets.values();
-    const wsAny = iterator.next().value;
-    if (!wsAny) return;
-
-    try {
-      const payload = JSON.stringify({ ...data, op });
-      wsAny.publish(gameId, payload);
-    } catch (error) {
-      console.error('[DEBUG] Error broadcasting to game:', error);
+    const payload = JSON.stringify({ ...data, op });
+    for (const sock of gameSockets) {
+      try { sock.send(payload); } catch (_) {}
     }
   }
 

@@ -108,7 +108,7 @@ export function createNeverHaveIEverEngine(
 
     await gameStateService.setGameMeta(gameId, {
       phase: "waiting",
-      waitingForPlayers: true,
+      waitingForPlayers: false,
       current_q_cat: picked,
       current_q_content: question,
       timeout_start: 0,
@@ -334,9 +334,12 @@ export function createNeverHaveIEverEngine(
       const updated = await gameStateService.getPlayer(gameId, ws.data.player);
       wsService.broadcastToGameAndClient(ws, "vote_cast", { player: updated, vote: newVoteLabel });
 
-      // Start timeout on first vote in this round
+      // On first vote in the round, lock in the round (prevents free skipping) and start timeout
       const meta = await gameStateService.getGameMeta(gameId);
-      if (meta?.waitingForPlayers === true && !roundTimeouts.has(gameId)) {
+      if (meta?.waitingForPlayers === false) {
+        await gameStateService.setGameMeta(gameId, { waitingForPlayers: true });
+      }
+      if (!roundTimeouts.has(gameId)) {
         await startRoundTimeout(ws);
       }
 
