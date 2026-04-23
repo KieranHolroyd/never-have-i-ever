@@ -11,6 +11,7 @@ export interface IWebSocketService {
   addWebSocket(gameId: string, ws: GameSocket): void;
   removeWebSocket(gameId: string, ws: GameSocket): void;
   hasWebSockets(gameId: string): boolean;
+  getGameSockets(gameId: string): Set<GameSocket>;
   getTimeoutStart(gameId: string): number | undefined;
   setTimeoutStart(gameId: string, startTime: number): void;
   deleteTimeoutStart(gameId: string): void;
@@ -127,6 +128,10 @@ export class WebSocketService implements IWebSocketService {
   hasWebSockets(gameId: string): boolean {
     const gameSockets = this.gameWebSockets.get(gameId);
     return gameSockets ? gameSockets.size > 0 : false;
+  }
+
+  getGameSockets(gameId: string): Set<GameSocket> {
+    return this.gameWebSockets.get(gameId) ?? new Set();
   }
 
   getTimeoutStart(gameId: string): number | undefined {

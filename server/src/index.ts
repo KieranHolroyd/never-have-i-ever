@@ -5,11 +5,13 @@ import { emit, publish, send } from "./lib/socket";
 import { GameManager } from "./game-manager";
 import { engineRegistry } from "./lib/engine-registry";
 import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
+import { createCardsAgainstHumanityEngine } from "./lib/engines/cards-against-humanity";
 import { migrate } from "./migrate";
 import { closeDatabasePool } from "./db";
 import { WebSocketService, IWebSocketService } from "./services/websocket-service";
 import { HttpService, IHttpService } from "./services/http-service";
 import { GameStateService, IGameStateService } from "./services/game-state-service";
+import { CAHGameStateService, ICAHGameStateService } from "./services/cah-game-state-service";
 import { createDefaultMiddlewarePipeline } from "./middleware";
 import { container, SERVICE_TOKENS } from "./di";
 import logger from "./logger";
@@ -39,17 +41,19 @@ try {
 container.registerClass(SERVICE_TOKENS.WebSocketService, WebSocketService, 'singleton');
 container.registerClass(SERVICE_TOKENS.HttpService, HttpService, 'singleton');
 container.registerClass(SERVICE_TOKENS.GameStateService, GameStateService, 'singleton');
+container.registerClass(SERVICE_TOKENS.CAHGameStateService, CAHGameStateService, 'singleton');
 container.registerClass(
   SERVICE_TOKENS.GameManager,
   GameManager,
   'singleton',
-  [SERVICE_TOKENS.WebSocketService, SERVICE_TOKENS.HttpService, SERVICE_TOKENS.GameStateService]
+  [SERVICE_TOKENS.WebSocketService, SERVICE_TOKENS.HttpService, SERVICE_TOKENS.GameStateService, SERVICE_TOKENS.CAHGameStateService]
 );
 
 // Resolve services from container
 const webSocketService = container.resolve<IWebSocketService>(SERVICE_TOKENS.WebSocketService);
 const httpService = container.resolve<IHttpService>(SERVICE_TOKENS.HttpService);
 const gameStateService = container.resolve<IGameStateService>(SERVICE_TOKENS.GameStateService);
+const cahGameStateService = container.resolve<ICAHGameStateService>(SERVICE_TOKENS.CAHGameStateService);
 const gameManager = container.resolve<GameManager>(SERVICE_TOKENS.GameManager);
 
 // Set up WebSocket middleware pipeline
@@ -166,6 +170,9 @@ const server = Bun.serve({
 
 // Register the Never Have I Ever engine
 engineRegistry.register(createNeverHaveIEverEngine(webSocketService, httpService, gameStateService));
+
+// Register the Cards Against Humanity engine
+engineRegistry.register(createCardsAgainstHumanityEngine(webSocketService, httpService, gameStateService, cahGameStateService));
 
 
 logger.info(`Server running at http://${server.hostname}:${server.port}/`);

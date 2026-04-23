@@ -135,6 +135,7 @@ export const SERVICE_TOKENS = {
   HttpService: Symbol('HttpService'),
   PersistenceService: Symbol('PersistenceService'),
   GameStateService: Symbol('GameStateService'),
+  CAHGameStateService: Symbol('CAHGameStateService'),
   GameManager: Symbol('GameManager'),
 } as const;
 

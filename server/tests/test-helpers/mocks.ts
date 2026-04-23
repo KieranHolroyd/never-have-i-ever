@@ -42,6 +42,7 @@ export function createMockWebSocketService(): IWebSocketService {
     addWebSocket: mock(),
     removeWebSocket: mock(),
     hasWebSockets: mock(),
+    getGameSockets: mock(() => new Set<any>()),
     getTimeoutStart: mock(() => 0),
     setTimeoutStart: mock(),
     deleteTimeoutStart: mock(),

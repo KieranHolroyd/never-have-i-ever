@@ -1,6 +1,7 @@
 import { IWebSocketService } from "./services/websocket-service";
 import { IHttpService } from "./services/http-service";
 import type { IGameStateService } from "./services/game-state-service";
+import type { ICAHGameStateService } from "./services/cah-game-state-service";
 import logger from "./logger";
 
 export class GameManager {
@@ -9,12 +10,16 @@ export class GameManager {
   constructor(
     private webSocketService: IWebSocketService,
     private httpService: IHttpService,
-    private gameStateService?: IGameStateService
+    private gameStateService?: IGameStateService,
+    private cahGameStateService?: ICAHGameStateService
   ) {}
 
   async gameExists(gameId: string): Promise<boolean> {
-    if (!this.gameStateService) return false;
-    return this.gameStateService.gameExists(gameId);
+    const [nhieExists, cahExists] = await Promise.all([
+      this.gameStateService ? this.gameStateService.gameExists(gameId) : Promise.resolve(false),
+      this.cahGameStateService ? this.cahGameStateService.gameExists(gameId) : Promise.resolve(false),
+    ]);
+    return nhieExists || cahExists;
   }
 
   async handleCategories(): Promise<Response> {

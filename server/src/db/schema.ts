@@ -81,9 +81,53 @@ export const gameHistory = pgTable("game_history", {
   entry: jsonb("entry").notNull(),
 });
 
+// ── CAH game state ────────────────────────────────────────────────────────────
+
+export const cahGames = pgTable("cah_games", {
+  id: text("id").primaryKey(),
+  phase: text("phase").notNull().default("waiting"),
+  current_judge: text("current_judge"),
+  current_black_card: jsonb("current_black_card"),
+  current_round: integer("current_round").notNull().default(0),
+  selected_packs: jsonb("selected_packs").notNull().default([]),
+  round_winner: text("round_winner"),
+  max_rounds: integer("max_rounds").notNull().default(10),
+  hand_size: integer("hand_size").notNull().default(7),
+  game_completed: boolean("game_completed").notNull().default(false),
+  black_deck: jsonb("black_deck").notNull().default([]),
+  white_deck: jsonb("white_deck").notNull().default([]),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cahGamePlayers = pgTable("cah_game_players", {
+  game_id: text("game_id").notNull().references(() => cahGames.id, { onDelete: "cascade" }),
+  player_id: text("player_id").notNull(),
+  name: text("name").notNull(),
+  score: integer("score").notNull().default(0),
+  connected: boolean("connected").notNull().default(true),
+  hand: jsonb("hand").notNull().default([]),
+  is_judge: boolean("is_judge").notNull().default(false),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.game_id, t.player_id] }),
+}));
+
+export const cahSubmissions = pgTable("cah_submissions", {
+  id: serial("id").primaryKey(),
+  game_id: text("game_id").notNull().references(() => cahGames.id, { onDelete: "cascade" }),
+  player_id: text("player_id").notNull(),
+  player_name: text("player_name").notNull(),
+  cards: jsonb("cards").notNull(),
+  round: integer("round").notNull().default(0),
+}, (t) => ({
+  uniquePlayerRound: index("idx_cah_submissions_game_player").on(t.game_id, t.player_id),
+}));
+
 // ── Inferred types ────────────────────────────────────────────────────────────
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 export type CahCard = typeof cahCards.$inferSelect;
 export type NewCahCard = typeof cahCards.$inferInsert;
+export type CahGame = typeof cahGames.$inferSelect;
+export type CahGamePlayer = typeof cahGamePlayers.$inferSelect;
+export type CahSubmission = typeof cahSubmissions.$inferSelect;
