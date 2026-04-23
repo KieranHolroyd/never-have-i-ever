@@ -935,7 +935,7 @@
 	{/if}
 	<!-- Global toasts replace per-page notification overlays -->
 </div>
-<div class="fixed z-20 top-[7.5rem] left-2">
+<div class="fixed z-20 top-16 left-2">
 	<button class="relative rounded-full p-2 panel duration-200" title="Share!" onclick={share_game}>
 		<MdiShareOutline class="text-zinc-100 h-8 w-8" />
 	</button>
