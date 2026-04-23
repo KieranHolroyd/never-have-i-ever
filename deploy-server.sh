@@ -197,20 +197,22 @@ setup_environment() {
     if [[ ! -f "$ENV_FILE" ]]; then
         log_warning "Creating .env file. Please update with your actual values."
 
+        # Generate a secure random DB password
+        DB_PASSWORD=$(openssl rand -hex 32)
+
         cat > "$ENV_FILE" << EOF
-# Axiom logging configuration
-AXIOM_TOKEN=${AXIOM_TOKEN:-your-axiom-token-here}
-AXIOM_ORG_ID=${AXIOM_ORG_ID:-your-axiom-org-id-here}
+GAME_DATA_DIR=/home/bun/app/assets/games/
+DB_PASSWORD=$DB_PASSWORD
+DATABASE_URL=postgresql://nhie:$DB_PASSWORD@db:5432/nhie
 
-# Valkey configuration
-VALKEY_URL=${VALKEY_URL:-valkey://cache:6379}
-
-# Optional: Add other environment variables as needed
-NODE_ENV=${NODE_ENV:-production}
+# Axiom logging (optional)
+AXIOM_TOKEN=${AXIOM_TOKEN:-}
+AXIOM_ORG_ID=${AXIOM_ORG_ID:-}
 EOF
 
-        log_warning "Please edit $ENV_FILE with your actual Axiom credentials and other settings"
-        echo "Press Enter to continue after updating the .env file..."
+        log_success "Generated DB_PASSWORD and wrote to $ENV_FILE"
+        log_warning "Please edit $ENV_FILE with your actual Axiom credentials if needed"
+        echo "Press Enter to continue after reviewing the .env file..."
         read
     else
         log_info ".env file already exists"
@@ -238,13 +240,9 @@ build_and_deploy() {
 }
 
 setup_and_verify_database() {
-    log_info "Setting up database and verifying data loading..."
+    log_info "Ingesting game data into PostgreSQL..."
 
     cd "$SERVER_DIR/server"
-
-    # Wait for services to be healthy
-    log_info "Waiting for services to start..."
-    sleep 10
 
     # Check if containers are running
     if ! docker compose ps | grep -q "Up"; then
@@ -253,59 +251,31 @@ setup_and_verify_database() {
         exit 1
     fi
 
-    # Run ingest scripts to populate SQLite database with migrations and data
-    log_info "Running database migrations and data ingestion..."
-
-    # Run categories ingest script
+    # Run categories ingest (migrations run automatically inside this script)
     log_info "Ingesting Never Have I Ever categories..."
     if ! docker compose exec -T web bun run src/utils/ingest/categories.ts; then
         log_error "Failed to ingest categories"
         exit 1
     fi
 
-    # Run CAH cards ingest script
+    # Run CAH cards ingest
     log_info "Ingesting Cards Against Humanity cards..."
     if ! docker compose exec -T web bun run src/utils/ingest/cah_cards.ts; then
         log_error "Failed to ingest CAH cards"
         exit 1
     fi
 
-    # Wait a moment for data to be processed
-    sleep 2
-
-    # Verify Valkey connection and data storage
-    log_info "Verifying Valkey data storage..."
-    VALKEY_CHECK=$(docker compose exec -T cache valkey-cli -h localhost -p 6379 EXISTS shared:questions_list)
-    if [[ "$VALKEY_CHECK" != "1" ]]; then
-        log_error "Questions data not found in Valkey at key 'shared:questions_list'"
-        log_info "Checking Valkey contents..."
-        docker compose exec -T cache valkey-cli -h localhost -p 6379 KEYS "*"
+    # Verify row counts directly in PostgreSQL
+    log_info "Verifying data in PostgreSQL..."
+    CATEGORY_COUNT=$(docker compose exec -T db psql -U nhie -d nhie -tAc "SELECT COUNT(*) FROM categories;" 2>/dev/null | tr -d '[:space:]')
+    if [[ -z "$CATEGORY_COUNT" || "$CATEGORY_COUNT" -lt 1 ]]; then
+        log_error "No categories found in PostgreSQL after ingest"
         exit 1
     fi
 
-    # Verify the data structure in Valkey
-    log_info "Verifying data structure in Valkey..."
-    VALKEY_DATA=$(docker compose exec -T cache valkey-cli -h localhost -p 6379 GET shared:questions_list)
-    if [[ -z "$VALKEY_DATA" ]]; then
-        log_error "Questions data in Valkey is empty"
-        exit 1
-    fi
+    CAH_COUNT=$(docker compose exec -T db psql -U nhie -d nhie -tAc "SELECT COUNT(*) FROM cah_cards;" 2>/dev/null | tr -d '[:space:]')
 
-    # Basic JSON validation
-    if ! echo "$VALKEY_DATA" | jq . >/dev/null 2>&1; then
-        log_error "Questions data in Valkey is not valid JSON"
-        exit 1
-    fi
-
-    # Check that we have categories in the data
-    CATEGORY_COUNT=$(echo "$VALKEY_DATA" | jq 'keys | length')
-    if [[ "$CATEGORY_COUNT" -lt 1 ]]; then
-        log_error "No categories found in questions data"
-        exit 1
-    fi
-
-    log_success "Data verification completed successfully"
-    log_info "Found $CATEGORY_COUNT categories in the questions data"
+    log_success "Database populated: $CATEGORY_COUNT categories, $CAH_COUNT CAH cards"
 }
 
 setup_firewall() {
@@ -321,9 +291,6 @@ setup_firewall() {
 
     # Allow the application port
     $SUDO_CMD ufw allow 3000 || true
-
-    # Allow Redis port (if needed externally)
-    $SUDO_CMD ufw allow 6379 || true
 
     # Enable firewall if not already enabled
     $SUDO_CMD ufw --force enable || true
