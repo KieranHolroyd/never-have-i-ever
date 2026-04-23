@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { categories } from "../../db/schema";
 
 async function ingestCategories() {
-  migrate();
+  await migrate();
 
   const data = await Bun.file(
     `${import.meta.dir}/../../../assets/data.json`
@@ -14,7 +14,7 @@ async function ingestCategories() {
 
   const rows = Object.entries(data).map(([name, category]) => ({
     name,
-    questions: JSON.stringify(category.questions),
+    questions: category.questions,
     is_nsfw: category.flags.is_nsfw,
   }));
 
@@ -26,11 +26,11 @@ async function ingestCategories() {
       set: {
         questions: categories.questions,
         is_nsfw: categories.is_nsfw,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date(),
       },
     });
 
-  console.log(`Successfully ingested ${rows.length} categories into SQLite database`);
+  console.log(`Successfully ingested ${rows.length} categories into PostgreSQL`);
 }
 
 ingestCategories().catch((error) => {

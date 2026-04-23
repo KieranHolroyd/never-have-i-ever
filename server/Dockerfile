@@ -52,9 +52,8 @@ COPY server/package.json ./server/
 RUN --mount=type=cache,target=/root/.bun/install/cache \
 	bun install
 
-# Copy static assets that don't change often
-# This allows better layer caching for subsequent builds
-COPY server/assets/data.json server/assets/db.sqlite ./server/assets/
+# Copy static assets (JSON game data only — no SQLite file needed)
+COPY server/assets/data.json ./server/assets/
 
 # Copy Drizzle migration files
 COPY server/drizzle/ ./server/drizzle/

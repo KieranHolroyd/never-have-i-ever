@@ -2,15 +2,14 @@ import { z } from "zod";
 
 const configSchema = z.object({
   GAME_DATA_DIR: z.string(),
-  VALKEY_URI: z.string(),
+  DATABASE_URL: z.string(),
   AXIOM_TOKEN: z.string().optional(),
   AXIOM_ORG_ID: z.string().optional(),
 });
 
 const rawConfig = {
-  // Default to server/assets/games in production-like runs; tests override via env
   GAME_DATA_DIR: Bun.env.GAME_DATA_DIR || process.env.GAME_DATA_DIR || './assets/games/',
-  VALKEY_URI: Bun.env.VALKEY_URI || process.env.VALKEY_URI || 'redis://localhost:6379',
+  DATABASE_URL: Bun.env.DATABASE_URL || process.env.DATABASE_URL || 'postgresql://localhost:5432/nhie',
   AXIOM_TOKEN: Bun.env.AXIOM_TOKEN || process.env.AXIOM_TOKEN,
   AXIOM_ORG_ID: Bun.env.AXIOM_ORG_ID || process.env.AXIOM_ORG_ID,
 };
@@ -49,10 +48,11 @@ export const WEBSOCKET_PARAMS = {
 
 export const REQUIRED_ENV_VARS = [
   "GAME_DATA_DIR",
-  "VALKEY_URI",
+  "DATABASE_URL",
 ] as const;
 
 export const OPTIONAL_ENV_VARS = [
   "AXIOM_TOKEN",
   "AXIOM_ORG_ID",
 ] as const;
+

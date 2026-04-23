@@ -10,7 +10,7 @@ interface CahCardPack {
 }
 
 async function ingestCahCards() {
-  migrate();
+  await migrate();
 
   const jsonPath = `${import.meta.dir}/data/cah-cards.json`;
   const file = Bun.file(jsonPath);
@@ -39,7 +39,7 @@ async function ingestCahCards() {
     totalCardsInserted += rows.length;
   }
 
-  console.log(`Successfully ingested ${totalCardsInserted} CAH cards into SQLite database`);
+  console.log(`Successfully ingested ${totalCardsInserted} CAH cards into PostgreSQL`);
 }
 
 ingestCahCards().catch((error) => {

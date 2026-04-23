@@ -5,7 +5,8 @@ import { emit, publish, send } from "./lib/socket";
 import { GameManager } from "./game-manager";
 import { engineRegistry } from "./lib/engine-registry";
 import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
-import { initializeRedisPool, closeRedisPool } from "./redis-pool";
+import { migrate } from "./migrate";
+import { closeDatabasePool } from "./db";
 import { WebSocketService, IWebSocketService } from "./services/websocket-service";
 import { HttpService, IHttpService } from "./services/http-service";
 import { GameStateService, IGameStateService } from "./services/game-state-service";
@@ -25,12 +26,12 @@ if (missingOptional.length > 0) {
   logger.warn(`Missing optional environment variables: ${missingOptional.join(", ")}`);
 }
 
-// Initialize Redis connection pool — hard fail if Redis is unreachable.
+// Run database migrations on startup
 try {
-  await initializeRedisPool();
-  logger.info("Redis connection pool initialized");
+  await migrate();
+  logger.info("Database migrations applied");
 } catch (error) {
-  logger.error(`Redis unavailable — cannot start: ${(error as Error).message}`);
+  logger.error(`Database migration failed — cannot start: ${(error as Error).message}`);
   process.exit(1);
 }
 
@@ -177,13 +178,13 @@ if (logger.isFileLoggingEnabled()) {
 process.on('SIGINT', async () => {
   logger.info('Shutting down server...');
   gameManager.cleanup();
-  await closeRedisPool();
+  await closeDatabasePool();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   logger.info('Shutting down server...');
   gameManager.cleanup();
-  await closeRedisPool();
+  await closeDatabasePool();
   process.exit(0);
 });

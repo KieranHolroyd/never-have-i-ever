@@ -1,6 +1,4 @@
 import { Catagories, CatagoriesSchema } from "../types";
-import { client } from "../redis_client";
-import { ValkeyJSON } from "../utils/json";
 import { PushEvent } from "@octokit/webhooks-types";
 import logger from "../logger";
 import { db } from "../db";
@@ -18,36 +16,34 @@ export class HttpService implements IHttpService {
   constructor() {}
 
   async getQuestionsList(): Promise<Catagories> {
-    // First check Valkey cache
-    let questionsList = await ValkeyJSON.get(client, "shared:questions_list", CatagoriesSchema);
+    // Simple in-memory cache to avoid repeated DB round-trips per game start
+    if (HttpService._questionsCache) return HttpService._questionsCache;
 
-    if (!questionsList) {
-      try {
-        const rows = await db.select({
-          name: categories.name,
-          questions: categories.questions,
-          is_nsfw: categories.is_nsfw,
-        }).from(categories);
+    try {
+      const rows = await db.select({
+        name: categories.name,
+        questions: categories.questions,
+        is_nsfw: categories.is_nsfw,
+      }).from(categories);
 
-        const categoriesData: Catagories = {};
-        for (const row of rows) {
-          categoriesData[row.name] = {
-            flags: { is_nsfw: row.is_nsfw },
-            questions: JSON.parse(row.questions) as string[],
-          };
-        }
-
-        await ValkeyJSON.set(client, "shared:questions_list", categoriesData, CatagoriesSchema);
-        questionsList = categoriesData;
-        logger.info(`Loaded ${rows.length} categories from database`);
-      } catch (error) {
-        logger.error("Failed to load categories from database:", error);
-        questionsList = {};
+      const categoriesData: Catagories = {};
+      for (const row of rows) {
+        categoriesData[row.name] = {
+          flags: { is_nsfw: row.is_nsfw },
+          questions: row.questions as string[],
+        };
       }
-    }
 
-    return questionsList as Catagories;
+      HttpService._questionsCache = categoriesData;
+      logger.info(`Loaded ${rows.length} categories from database`);
+      return categoriesData;
+    } catch (error) {
+      logger.error("Failed to load categories from database:", error);
+      return {};
+    }
   }
+
+  private static _questionsCache: Catagories | null = null;
 
   async handleCategories(): Promise<Response> {
     try {

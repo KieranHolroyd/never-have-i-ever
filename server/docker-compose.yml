@@ -8,17 +8,28 @@ services:
     stop_grace_period: 2s
     ports:
       - "8080:3000"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       - GAME_DATA_DIR=/home/bun/app/assets/games/
+      - DATABASE_URL=postgresql://nhie:c64c0c9f0871e20c2f2b2e8664dfc9153bce12e303751e89c20f731012f36cee@db:5432/nhie
       - AXIOM_TOKEN=${AXIOM_TOKEN}
       - AXIOM_ORG_ID=${AXIOM_ORG_ID}
-      - VALKEY_URI=valkey://:feabffa1c28c994aefead34d06b58d9491326a3307614a98af8bbf390b2b0ba0@cache:6379
-
     volumes:
       - /var/gamedata:/home/bun/app/assets/games/
-  cache:
-    image: valkey/valkey:latest
+
+  db:
+    image: postgres:18-alpine
     restart: always
-    command: ["valkey-server", "--requirepass", "feabffa1c28c994aefead34d06b58d9491326a3307614a98af8bbf390b2b0ba0", "--bind", "0.0.0.0"]
+    environment:
+      POSTGRES_USER: nhie
+      POSTGRES_PASSWORD: c64c0c9f0871e20c2f2b2e8664dfc9153bce12e303751e89c20f731012f36cee
+      POSTGRES_DB: nhie
     volumes:
-      - /var/dockerdata:/data
+      - /var/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nhie -d nhie"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

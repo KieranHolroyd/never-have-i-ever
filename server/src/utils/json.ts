@@ -74,9 +74,6 @@ export class SafeJSON {
   }
 }
 
-/**
- * Type-safe Valkey operations with JSON serialization
- */
 export class ValkeyJSON {
   /**
    * Get and parse JSON value from Valkey with type validation
