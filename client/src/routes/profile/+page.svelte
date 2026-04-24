@@ -13,6 +13,7 @@
 	import MdiLock from '~icons/mdi/lock';
 	import MdiAlertCircle from '~icons/mdi/alert-circle';
 	import MdiEmail from '~icons/mdi/email';
+	import MdiLogout from '~icons/mdi/logout';
 
 	interface Props {
 		data: PageData;
@@ -81,14 +82,25 @@
 	{/if}
 
 	<!-- Header -->
-	<div class="flex items-center gap-4">
-		<div class="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-zinc-800 text-zinc-300">
-			<MdiAccountCircle class="w-10 h-10" />
+	<div class="flex items-center justify-between gap-4">
+		<div class="flex items-center gap-4">
+			<div class="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-zinc-800 text-zinc-300">
+				<MdiAccountCircle class="w-10 h-10" />
+			</div>
+			<div>
+				<h1 class="text-2xl font-bold text-white">{user.nickname}</h1>
+				<p class="text-zinc-400 text-sm">{user.email}</p>
+			</div>
 		</div>
-		<div>
-			<h1 class="text-2xl font-bold text-white">{user.nickname}</h1>
-			<p class="text-zinc-400 text-sm">{user.email}</p>
-		</div>
+		<form method="POST" action="/auth/logout" use:enhance>
+			<button
+				type="submit"
+				class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+			>
+				<MdiLogout class="w-4 h-4" />
+				<span class="hidden sm:inline">Sign out</span>
+			</button>
+		</form>
 	</div>
 
 	<!-- Top-level stat pills -->
