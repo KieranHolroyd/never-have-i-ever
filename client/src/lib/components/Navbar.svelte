@@ -9,8 +9,9 @@
 
 <nav class="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800/60">
 	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-		<a href="/" class="text-sm font-bold tracking-tight text-white hover:text-zinc-300 transition-colors">
-			games.kieran.dev
+		<a href="/" class="flex items-center gap-2 text-sm font-bold tracking-tight text-white hover:text-zinc-300 transition-colors">
+			<img src="/favicon.png" alt="logo" class="h-6 w-6" />
+			<span>games.kieran.dev</span>
 		</a>
 		<div class="flex items-center gap-1 pr-9">
 			<a
