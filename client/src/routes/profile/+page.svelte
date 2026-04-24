@@ -1,19 +1,24 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
+	import type { PageData, ActionData } from './$types';
 	import MdiAccountCircle from '~icons/mdi/account-circle';
 	import MdiTrophy from '~icons/mdi/trophy';
 	import MdiCards from '~icons/mdi/cards';
 	import MdiAccountGroup from '~icons/mdi/account-group';
-	import MdiCheckCircle from '~icons/mdi/check-circle';
 	import MdiCalendar from '~icons/mdi/calendar';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
+	import MdiPencil from '~icons/mdi/pencil';
+	import MdiCheck from '~icons/mdi/check';
+	import MdiLock from '~icons/mdi/lock';
+	import MdiEmail from '~icons/mdi/email';
 
 	interface Props {
 		data: PageData;
+		form: ActionData;
 	}
 
-	let { data }: Props = $props();
+	let { data, form }: Props = $props();
 
 	const user = $derived(data.user);
 	const nhieStats = $derived(data.nhieStats);
@@ -39,6 +44,12 @@
 
 	function isWinner(score: number, topScore: number) {
 		return score >= topScore && topScore > 0;
+	}
+
+	// Which settings panel is open
+	let openPanel: 'nickname' | 'email' | 'password' | null = $state(null);
+	function toggle(panel: typeof openPanel) {
+		openPanel = openPanel === panel ? null : panel;
 	}
 </script>
 
@@ -226,4 +237,192 @@
 			</button>
 		</div>
 	{/if}
+
+	<!-- Account settings -->
+	<div class="space-y-3">
+		<h2 class="text-lg font-semibold text-white">Account Settings</h2>
+
+		<!-- Nickname -->
+		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+			<button
+				type="button"
+				onclick={() => toggle('nickname')}
+				class="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-zinc-800/50 transition-colors"
+			>
+				<div class="flex items-center gap-3">
+					<MdiPencil class="w-4 h-4 text-zinc-400" />
+					<div class="text-left">
+						<p class="text-white font-medium">Username</p>
+						<p class="text-zinc-500 text-xs mt-0.5">{user.nickname}</p>
+					</div>
+				</div>
+				<span class="text-zinc-500 text-xs">{openPanel === 'nickname' ? 'Cancel' : 'Change'}</span>
+			</button>
+			{#if openPanel === 'nickname'}
+				<form
+					method="POST"
+					action="?/update_nickname"
+					use:enhance={() => {
+						return ({ update }) => update({ reset: false });
+					}}
+					class="border-t border-zinc-800 px-5 py-4 space-y-3"
+				>
+					{#if form?.action === 'update_nickname' && form.error}
+						<p class="text-red-400 text-sm">{form.error}</p>
+					{/if}
+					{#if form?.action === 'update_nickname' && form.success}
+						<p class="text-emerald-400 text-sm flex items-center gap-1.5"><MdiCheck class="w-4 h-4" /> Username updated.</p>
+					{/if}
+					<div>
+						<label for="nickname" class="block text-xs text-zinc-400 mb-1">New username</label>
+						<input
+							id="nickname"
+							name="nickname"
+							type="text"
+							value={user.nickname}
+							maxlength={30}
+							required
+							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+						/>
+					</div>
+					<button
+						type="submit"
+						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
+					>Save</button>
+				</form>
+			{/if}
+		</div>
+
+		<!-- Email -->
+		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+			<button
+				type="button"
+				onclick={() => toggle('email')}
+				class="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-zinc-800/50 transition-colors"
+			>
+				<div class="flex items-center gap-3">
+					<MdiEmail class="w-4 h-4 text-zinc-400" />
+					<div class="text-left">
+						<p class="text-white font-medium">Email</p>
+						<p class="text-zinc-500 text-xs mt-0.5">{user.email}</p>
+					</div>
+				</div>
+				<span class="text-zinc-500 text-xs">{openPanel === 'email' ? 'Cancel' : 'Change'}</span>
+			</button>
+			{#if openPanel === 'email'}
+				<form
+					method="POST"
+					action="?/update_email"
+					use:enhance={() => {
+						return ({ update }) => update({ reset: false });
+					}}
+					class="border-t border-zinc-800 px-5 py-4 space-y-3"
+				>
+					{#if form?.action === 'update_email' && form.error}
+						<p class="text-red-400 text-sm">{form.error}</p>
+					{/if}
+					{#if form?.action === 'update_email' && form.success}
+						<p class="text-emerald-400 text-sm flex items-center gap-1.5"><MdiCheck class="w-4 h-4" /> Email updated.</p>
+					{/if}
+					<div>
+						<label for="email" class="block text-xs text-zinc-400 mb-1">New email</label>
+						<input
+							id="email"
+							name="email"
+							type="email"
+							value={user.email}
+							required
+							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+						/>
+					</div>
+					<div>
+						<label for="email-password" class="block text-xs text-zinc-400 mb-1">Current password</label>
+						<input
+							id="email-password"
+							name="password"
+							type="password"
+							placeholder="Confirm with your password"
+							required
+							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+						/>
+					</div>
+					<button
+						type="submit"
+						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
+					>Save</button>
+				</form>
+			{/if}
+		</div>
+
+		<!-- Password -->
+		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+			<button
+				type="button"
+				onclick={() => toggle('password')}
+				class="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-zinc-800/50 transition-colors"
+			>
+				<div class="flex items-center gap-3">
+					<MdiLock class="w-4 h-4 text-zinc-400" />
+					<div class="text-left">
+						<p class="text-white font-medium">Password</p>
+						<p class="text-zinc-500 text-xs mt-0.5">••••••••</p>
+					</div>
+				</div>
+				<span class="text-zinc-500 text-xs">{openPanel === 'password' ? 'Cancel' : 'Change'}</span>
+			</button>
+			{#if openPanel === 'password'}
+				<form
+					method="POST"
+					action="?/update_password"
+					use:enhance={() => {
+						return ({ update }) => update({ reset: false });
+					}}
+					class="border-t border-zinc-800 px-5 py-4 space-y-3"
+				>
+					{#if form?.action === 'update_password' && form.error}
+						<p class="text-red-400 text-sm">{form.error}</p>
+					{/if}
+					{#if form?.action === 'update_password' && form.success}
+						<p class="text-emerald-400 text-sm flex items-center gap-1.5"><MdiCheck class="w-4 h-4" /> Password updated.</p>
+					{/if}
+					<div>
+						<label for="current_password" class="block text-xs text-zinc-400 mb-1">Current password</label>
+						<input
+							id="current_password"
+							name="current_password"
+							type="password"
+							required
+							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+						/>
+					</div>
+					<div>
+						<label for="new_password" class="block text-xs text-zinc-400 mb-1">New password</label>
+						<input
+							id="new_password"
+							name="new_password"
+							type="password"
+							minlength={8}
+							required
+							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+						/>
+					</div>
+					<div>
+						<label for="confirm_password" class="block text-xs text-zinc-400 mb-1">Confirm new password</label>
+						<input
+							id="confirm_password"
+							name="confirm_password"
+							type="password"
+							minlength={8}
+							required
+							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+						/>
+					</div>
+					<button
+						type="submit"
+						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
+					>Save</button>
+				</form>
+			{/if}
+		</div>
+	</div>
 </div>

@@ -85,4 +85,19 @@ export async function updateNickname(userId: string, nickname: string): Promise<
 		.where(eq(users.id, userId));
 }
 
+export async function updateEmail(userId: string, email: string): Promise<void> {
+	await db
+		.update(users)
+		.set({ email: email.toLowerCase().trim(), updated_at: new Date() })
+		.where(eq(users.id, userId));
+}
+
+export async function updatePassword(userId: string, newPassword: string): Promise<void> {
+	const password_hash = await hashPassword(newPassword);
+	await db
+		.update(users)
+		.set({ password_hash, updated_at: new Date() })
+		.where(eq(users.id, userId));
+}
+
 export { SESSION_COOKIE };
