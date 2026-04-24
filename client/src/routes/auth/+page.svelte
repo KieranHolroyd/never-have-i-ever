@@ -108,6 +108,12 @@
 					>
 						Sign in
 					</button>
+
+					<p class="mt-4 text-center text-xs text-zinc-500">
+						<a href="/auth/forgot-password" class="text-zinc-400 hover:text-white transition-colors">
+							Forgot your password?
+						</a>
+					</p>
 				</form>
 			{:else}
 				<form method="POST" action="?/register" use:enhance>

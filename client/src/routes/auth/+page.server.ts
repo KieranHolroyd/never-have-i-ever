@@ -5,8 +5,11 @@ import {
 	findUserByEmail,
 	verifyPassword,
 	createSession,
+	createAuthToken,
 	SESSION_COOKIE
 } from '$lib/server/auth';
+import { sendEmailVerificationEmail } from '$lib/server/mailer';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (locals.user) {
@@ -43,6 +46,13 @@ export const actions: Actions = {
 
 		const user = await createUser(email, password, nickname);
 		const sessionId = await createSession(user.id);
+
+		// Send verification email (fire-and-forget — don't block registration)
+		createAuthToken(user.id, 'email_verification').then((token) => {
+			const origin = env.PUBLIC_ORIGIN ?? url.origin;
+			const verifyUrl = `${origin}/auth/verify-email/${token}`;
+			sendEmailVerificationEmail(user.email, user.nickname, verifyUrl).catch(() => {});
+		}).catch(() => {});
 
 		cookies.set(SESSION_COOKIE, sessionId, {
 			path: '/',

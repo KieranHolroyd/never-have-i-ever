@@ -7,7 +7,10 @@ import {
 	updateEmail,
 	updatePassword,
 	findUserByEmail,
+	createAuthToken,
 } from '$lib/server/auth';
+import { sendEmailVerificationEmail } from '$lib/server/mailer';
+import { env } from '$env/dynamic/private';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -169,5 +172,15 @@ export const actions: Actions = {
 			return fail(400, { action: 'update_password', error: 'Incorrect current password.' });
 		await updatePassword(locals.user.id, next);
 		return { action: 'update_password', success: true };
+	},
+
+	resend_verification: async ({ locals, url }) => {
+		if (!locals.user) return fail(401, { action: 'resend_verification', error: 'Not authenticated.' });
+		if (locals.user.email_verified) return { action: 'resend_verification', success: true };
+		const token = await createAuthToken(locals.user.id, 'email_verification');
+		const origin = env.PUBLIC_ORIGIN ?? url.origin;
+		const verifyUrl = `${origin}/auth/verify-email/${token}`;
+		await sendEmailVerificationEmail(locals.user.email, locals.user.nickname, verifyUrl).catch(() => {});
+		return { action: 'resend_verification', success: true };
 	},
 };

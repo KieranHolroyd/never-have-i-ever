@@ -11,7 +11,9 @@
 		"strict": true,
 		"types": ["bun-types"],
 		"incremental": true,
-		"tsBuildInfoFile": ".svelte-kit/tsconfig.tsbuildinfo"
+		"tsBuildInfoFile": ".svelte-kit/tsconfig.tsbuildinfo",
+		"jsx": "react",
+		"jsxImportSource": "react"
 	}
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//

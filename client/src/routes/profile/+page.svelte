@@ -11,6 +11,7 @@
 	import MdiPencil from '~icons/mdi/pencil';
 	import MdiCheck from '~icons/mdi/check';
 	import MdiLock from '~icons/mdi/lock';
+	import MdiAlertCircle from '~icons/mdi/alert-circle';
 	import MdiEmail from '~icons/mdi/email';
 
 	interface Props {
@@ -58,6 +59,27 @@
 </svelte:head>
 
 <div class="py-10 space-y-10">
+	<!-- Email verification banner -->
+	{#if !user.email_verified}
+		<div class="flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm">
+			<MdiAlertCircle class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+			<div class="flex-1">
+				<p class="text-yellow-300 font-medium">Verify your email</p>
+				<p class="text-yellow-400/80 text-xs mt-0.5">
+					We sent a link to <span class="font-medium">{user.email}</span>. Check your inbox.
+				</p>
+			</div>
+			<form method="POST" action="?/resend_verification" use:enhance>
+				<button
+					type="submit"
+					class="text-xs text-yellow-300 hover:text-yellow-100 underline underline-offset-2 transition-colors"
+				>
+					{form?.action === 'resend_verification' && form.success ? 'Sent!' : 'Resend'}
+				</button>
+			</form>
+		</div>
+	{/if}
+
 	<!-- Header -->
 	<div class="flex items-center gap-4">
 		<div class="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-zinc-800 text-zinc-300">

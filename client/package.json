@@ -33,6 +33,8 @@
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/forms": "^0.5.11",
 		"@tailwindcss/typography": "^0.5.19",
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3",
 		"@types/uuid": "^11.0.0",
 		"bun-types": "^1.3.13",
 		"playwright": "^1.59.1",
@@ -53,6 +55,8 @@
 	"type": "module",
 	"dependencies": {
 		"@nhie/shared": "workspace:*",
+		"@react-email/components": "^1.0.12",
+		"@react-email/render": "^2.0.7",
 		"@sveltejs/adapter-vercel": "^6.3.3",
 		"@tailwindcss/postcss": "^4.2.4",
 		"@tailwindcss/vite": "^4.2.4",
@@ -63,6 +67,9 @@
 		"postgres": "^3.4.9",
 		"posthog-js": "^1.370.1",
 		"posthog-node": "^5.29.5",
+		"react": "^19.2.5",
+		"react-dom": "^19.2.5",
+		"resend": "^6.12.2",
 		"svelte-outside-click": "^1.1.2",
 		"uuid": "^14.0.0"
 	},

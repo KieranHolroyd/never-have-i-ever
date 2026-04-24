@@ -1,6 +1,6 @@
 import { eq, and, gt } from 'drizzle-orm';
 import { db } from './db';
-import { users, userSessions, type User } from './auth-schema';
+import { users, userSessions, authTokens, type User } from './auth-schema';
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 
@@ -98,6 +98,56 @@ export async function updatePassword(userId: string, newPassword: string): Promi
 		.update(users)
 		.set({ password_hash, updated_at: new Date() })
 		.where(eq(users.id, userId));
+}
+
+// ── Auth tokens (password reset / email verification) ─────────────────────────
+
+const TOKEN_TTL: Record<string, number> = {
+	password_reset: 60 * 60 * 1000,        // 1 hour
+	email_verification: 24 * 60 * 60 * 1000, // 24 hours
+};
+
+export async function createAuthToken(
+	userId: string,
+	type: 'password_reset' | 'email_verification'
+): Promise<string> {
+	// Invalidate any existing tokens of the same type for this user
+	await db
+		.delete(authTokens)
+		.where(and(eq(authTokens.user_id, userId), eq(authTokens.type, type)));
+
+	const id = randomBytes(32).toString('hex');
+	const expires_at = new Date(Date.now() + TOKEN_TTL[type]);
+	await db.insert(authTokens).values({ id, user_id: userId, type, expires_at });
+	return id;
+}
+
+export async function consumeAuthToken(
+	token: string,
+	type: 'password_reset' | 'email_verification'
+): Promise<User | null> {
+	const rows = await db
+		.select({ token: authTokens, user: users })
+		.from(authTokens)
+		.innerJoin(users, eq(authTokens.user_id, users.id))
+		.where(
+			and(
+				eq(authTokens.id, token),
+				eq(authTokens.type, type),
+				gt(authTokens.expires_at, new Date())
+			)
+		)
+		.limit(1);
+
+	if (!rows[0]) return null;
+
+	// Delete the token so it can only be used once
+	await db.delete(authTokens).where(eq(authTokens.id, token));
+	return rows[0].user;
+}
+
+export async function markEmailVerified(userId: string): Promise<void> {
+	await db.update(users).set({ email_verified: true, updated_at: new Date() }).where(eq(users.id, userId));
 }
 
 export { SESSION_COOKIE };
