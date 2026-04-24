@@ -1,6 +1,6 @@
 import { eq, and, gt } from 'drizzle-orm';
 import { db } from './db';
-import { users, userSessions, authTokens, type User } from './auth-schema';
+import { users, userSessions, authTokens, googleAccounts, type User } from './auth-schema';
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 
@@ -148,6 +148,62 @@ export async function consumeAuthToken(
 
 export async function markEmailVerified(userId: string): Promise<void> {
 	await db.update(users).set({ email_verified: true, updated_at: new Date() }).where(eq(users.id, userId));
+}
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+
+export async function findUserByGoogleId(googleId: string): Promise<User | null> {
+	const rows = await db
+		.select({ user: users })
+		.from(googleAccounts)
+		.innerJoin(users, eq(googleAccounts.user_id, users.id))
+		.where(eq(googleAccounts.google_id, googleId))
+		.limit(1);
+	return rows[0]?.user ?? null;
+}
+
+export async function getGoogleAccountForUser(
+	userId: string
+): Promise<{ google_id: string; email: string } | null> {
+	const rows = await db
+		.select({ google_id: googleAccounts.google_id, email: googleAccounts.email })
+		.from(googleAccounts)
+		.where(eq(googleAccounts.user_id, userId))
+		.limit(1);
+	return rows[0] ?? null;
+}
+
+/** Create a new user from a Google profile and link the Google account. */
+export async function createUserFromGoogle(
+	googleId: string,
+	email: string,
+	nickname: string
+): Promise<User> {
+	// Random unguessable password — Google-only users can set one via the reset flow
+	const password_hash = await hashPassword(randomBytes(32).toString('hex'));
+	const [user] = await db
+		.insert(users)
+		.values({ email: email.toLowerCase().trim(), password_hash, nickname, email_verified: true })
+		.returning();
+	await db.insert(googleAccounts).values({ google_id: googleId, user_id: user.id, email });
+	return user;
+}
+
+/** Link an existing user to a Google account. */
+export async function linkGoogleAccount(
+	userId: string,
+	googleId: string,
+	email: string
+): Promise<void> {
+	await db
+		.insert(googleAccounts)
+		.values({ google_id: googleId, user_id: userId, email })
+		.onConflictDoNothing();
+}
+
+/** Remove a Google account link from a user. */
+export async function unlinkGoogleAccount(userId: string): Promise<void> {
+	await db.delete(googleAccounts).where(eq(googleAccounts.user_id, userId));
 }
 
 export { SESSION_COOKIE };

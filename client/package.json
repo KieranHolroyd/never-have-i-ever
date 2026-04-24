@@ -26,6 +26,7 @@
 	},
 	"devDependencies": {
 		"@iconify-json/ic": "^1.2.4",
+		"@iconify-json/logos": "^1.2.11",
 		"@iconify-json/mdi": "^1.2.3",
 		"@playwright/test": "^1.59.1",
 		"@sveltejs/adapter-auto": "^7.0.1",

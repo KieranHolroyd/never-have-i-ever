@@ -8,6 +8,8 @@ import {
 	updatePassword,
 	findUserByEmail,
 	createAuthToken,
+	unlinkGoogleAccount,
+	getGoogleAccountForUser,
 } from '$lib/server/auth';
 import { sendEmailVerificationEmail } from '$lib/server/mailer';
 import { env } from '$env/dynamic/private';
@@ -20,7 +22,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const userId = locals.user.id;
 
-	const [nhieRows, cahRows, recentNhie, recentCah] = await Promise.all([
+	const [nhieRows, cahRows, recentNhie, recentCah, googleAccount] = await Promise.all([
 		// NHIE stats from materialized view
 		db.execute(sql`
 			SELECT
@@ -76,6 +78,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			ORDER BY g.created_at DESC
 			LIMIT 5
 		`),
+		getGoogleAccountForUser(userId),
 	]);
 
 	const nhieStats = nhieRows[0] as {
@@ -122,6 +125,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		cahStats: cahStats ?? { total_games: 0, games_completed: 0, rounds_won: 0, wins: 0 },
 		recentNhieGames,
 		recentCahGames,
+		googleAccount,
 	};
 };
 
@@ -182,5 +186,11 @@ export const actions: Actions = {
 		const verifyUrl = `${origin}/auth/verify-email/${token}`;
 		await sendEmailVerificationEmail(locals.user.email, locals.user.nickname, verifyUrl).catch(() => {});
 		return { action: 'resend_verification', success: true };
+	},
+
+	unlink_google: async ({ locals }) => {
+		if (!locals.user) return fail(401, { action: 'unlink_google', error: 'Not authenticated.' });
+		await unlinkGoogleAccount(locals.user.id);
+		return { action: 'unlink_google', success: true };
 	},
 };

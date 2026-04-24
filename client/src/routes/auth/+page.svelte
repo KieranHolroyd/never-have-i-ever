@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IcRoundAccountCircle from '~icons/ic/round-account-circle';
+	import LogosGoogle from '~icons/logos/google-icon';
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 
@@ -49,6 +50,21 @@
 		</div>
 
 		<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+			<!-- Google OAuth button — same for both tabs -->
+			<a
+				href="/auth/google{redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}"
+				class="flex items-center justify-center gap-3 w-full rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+			>
+				<LogosGoogle class="w-5 h-5 flex-shrink-0" />
+				{tab === 'login' ? 'Continue with Google' : 'Sign up with Google'}
+			</a>
+
+			<div class="flex items-center gap-3 my-5">
+				<div class="flex-1 h-px bg-zinc-800"></div>
+				<span class="text-xs text-zinc-500">or</span>
+				<div class="flex-1 h-px bg-zinc-800"></div>
+			</div>
+
 			{#if tab === 'login'}
 				<form method="POST" action="?/login" use:enhance>
 					{#if redirect}

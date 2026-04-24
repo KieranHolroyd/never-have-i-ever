@@ -3,6 +3,9 @@ import type { Actions, PageServerLoad } from './$types';
 import { updateNickname } from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ locals }) => {
+	if (locals.user) {
+		redirect(302, '/profile');
+	}
 	return { user: locals.user };
 };
 

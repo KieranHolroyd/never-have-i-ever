@@ -169,5 +169,15 @@ export const authTokens = pgTable("auth_tokens", {
   userIdIdx: index("idx_auth_tokens_user_id").on(t.user_id),
 }));
 
+/** Links a Google OAuth identity to a user account. */
+export const googleAccounts = pgTable("google_accounts", {
+  google_id: text("google_id").primaryKey(),
+  user_id: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  userIdIdx: index("idx_google_accounts_user_id").on(t.user_id),
+}));
+
 export type User = typeof users.$inferSelect;
 export type UserSession = typeof userSessions.$inferSelect;

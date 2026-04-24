@@ -14,6 +14,9 @@
 	import MdiAlertCircle from '~icons/mdi/alert-circle';
 	import MdiEmail from '~icons/mdi/email';
 	import MdiLogout from '~icons/mdi/logout';
+	import MdiLinkVariant from '~icons/mdi/link-variant';
+	import MdiLinkVariantOff from '~icons/mdi/link-variant-off';
+	import LogosGoogle from '~icons/logos/google-icon';
 
 	interface Props {
 		data: PageData;
@@ -27,6 +30,7 @@
 	const cahStats = $derived(data.cahStats);
 	const recentNhieGames = $derived(data.recentNhieGames);
 	const recentCahGames = $derived(data.recentCahGames);
+	const googleAccount = $derived(data.googleAccount);
 
 	const totalGames = $derived(nhieStats.total_games + cahStats.total_games);
 	const totalWins = $derived(nhieStats.wins + cahStats.wins);
@@ -456,6 +460,45 @@
 						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
 					>Save</button>
 				</form>
+			{/if}
+		</div>
+
+		<!-- Google account connection -->
+		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+			<div class="flex items-center justify-between px-5 py-4 text-sm">
+				<div class="flex items-center gap-3">
+					<LogosGoogle class="w-4 h-4 flex-shrink-0" />
+					<div>
+						<p class="text-white font-medium">Google</p>
+						{#if googleAccount}
+							<p class="text-zinc-500 text-xs mt-0.5">{googleAccount.email}</p>
+						{:else}
+							<p class="text-zinc-500 text-xs mt-0.5">Not connected</p>
+						{/if}
+					</div>
+				</div>
+				{#if googleAccount}
+					<form method="POST" action="?/unlink_google" use:enhance={() => ({ update }) => update({ reset: false })}>
+						<button
+							type="submit"
+							class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-red-400 transition-colors"
+						>
+							<MdiLinkVariantOff class="w-3.5 h-3.5" />
+							Unlink
+						</button>
+					</form>
+				{:else}
+					<a
+						href="/auth/google?link=1"
+						class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
+					>
+						<MdiLinkVariant class="w-3.5 h-3.5" />
+						Connect
+					</a>
+				{/if}
+			</div>
+			{#if form?.action === 'unlink_google' && form.success}
+				<p class="px-5 pb-3 text-xs text-emerald-400">Google account unlinked.</p>
 			{/if}
 		</div>
 	</div>
