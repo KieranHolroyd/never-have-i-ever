@@ -3,9 +3,10 @@
 
 	interface Props {
 		gameState: CAHGameState;
+		onGoBack?: () => void;
 	}
 
-	let { gameState }: Props = $props();
+	let { gameState, onGoBack }: Props = $props();
 
 	const connectedPlayers = $derived(gameState.players.filter((p) => p.connected));
 	const isReady = $derived(connectedPlayers.length >= 3);
@@ -88,4 +89,16 @@
 			{/if}
 		</button>
 	</div>
+
+	{#if onGoBack}
+		<button
+			class="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-transparent px-4 py-2.5 text-sm font-bold text-white/30 transition hover:border-white/15 hover:text-white/50"
+			onclick={onGoBack}
+		>
+			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+			</svg>
+			Change packs / settings
+		</button>
+	{/if}
 </div>

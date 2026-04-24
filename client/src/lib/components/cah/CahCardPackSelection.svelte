@@ -12,7 +12,7 @@
 
 	interface Props {
 		gameId: string;
-		onPacksSelected?: (packs: string[]) => void;
+		onPacksSelected?: (packs: string[], settings: { maxRounds: number; handSize: number }) => void;
 	}
 
 	let { gameId, onPacksSelected }: Props = $props();
@@ -25,6 +25,10 @@
 	let loadError: string | null = $state(null);
 	let searchQuery: string = $state('');
 	let showAllPacks: boolean = $state(false);
+
+	// Game settings
+	let maxRounds: number = $state(10);
+	let handSize: number = $state(7);
 
 	// When starting, show an inline waiting state so the UI reflects
 	// the server-driven flow immediately while the parent updates.
@@ -121,10 +125,12 @@
 			pack_count: selectedIds.length,
 			pack_ids: selectedIds,
 			total_black_cards: currentTotals.totalBlack,
-			total_white_cards: currentTotals.totalWhite
+			total_white_cards: currentTotals.totalWhite,
+			max_rounds: maxRounds,
+			hand_size: handSize
 		});
 		if (onPacksSelected) {
-			onPacksSelected(selectedIds);
+			onPacksSelected(selectedIds, { maxRounds, handSize });
 			isStarting = true;
 		} else {
 			// Fallback if no callback provided
@@ -468,6 +474,51 @@
 						</div>
 					{/if}
 
+					<!-- Game settings -->
+					<div class="border-t border-white/[0.07] px-4 py-4">
+						<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 mb-3">Settings</p>
+
+						<div class="space-y-3">
+							<div>
+								<div class="flex items-center justify-between mb-1.5">
+									<label class="text-xs font-bold text-white/50" for="max-rounds-desktop">Max rounds</label>
+									<span class="text-xs font-black text-white">{maxRounds}</span>
+								</div>
+								<input
+									id="max-rounds-desktop"
+									type="range"
+									min="3"
+									max="50"
+									step="1"
+									bind:value={maxRounds}
+									class="w-full accent-white h-1 cursor-pointer"
+								/>
+								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
+									<span>3</span><span>50</span>
+								</div>
+							</div>
+
+							<div>
+								<div class="flex items-center justify-between mb-1.5">
+									<label class="text-xs font-bold text-white/50" for="hand-size-desktop">Hand size</label>
+									<span class="text-xs font-black text-white">{handSize} cards</span>
+								</div>
+								<input
+									id="hand-size-desktop"
+									type="range"
+									min="3"
+									max="15"
+									step="1"
+									bind:value={handSize}
+									class="w-full accent-white h-1 cursor-pointer"
+								/>
+								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
+									<span>3</span><span>15</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
 					<!-- Start button -->
 					<div class="border-t border-white/[0.07] p-4">
 						<button
@@ -485,6 +536,40 @@
 		<!-- Mobile sticky bottom bar -->
 		<div class="sticky bottom-3 z-20 px-4 lg:hidden">
 			<div class="rounded-2xl border border-white/10 bg-[#111111]/95 p-4 shadow-2xl backdrop-blur-md">
+				<!-- Settings row -->
+				<div class="mb-3 grid grid-cols-2 gap-3">
+					<div>
+						<div class="flex items-center justify-between mb-1">
+							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-rounds-mobile">Rounds</label>
+							<span class="text-xs font-black text-white">{maxRounds}</span>
+						</div>
+						<input
+							id="max-rounds-mobile"
+							type="range"
+							min="3"
+							max="50"
+							step="1"
+							bind:value={maxRounds}
+							class="w-full accent-white h-1 cursor-pointer"
+						/>
+					</div>
+					<div>
+						<div class="flex items-center justify-between mb-1">
+							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="hand-size-mobile">Hand</label>
+							<span class="text-xs font-black text-white">{handSize}</span>
+						</div>
+						<input
+							id="hand-size-mobile"
+							type="range"
+							min="3"
+							max="15"
+							step="1"
+							bind:value={handSize}
+							class="w-full accent-white h-1 cursor-pointer"
+						/>
+					</div>
+				</div>
+				<!-- Pack count + start -->
 				<div class="flex items-center justify-between gap-4">
 					<div>
 						<p class="text-sm font-bold text-white">

@@ -67,8 +67,8 @@ export class CAHWebSocketManager {
 		this.wsManager.ping();
 	}
 
-	selectPacks(packIds: string[]): void {
-		this.wsManager.selectPacks(packIds);
+	selectPacks(packIds: string[], settings?: { maxRounds?: number; handSize?: number }): void {
+		this.wsManager.selectPacks(packIds, settings);
 	}
 
 	joinGame(create: boolean = true): void {

@@ -252,8 +252,8 @@ export class WebSocketManager {
 		this.sendMessage('ping');
 	}
 
-	selectPacks(packIds: string[]): void {
-		this.sendMessage('select_packs', { packIds });
+	selectPacks(packIds: string[], settings?: { maxRounds?: number; handSize?: number }): void {
+		this.sendMessage('select_packs', { packIds, ...settings });
 	}
 
 	joinGame(create: boolean = true): void {

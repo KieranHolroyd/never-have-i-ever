@@ -17,6 +17,7 @@
 	let { children, data }: Props = $props();
 
 	let isPlayingGame = $derived(UUIDv4Regex.test(page.url.pathname.split('/').pop() ?? ''));
+	let isCahGame = $derived(page.url.pathname.includes('cards-against-humanity'));
 
 	// Sync account nickname → localStorage so game components can read it
 	$effect(() => {
@@ -51,10 +52,14 @@
 
 <div class="min-h-screen bg-zinc-950 text-zinc-100">
 	<Navbar />
-	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+	{#if isCahGame}
 		{@render children()}
-		<Footer />
-	</div>
+	{:else}
+		<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+			{@render children()}
+			<Footer />
+		</div>
+	{/if}
 	<Toaster />
 	<Settings />
 </div>

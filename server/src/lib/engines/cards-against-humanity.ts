@@ -258,7 +258,7 @@ export function createCardsAgainstHumanityEngine(
     },
 
     select_packs: async (ws, data) => {
-      const { packIds } = data;
+      const { packIds, maxRounds: reqMaxRounds, handSize: reqHandSize } = data;
       const gameId = ws.data.game;
 
       if (!Array.isArray(packIds) || packIds.length === 0) {
@@ -277,6 +277,14 @@ export function createCardsAgainstHumanityEngine(
         wsService.sendToClient(ws, "error", { message: "Packs already selected" });
         return;
       }
+
+      // Validate optional game-length settings
+      const maxRounds = (typeof reqMaxRounds === "number" && reqMaxRounds >= 1 && reqMaxRounds <= 100)
+        ? Math.floor(reqMaxRounds)
+        : meta.maxRounds;
+      const handSize = (typeof reqHandSize === "number" && reqHandSize >= 3 && reqHandSize <= 15)
+        ? Math.floor(reqHandSize)
+        : meta.handSize;
 
       // Load cards from DB
       const rows = await db.select().from(cahCards).where(inArray(cahCards.pack_name, packIds));
@@ -304,6 +312,8 @@ export function createCardsAgainstHumanityEngine(
         selectedPacks: packIds,
         blackDeck: shuffledBlack,
         whiteDeck: shuffledWhite,
+        maxRounds,
+        handSize,
         phase: "waiting",
       });
 
@@ -311,7 +321,7 @@ export function createCardsAgainstHumanityEngine(
       const players = await cahService.getPlayers(gameId);
       for (const player of players) {
         if (!player.connected) continue;
-        const cards = await drawWhiteCards(gameId, meta.handSize);
+        const cards = await drawWhiteCards(gameId, handSize);
         await cahService.updatePlayerHand(gameId, player.id, cards);
       }
 

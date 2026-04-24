@@ -11,6 +11,7 @@
 		currentPlayerStore,
 		errorStore,
 		setError,
+		clearError,
 		updateConnection
 	} from '$lib/stores/game-store';
 	import { validateCardSelection, handleValidationError } from '$lib/validation';
@@ -208,7 +209,11 @@
 	}
 
 	function handleError(newError: string) {
-		setError(newError);
+		if (!newError) {
+			clearError();
+		} else {
+			setError(newError);
+		}
 	}
 
 	let hasJoined = false;
@@ -284,10 +289,10 @@
 		optimisticPhase = 'pack_selection';
 	}
 
-	function handlePacksSelected(packs: string[]) {
+	function handlePacksSelected(packs: string[], settings: { maxRounds: number; handSize: number }) {
 		// Optimistically transition to waiting while server processes selection
 		optimisticPhase = 'waiting';
-		wsManager?.selectPacks(packs);
+		wsManager?.selectPacks(packs, settings);
 	}
 
 	const showPackSelection = $derived.by(() => {
@@ -387,7 +392,7 @@
 									</p>
 								</div>
 							{:else}
-								<CahWaitingPhase gameState={gameState as CAHGameState} />
+								<CahWaitingPhase gameState={gameState as CAHGameState} onGoBack={resetGame} />
 							{/if}
 						{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}
 							<CahJudgeSelectingPhase gameState={gameState as CAHGameState} />
