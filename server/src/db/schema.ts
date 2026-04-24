@@ -55,8 +55,10 @@ export const gamePlayers = pgTable("game_players", {
   connected: boolean("connected").notNull().default(true),
   round_vote: text("round_vote"),
   round_voted: boolean("round_voted").notNull().default(false),
+  user_id: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.game_id, t.player_id] }),
+  userIdIdx: index("idx_game_players_user_id").on(t.user_id),
 }));
 
 export const gameSelectedCategories = pgTable("game_selected_categories", {
@@ -108,8 +110,10 @@ export const cahGamePlayers = pgTable("cah_game_players", {
   connected: boolean("connected").notNull().default(true),
   hand: jsonb("hand").notNull().default([]),
   is_judge: boolean("is_judge").notNull().default(false),
+  user_id: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.game_id, t.player_id] }),
+  userIdIdx: index("idx_cah_game_players_user_id").on(t.user_id),
 }));
 
 export const cahSubmissions = pgTable("cah_submissions", {

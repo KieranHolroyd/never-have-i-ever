@@ -6,6 +6,7 @@ import type { IGameStateService } from "../../services/game-state-service";
 import type { NHIEPlayer, NHIEGameState } from "@nhie/shared";
 import { ingestEvent } from "../../axiom";
 import { ValidationError } from "../../errors";
+import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
 
 const VOTE_SCORES: Record<string, number> = {
@@ -77,6 +78,7 @@ export function createNeverHaveIEverEngine(
         waitingForPlayers: false,
       });
       await broadcast(ws);
+      refreshUserStats();
       return;
     }
 
@@ -103,6 +105,7 @@ export function createNeverHaveIEverEngine(
         waitingForPlayers: false,
       });
       await broadcast(ws);
+      refreshUserStats();
       return;
     }
 
@@ -228,7 +231,7 @@ export function createNeverHaveIEverEngine(
           connected: true,
           this_round: { vote: null, voted: false },
         };
-        await gameStateService.addPlayer(gameId, player);
+        await gameStateService.addPlayer(gameId, player, ws.data.userId);
       } else {
         await gameStateService.updatePlayerConnected(gameId, ws.data.player, true);
       }

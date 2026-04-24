@@ -30,9 +30,9 @@
 				<span class="hidden sm:inline">Contact</span>
 			</a>
 			<a
-				href="/play/name"
+				href={user ? '/profile' : '/play/name'}
 				class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors
-					{page.url.pathname === '/play/name' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'}"
+					{page.url.pathname === '/profile' || page.url.pathname === '/play/name' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'}"
 			>
 				<IcRoundAccountCircle class="h-4 w-4" />
 				<span class="hidden sm:inline">{user ? user.nickname : 'Profile'}</span>

@@ -99,6 +99,7 @@ const server = Bun.serve({
             game: params.get(WEBSOCKET_PARAMS.GAME) as string,
             player: params.get(WEBSOCKET_PARAMS.PLAYER) as string,
             playing,
+            userId: params.get("user") ?? undefined,
           },
         });
 

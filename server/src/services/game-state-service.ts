@@ -25,7 +25,7 @@ export interface IGameStateService {
   setGameMeta(gameId: string, fields: GameMetaHash): Promise<void>;
 
   // ── Players ────────────────────────────────────────────────────────────
-  addPlayer(gameId: string, player: NHIEPlayer): Promise<void>;
+  addPlayer(gameId: string, player: NHIEPlayer, userId?: string): Promise<void>;
   getPlayer(gameId: string, playerId: string): Promise<NHIEPlayer | null>;
   getPlayers(gameId: string): Promise<NHIEPlayer[]>;
   updatePlayerConnected(gameId: string, playerId: string, connected: boolean): Promise<void>;
@@ -112,7 +112,7 @@ export class GameStateService implements IGameStateService {
 
   // ── Players ────────────────────────────────────────────────────────────
 
-  async addPlayer(gameId: string, player: NHIEPlayer): Promise<void> {
+  async addPlayer(gameId: string, player: NHIEPlayer, userId?: string): Promise<void> {
     await db.insert(gamePlayers).values({
       game_id: gameId,
       player_id: player.id,
@@ -121,6 +121,7 @@ export class GameStateService implements IGameStateService {
       connected: player.connected,
       round_vote: player.this_round.vote ?? null,
       round_voted: player.this_round.voted,
+      user_id: userId ?? null,
     }).onConflictDoUpdate({
       target: [gamePlayers.game_id, gamePlayers.player_id],
       set: {
@@ -129,6 +130,8 @@ export class GameStateService implements IGameStateService {
         connected: player.connected,
         round_vote: player.this_round.vote ?? null,
         round_voted: player.this_round.voted,
+        // Only set user_id if we have one (don't overwrite an existing link with null)
+        ...(userId ? { user_id: userId } : {}),
       },
     });
   }

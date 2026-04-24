@@ -85,7 +85,7 @@ export interface ICAHGameStateService {
   getGameMeta(gameId: string): Promise<CAHGameMeta | null>;
   setGameMeta(gameId: string, fields: Partial<CAHGameMeta>): Promise<void>;
 
-  addPlayer(gameId: string, player: CAHPlayer): Promise<void>;
+  addPlayer(gameId: string, player: CAHPlayer, userId?: string): Promise<void>;
   getPlayer(gameId: string, playerId: string): Promise<CAHPlayer | null>;
   getPlayers(gameId: string): Promise<CAHPlayer[]>;
   updatePlayerConnected(gameId: string, playerId: string, connected: boolean): Promise<void>;
@@ -158,7 +158,7 @@ export class CAHGameStateService implements ICAHGameStateService {
     await db.update(cahGames).set(update).where(eq(cahGames.id, gameId));
   }
 
-  async addPlayer(gameId: string, player: CAHPlayer): Promise<void> {
+  async addPlayer(gameId: string, player: CAHPlayer, userId?: string): Promise<void> {
     await db.insert(cahGamePlayers).values({
       game_id: gameId,
       player_id: player.id,
@@ -167,11 +167,14 @@ export class CAHGameStateService implements ICAHGameStateService {
       connected: player.connected,
       hand: player.hand as any,
       is_judge: player.isJudge,
+      user_id: userId ?? null,
     }).onConflictDoUpdate({
       target: [cahGamePlayers.game_id, cahGamePlayers.player_id],
       set: {
         name: player.name,
         connected: player.connected,
+        // Only set user_id if we have one (don't overwrite an existing link with null)
+        ...(userId ? { user_id: userId } : {}),
       },
     });
   }

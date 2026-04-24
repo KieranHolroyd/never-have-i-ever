@@ -8,6 +8,7 @@ export interface WebSocketManagerConfig {
 	playerName: string;
 	gameType: 'cards-against-humanity' | 'never-have-i-ever';
 	selectedPackIds?: string[];
+	userId?: string;
 	onGameState: (gameState: any) => void;
 	onError: (error: string) => void;
 	onConnectionChange: (status: Status, isReconnecting?: boolean, attempts?: number) => void;
@@ -35,11 +36,14 @@ export class WebSocketManager {
 			this.reconnectTimeout = null;
 		}
 
-		const socketUrl = buildSocketUrl(env.PUBLIC_SOCKET_URL, {
+		const params: Record<string, string> = {
 			playing: this.config.gameType,
 			game: this.config.gameId,
 			player: this.config.playerId
-		});
+		};
+		if (this.config.userId) params.user = this.config.userId;
+
+		const socketUrl = buildSocketUrl(env.PUBLIC_SOCKET_URL, params);
 
 		try {
 			this.socket = new WebSocket(socketUrl);

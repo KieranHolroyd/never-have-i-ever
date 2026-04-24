@@ -8,6 +8,7 @@ import type { IHttpService } from "../../services/http-service";
 import type { IGameStateService } from "../../services/game-state-service";
 import type { ICAHGameStateService, CAHBlackCard, CAHWhiteCard, CAHPlayer } from "../../services/cah-game-state-service";
 import { ingestEvent } from "../../axiom";
+import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -160,6 +161,7 @@ export function createCardsAgainstHumanityEngine(
       });
       ingestEvent({ gameID: gameId, event: "cah_game_over" });
       await broadcastAll(gameId);
+      refreshUserStats();
       return;
     }
 
@@ -206,7 +208,7 @@ export function createCardsAgainstHumanityEngine(
           hand: [],
           isJudge: false,
         };
-        await cahService.addPlayer(gameId, player);
+        await cahService.addPlayer(gameId, player, ws.data.userId);
 
         // Deal cards to players who join while the game is already in progress
         const joinMeta = await cahService.getGameMeta(gameId);
@@ -225,7 +227,7 @@ export function createCardsAgainstHumanityEngine(
           ...existing,
           name: nextName,
           connected: true,
-        });
+        }, ws.data.userId);
 
         // Refill reconnecting players back to the configured hand size when
         // they missed draws while disconnected.

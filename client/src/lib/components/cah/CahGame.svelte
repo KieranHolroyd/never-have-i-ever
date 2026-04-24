@@ -37,8 +37,9 @@
 
 	interface Props {
 		id: string;
+		userId?: string;
 	}
-	let { id }: Props = $props();
+	let { id, userId }: Props = $props();
 
 	let wsManager: WebSocketManager | null = null;
 	let gameState = $derived($gameStore);
@@ -242,6 +243,7 @@
 			playerId: LocalPlayer.id,
 			playerName: LocalPlayer.name || 'Anonymous Player',
 			gameType: 'cards-against-humanity',
+			userId,
 			onGameState: handleGameState,
 			onError: handleError,
 			onConnectionChange: handleConnectionChange

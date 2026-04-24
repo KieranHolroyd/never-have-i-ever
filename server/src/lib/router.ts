@@ -11,6 +11,7 @@ export type GameSocketMetadata = {
   game: string;
   player: string;
   playing: string;
+  userId?: string;
 };
 
 export type GameSocket = ServerWebSocket<GameSocketMetadata>;

@@ -52,4 +52,4 @@
 		<meta property="og:image" content="https://games.kieran.dev/android-chrome-512x512.png" />
 	{/if}
 </svelte:head>
-<CahGame id={page.params.gameid as string} />
+<CahGame id={page.params.gameid as string} userId={page.data.user?.id} />

@@ -31,9 +31,10 @@
 	interface Props {
 		id: string;
 		catagories: Catagories | undefined;
+		userId?: string;
 	}
 
-	let { id, catagories = $bindable() }: Props = $props();
+	let { id, catagories = $bindable(), userId }: Props = $props();
 
 	let should_reload_on_reconnect = $state(false);
 
@@ -363,11 +364,13 @@
 			console.log('[DEBUG] Cannot create socket without a player id');
 			return;
 		}
-		const socketUrl = buildSocketUrl(env.PUBLIC_SOCKET_URL, {
+		const params: Record<string, string> = {
 			playing: 'never-have-i-ever',
 			game: id,
 			player: nextPlayerId
-		});
+		};
+		if (userId) params.user = userId;
+		const socketUrl = buildSocketUrl(env.PUBLIC_SOCKET_URL, params);
 		try {
 			socket = new WebSocket(socketUrl);
 		} catch (e) {
