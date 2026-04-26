@@ -12,7 +12,7 @@
 
 	interface Props {
 		gameId: string;
-		onPacksSelected?: (packs: string[], settings: { maxRounds: number; handSize: number }) => void;
+		onPacksSelected?: (packs: string[], settings: { maxRounds: number; handSize: number; maxPlayers: number }) => void;
 	}
 
 	let { gameId, onPacksSelected }: Props = $props();
@@ -29,6 +29,7 @@
 	// Game settings
 	let maxRounds: number = $state(10);
 	let handSize: number = $state(7);
+	let maxPlayers: number = $state(20);
 
 	// When starting, show an inline waiting state so the UI reflects
 	// the server-driven flow immediately while the parent updates.
@@ -127,10 +128,11 @@
 			total_black_cards: currentTotals.totalBlack,
 			total_white_cards: currentTotals.totalWhite,
 			max_rounds: maxRounds,
-			hand_size: handSize
+			hand_size: handSize,
+			max_players: maxPlayers
 		});
 		if (onPacksSelected) {
-			onPacksSelected(selectedIds, { maxRounds, handSize });
+			onPacksSelected(selectedIds, { maxRounds, handSize, maxPlayers });
 			isStarting = true;
 		} else {
 			// Fallback if no callback provided
@@ -516,6 +518,25 @@
 									<span>3</span><span>15</span>
 								</div>
 							</div>
+
+							<div>
+								<div class="flex items-center justify-between mb-1.5">
+									<label class="text-xs font-bold text-white/50" for="max-players-desktop">Room size</label>
+									<span class="text-xs font-black text-white">{maxPlayers} players</span>
+								</div>
+								<input
+									id="max-players-desktop"
+									type="range"
+									min="3"
+									max="20"
+									step="1"
+									bind:value={maxPlayers}
+									class="w-full accent-white h-1 cursor-pointer"
+								/>
+								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
+									<span>3</span><span>20</span>
+								</div>
+							</div>
 						</div>
 					</div>
 
@@ -537,7 +558,7 @@
 		<div class="sticky bottom-3 z-20 px-4 lg:hidden">
 			<div class="rounded-2xl border border-white/10 bg-[#111111]/95 p-4 shadow-2xl backdrop-blur-md">
 				<!-- Settings row -->
-				<div class="mb-3 grid grid-cols-2 gap-3">
+				<div class="mb-3 grid grid-cols-3 gap-3">
 					<div>
 						<div class="flex items-center justify-between mb-1">
 							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-rounds-mobile">Rounds</label>
@@ -565,6 +586,21 @@
 							max="15"
 							step="1"
 							bind:value={handSize}
+							class="w-full accent-white h-1 cursor-pointer"
+						/>
+					</div>
+					<div>
+						<div class="flex items-center justify-between mb-1">
+							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-players-mobile">Seats</label>
+							<span class="text-xs font-black text-white">{maxPlayers}</span>
+						</div>
+						<input
+							id="max-players-mobile"
+							type="range"
+							min="3"
+							max="20"
+							step="1"
+							bind:value={maxPlayers}
 							class="w-full accent-white h-1 cursor-pointer"
 						/>
 					</div>

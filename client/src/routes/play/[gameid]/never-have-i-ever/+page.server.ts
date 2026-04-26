@@ -5,6 +5,7 @@ import { env } from '$env/dynamic/public';
 
 type ClientGameData = GameData & {
 	active: boolean;
+	creatorPlayerId?: string | null;
 	passwordProtected?: boolean;
 };
 

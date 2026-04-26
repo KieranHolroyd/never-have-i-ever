@@ -32,6 +32,8 @@ function createStatefulCahService() {
 
   const meta: CAHGameMeta = {
     phase: "selecting",
+    maxPlayers: 20,
+    creatorPlayerId: "p1",
     passwordHash: null,
     currentJudge: "p2",
     currentBlackCard: {
@@ -79,6 +81,10 @@ function createStatefulCahService() {
       return player ? clone(player) : null;
     }),
     getPlayers: mock(async () => clone(players)),
+    removePlayer: mock(async (_gameId: string, playerId: string) => {
+      const index = players.findIndex((entry) => entry.id === playerId);
+      if (index >= 0) players.splice(index, 1);
+    }),
     updatePlayerConnected: mock(async (_gameId: string, playerId: string, connected: boolean) => {
       const player = players.find((entry) => entry.id === playerId);
       if (player) player.connected = connected;
@@ -128,6 +134,8 @@ function createJudgingReconnectService() {
 
   const meta: CAHGameMeta = {
     phase: 'judging',
+    maxPlayers: 20,
+    creatorPlayerId: 'p1',
     passwordHash: null,
     currentJudge: 'p2',
     currentBlackCard: {
@@ -171,6 +179,10 @@ function createJudgingReconnectService() {
       return player ? clone(player) : null;
     }),
     getPlayers: mock(async () => clone(players)),
+    removePlayer: mock(async (_gameId: string, playerId: string) => {
+      const index = players.findIndex((entry) => entry.id === playerId);
+      if (index >= 0) players.splice(index, 1);
+    }),
     updatePlayerConnected: mock(async (_gameId: string, playerId: string, connected: boolean) => {
       const player = players.find((entry) => entry.id === playerId);
       if (player) player.connected = connected;
@@ -281,5 +293,146 @@ describe("Cards Against Humanity engine", () => {
         password: "wrong-password",
       })
     ).rejects.toThrow("Incorrect game password");
+  });
+
+  it("only lets the creator change the room password", async () => {
+    const { meta, service } = createStatefulCahService();
+    meta.phase = "waiting";
+    meta.creatorPlayerId = "p1";
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createCardsAgainstHumanityEngine(wsService, httpService, {} as any, service);
+
+    await expect(
+      engine.handlers.set_room_password(createMockWebSocket("test-game", "p2", "cards-against-humanity"), {
+        op: "set_room_password",
+        password: "secret123",
+      })
+    ).rejects.toThrow("Only the game creator can change the room password");
+
+    await expect(
+      engine.handlers.set_room_password(createMockWebSocket("test-game", "p1", "cards-against-humanity"), {
+        op: "set_room_password",
+        password: "secret123",
+      })
+    ).resolves.toBeUndefined();
+
+    expect(meta.passwordHash).toEqual(expect.any(String));
+  });
+
+  it("transfers creator when the creator disconnects", async () => {
+    const { meta, service } = createStatefulCahService();
+    meta.creatorPlayerId = "p1";
+
+    const secondPlayer: CAHPlayer = {
+      id: "p2",
+      name: "Connected Player",
+      score: 0,
+      connected: true,
+      hand: [],
+      isJudge: false,
+    };
+
+    await service.addPlayer("test-game", secondPlayer);
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createCardsAgainstHumanityEngine(wsService, httpService, {} as any, service);
+
+    await engine.handlers.disconnect(createMockWebSocket("test-game", "p1", "cards-against-humanity"), {
+      op: "disconnect",
+    });
+
+    expect(meta.creatorPlayerId).toBe("p2");
+  });
+
+  it("prevents new players joining when the room is full", async () => {
+    const { meta, service } = createStatefulCahService();
+    meta.phase = "waiting";
+    meta.selectedPacks = [];
+    meta.maxPlayers = 1;
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createCardsAgainstHumanityEngine(wsService, httpService, {} as any, service);
+
+    await expect(
+      engine.handlers.join_game(createMockWebSocket("test-game", "p9", "cards-against-humanity"), {
+        op: "join_game",
+        create: false,
+        playername: "Late Joiner",
+      })
+    ).rejects.toThrow("Game is full (maximum 1 players)");
+  });
+
+  it("only lets the creator change the room size", async () => {
+    const { meta, service } = createStatefulCahService();
+    meta.phase = "waiting";
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createCardsAgainstHumanityEngine(wsService, httpService, {} as any, service);
+
+    await expect(
+      engine.handlers.set_max_players(createMockWebSocket("test-game", "p2", "cards-against-humanity"), {
+        op: "set_max_players",
+        maxPlayers: 5,
+      })
+    ).rejects.toThrow("Only the game creator can change the room size");
+
+    await expect(
+      engine.handlers.set_max_players(createMockWebSocket("test-game", "p1", "cards-against-humanity"), {
+        op: "set_max_players",
+        maxPlayers: 5,
+      })
+    ).resolves.toBeUndefined();
+
+    expect(meta.maxPlayers).toBe(5);
+  });
+
+  it("only lets the creator remove players before the game starts", async () => {
+    const { meta, players, service } = createStatefulCahService();
+    meta.phase = "waiting";
+
+    const removedSocket = createMockWebSocket("test-game", "p2", "cards-against-humanity");
+    const creatorSocket = createMockWebSocket("test-game", "p1", "cards-against-humanity");
+    const wsService = {
+      ...createMockWebSocketService(),
+      getGameSockets: mock(() => new Set([creatorSocket, removedSocket])),
+    };
+    const httpService = createMockHttpService();
+    const engine = createCardsAgainstHumanityEngine(wsService, httpService, {} as any, service);
+
+    players.push({
+      id: "p2",
+      name: "Second Player",
+      score: 0,
+      connected: true,
+      hand: [],
+      isJudge: false,
+    });
+
+    await expect(
+      engine.handlers.remove_player(createMockWebSocket("test-game", "p2", "cards-against-humanity"), {
+        op: "remove_player",
+        playerId: "p1",
+      })
+    ).rejects.toThrow("Only the game creator can remove players");
+
+    await expect(
+      engine.handlers.remove_player(createMockWebSocket("test-game", "p1", "cards-against-humanity"), {
+        op: "remove_player",
+        playerId: "p2",
+      })
+    ).resolves.toBeUndefined();
+
+    expect(players.map((player) => player.id)).toEqual(["p1"]);
+    expect(wsService.sendToClient).toHaveBeenCalledWith(
+      removedSocket,
+      "removed_from_game",
+      expect.objectContaining({ message: expect.any(String) })
+    );
+    expect(wsService.removeWebSocket).toHaveBeenCalledWith("test-game", removedSocket);
   });
 });

@@ -51,6 +51,8 @@ export type CAHGameState = {
   id: string;
   players: CAHPlayer[];
   selectedPacks: string[];
+  maxPlayers: number;
+  creatorPlayerId?: string | null;
   passwordProtected?: boolean;
   phase: "waiting" | "selecting" | "judging" | "scoring" | "game_over";
   currentJudge: string | null;
@@ -67,6 +69,8 @@ export type CAHGameState = {
 
 export type CAHGameMeta = {
   phase: string;
+  maxPlayers: number;
+  creatorPlayerId: string | null;
   passwordHash: string | null;
   currentJudge: string | null;
   currentBlackCard: CAHBlackCard | null;
@@ -91,6 +95,7 @@ export interface ICAHGameStateService {
   addPlayer(gameId: string, player: CAHPlayer, userId?: string): Promise<void>;
   getPlayer(gameId: string, playerId: string): Promise<CAHPlayer | null>;
   getPlayers(gameId: string): Promise<CAHPlayer[]>;
+  removePlayer(gameId: string, playerId: string): Promise<void>;
   updatePlayerConnected(gameId: string, playerId: string, connected: boolean): Promise<void>;
   updatePlayerHand(gameId: string, playerId: string, hand: CAHWhiteCard[]): Promise<void>;
   setPlayerIsJudge(gameId: string, playerId: string, isJudge: boolean): Promise<void>;
@@ -132,6 +137,8 @@ export class CAHGameStateService implements ICAHGameStateService {
     const g = rows[0];
     return {
       phase: g.phase,
+      maxPlayers: g.max_players,
+      creatorPlayerId: g.creator_player_id ?? null,
       passwordHash: g.password_hash ?? null,
       currentJudge: g.current_judge ?? null,
       currentBlackCard: (g.current_black_card as CAHBlackCard | null) ?? null,
@@ -149,6 +156,8 @@ export class CAHGameStateService implements ICAHGameStateService {
   async setGameMeta(gameId: string, fields: Partial<CAHGameMeta>): Promise<void> {
     const update: Partial<typeof cahGames.$inferInsert> = {};
     if (fields.phase !== undefined)             update.phase = fields.phase;
+    if (fields.maxPlayers !== undefined)        update.max_players = fields.maxPlayers;
+    if (fields.creatorPlayerId !== undefined)   update.creator_player_id = fields.creatorPlayerId;
     if (fields.passwordHash !== undefined)      update.password_hash = fields.passwordHash;
     if (fields.currentJudge !== undefined)      update.current_judge = fields.currentJudge;
     if (fields.currentBlackCard !== undefined)  update.current_black_card = fields.currentBlackCard as any;
@@ -196,6 +205,13 @@ export class CAHGameStateService implements ICAHGameStateService {
   async getPlayers(gameId: string): Promise<CAHPlayer[]> {
     const rows = await db.select().from(cahGamePlayers).where(eq(cahGamePlayers.game_id, gameId));
     return rows.map(r => this.rowToPlayer(r));
+  }
+
+  async removePlayer(gameId: string, playerId: string): Promise<void> {
+    await db.delete(cahSubmissions)
+      .where(and(eq(cahSubmissions.game_id, gameId), eq(cahSubmissions.player_id, playerId)));
+    await db.delete(cahGamePlayers)
+      .where(and(eq(cahGamePlayers.game_id, gameId), eq(cahGamePlayers.player_id, playerId)));
   }
 
   async updatePlayerConnected(gameId: string, playerId: string, connected: boolean): Promise<void> {
@@ -289,6 +305,8 @@ export class CAHGameStateService implements ICAHGameStateService {
       id: gameId,
       players,
       selectedPacks: meta.selectedPacks,
+      maxPlayers: meta.maxPlayers,
+      creatorPlayerId: meta.creatorPlayerId,
       passwordProtected: Boolean(meta.passwordHash),
       phase: meta.phase as CAHGameState["phase"],
       currentJudge: meta.currentJudge,
@@ -311,6 +329,7 @@ export class CAHGameStateService implements ICAHGameStateService {
         id: cahGames.id,
         phase: cahGames.phase,
         gameCompleted: cahGames.game_completed,
+        maxPlayers: cahGames.max_players,
         passwordHash: cahGames.password_hash,
         createdAt: cahGames.created_at,
       }).from(cahGames).orderBy(desc(cahGames.created_at)),
@@ -360,6 +379,7 @@ export class CAHGameStateService implements ICAHGameStateService {
         passwordProtected: Boolean(game.passwordHash),
         phase: game.phase,
         status: game.gameCompleted ? "completed" : connectedPlayerCount < 3 ? "waiting" : "in-progress",
+        maxPlayers: game.maxPlayers,
         playerCount: players.length,
         connectedPlayerCount,
         players,

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { LocalPlayer } from '$lib/player';
 	import { clearStoredRoomPassword, getStoredRoomPassword, storeRoomPassword } from '$lib/room-password';
@@ -16,6 +17,7 @@
 		clearError,
 		updateConnection
 	} from '$lib/stores/game-store';
+	import { toast } from '$lib/toast';
 	import { validateCardSelection, handleValidationError } from '$lib/validation';
 	import { v4 as uuidv4 } from 'uuid';
 	import posthog from 'posthog-js';
@@ -48,16 +50,30 @@
 		return Boolean((page.data as { game?: { passwordProtected?: boolean } }).game?.passwordProtected);
 	}
 
+	function initialMaxPlayers() {
+		return (page.data as { game?: { maxPlayers?: number } }).game?.maxPlayers ?? 20;
+	}
+
+	function initialCreatorPlayerId() {
+		return (page.data as { game?: { creatorPlayerId?: string | null } }).game?.creatorPlayerId ?? null;
+	}
+
 	let wsManager: WebSocketManager | null = null;
 	let gameState = $derived($gameStore);
 	let currentPlayer = $derived($currentPlayerStore);
 	let lastRound: number = $state(0);
 	let roomProtected = $state(false);
+	let roomMaxPlayers = $state(20);
+	let creatorPlayerId = $state<string | null>(null);
 	let roomPassword = $state('');
 	let roomPasswordError = $state<string | null>(null);
+	let roomSizeError = $state<string | null>(null);
 	let passwordPromptVisible = $state(false);
 	let joinPending = $state(false);
 	let roomPasswordSaving = $state(false);
+	let roomSizeSaving = $state(false);
+	let removingPlayerId = $state<string | null>(null);
+	let canManageRoomPassword = $derived(creatorPlayerId === LocalPlayer.id);
 
 	// Optimistic UI: keep client thin but provide immediate UX while waiting
 	// for the first server state or during in-flight actions.
@@ -201,11 +217,16 @@
 	function handleGameState(newGameState: CAHGameState) {
 		gameStore.set(newGameState);
 		currentPlayerStore.set(newGameState?.players.find((p) => p.id === LocalPlayer.id) || null);
+		roomMaxPlayers = newGameState.maxPlayers ?? 20;
+		creatorPlayerId = newGameState.creatorPlayerId ?? null;
 		roomProtected = Boolean(newGameState.passwordProtected);
 		joinPending = false;
 		passwordPromptVisible = false;
 		roomPasswordError = null;
 		roomPasswordSaving = false;
+		roomSizeError = null;
+		roomSizeSaving = false;
+		removingPlayerId = null;
 		if (!roomProtected) {
 			clearStoredRoomPassword(id);
 		}
@@ -246,8 +267,23 @@
 				roomPasswordError = newError;
 				roomPasswordSaving = false;
 			}
+			if (roomSizeSaving) {
+				roomSizeError = newError;
+				roomSizeSaving = false;
+			}
+			if (removingPlayerId) {
+				removingPlayerId = null;
+			}
+			joinPending = false;
 			setError(newError);
 		}
+	}
+
+	async function handleRemoved(message: string) {
+		clearStoredRoomPassword(id);
+		roomPassword = '';
+		toast.error(message, { duration: 3500 });
+		await goto('/games');
 	}
 
 	let hasJoined = false;
@@ -289,6 +325,7 @@
 			userId,
 			onGameState: handleGameState,
 			onError: handleError,
+			onRemoved: handleRemoved,
 			onConnectionChange: handleConnectionChange
 		});
 
@@ -317,6 +354,18 @@
 		wsManager?.updateRoomPassword(password);
 	}
 
+	function saveLobbyMaxPlayers(maxPlayers: number) {
+		if (!wsManager?.isConnected()) {
+			roomSizeError = 'Connection lost. Reconnecting...';
+			return;
+		}
+
+		roomSizeSaving = true;
+		roomSizeError = null;
+		roomMaxPlayers = maxPlayers;
+		wsManager?.updateMaxPlayers(maxPlayers);
+	}
+
 	function clearLobbyPassword() {
 		if (!wsManager?.isConnected()) {
 			roomPasswordError = 'Connection lost. Reconnecting...';
@@ -328,6 +377,16 @@
 		roomPassword = '';
 		clearStoredRoomPassword(id);
 		wsManager?.updateRoomPassword('');
+	}
+
+	function removeLobbyPlayer(playerId: string) {
+		if (!wsManager?.isConnected()) {
+			setError('Connection lost. Reconnecting...');
+			return;
+		}
+
+		removingPlayerId = playerId;
+		wsManager.removePlayer(playerId);
 	}
 
 	let selectedCardIds: string[] = $state([]);
@@ -369,8 +428,12 @@
 		optimisticPhase = 'pack_selection';
 	}
 
-	function handlePacksSelected(packs: string[], settings: { maxRounds: number; handSize: number }) {
+	function handlePacksSelected(
+		packs: string[],
+		settings: { maxRounds: number; handSize: number; maxPlayers: number }
+	) {
 		// Optimistically transition to waiting while server processes selection
+		roomMaxPlayers = settings.maxPlayers;
 		optimisticPhase = 'waiting';
 		wsManager?.selectPacks(packs, settings);
 	}
@@ -389,6 +452,8 @@
 
 	onMount(() => {
 		roomProtected = initialRoomProtected();
+		roomMaxPlayers = initialMaxPlayers();
+		creatorPlayerId = initialCreatorPlayerId();
 		roomPassword = getStoredRoomPassword(id);
 		passwordPromptVisible = roomProtected && !roomPassword;
 		if (!passwordPromptVisible) {
@@ -487,11 +552,19 @@
 							{:else}
 								<CahWaitingPhase
 									gameState={gameState as CAHGameState}
+									canManageRoomPassword={canManageRoomPassword}
+									currentPlayerId={LocalPlayer.id}
+									{removingPlayerId}
 									onGoBack={resetGame}
+									roomMaxPlayers={roomMaxPlayers}
+									roomSizeError={roomSizeError}
+									roomSizeBusy={roomSizeSaving}
 									roomPasswordError={roomPasswordError}
 									roomPasswordBusy={roomPasswordSaving}
+									onSaveRoomSize={saveLobbyMaxPlayers}
 									onSaveRoomPassword={saveLobbyPassword}
 									onClearRoomPassword={clearLobbyPassword}
+									onRemovePlayer={removeLobbyPlayer}
 								/>
 							{/if}
 						{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}

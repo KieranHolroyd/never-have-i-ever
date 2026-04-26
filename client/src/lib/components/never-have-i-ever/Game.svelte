@@ -18,6 +18,7 @@
 	import PreGameConnection from './PreGameConnection.svelte';
 	import RoomPasswordGate from '../shared/RoomPasswordGate.svelte';
 	import RoomPasswordSettings from '../shared/RoomPasswordSettings.svelte';
+	import RoomCapacitySettings from '../shared/RoomCapacitySettings.svelte';
 	import { toast } from '$lib/toast';
 	import Tutorial from '../Tutorial.svelte';
 	import { colour_map } from '$lib/colour';
@@ -44,13 +45,26 @@
 		return Boolean((page.data as { game?: { passwordProtected?: boolean } }).game?.passwordProtected);
 	}
 
+	function initialMaxPlayers() {
+		return (page.data as { game?: { maxPlayers?: number } }).game?.maxPlayers ?? 20;
+	}
+
+	function initialCreatorPlayerId() {
+		return (page.data as { game?: { creatorPlayerId?: string | null } }).game?.creatorPlayerId ?? null;
+	}
+
 	let should_reload_on_reconnect = $state(false);
 	let roomProtected = $state(false);
+	let roomMaxPlayers = $state(20);
+	let creatorPlayerId = $state<string | null>(null);
 	let roomPassword = $state('');
 	let roomPasswordError = $state<string | null>(null);
+	let roomSizeError = $state<string | null>(null);
 	let passwordPromptVisible = $state(false);
 	let joinPending = $state(false);
 	let roomPasswordSaving = $state(false);
+	let roomSizeSaving = $state(false);
+	let removingPlayerId = $state<string | null>(null);
 
 	let settings = settingsStore;
 
@@ -60,11 +74,10 @@
 	let errors: any[] = $state([]);
 	let players: Player[] = $state([]);
 
-	// ping stuff
-	let prev_ping_ts = 0; //ms (epoch)
-	let client_ping = $state(0); //ms
+	let prev_ping_ts = 0;
+	let client_ping = $state(0);
 	let ping_timeout: ReturnType<typeof setInterval> | null;
-	let last_pong = 0; //ms
+	let last_pong = 0;
 
 	let my_name = LocalPlayer.name;
 
@@ -124,16 +137,29 @@
 
 	let connectedPlayers = $derived(players.filter((player) => player.connected));
 	let connectedPlayerCount = $derived(connectedPlayers.length);
-	let votedPlayerCount = $derived(
-		connectedPlayers.filter((player) => player.this_round.voted).length
-	);
-	let allConnectedPlayersVoted = $derived(
-		connectedPlayerCount > 0 && votedPlayerCount === connectedPlayerCount
-	);
+	let votedPlayerCount = $derived(connectedPlayers.filter((player) => player.this_round.voted).length);
+	let allConnectedPlayersVoted = $derived(connectedPlayerCount > 0 && votedPlayerCount === connectedPlayerCount);
 	let canAdvanceRound = $derived(!game_state.waiting_for_players || allConnectedPlayersVoted);
-	let acknowledgedVote = $derived(
-		players.find((player) => player.id === player_id)?.this_round.vote ?? null
-	);
+	let acknowledgedVote = $derived(players.find((player) => player.id === player_id)?.this_round.vote ?? null);
+	let canManageRoomPassword = $derived(Boolean(creatorPlayerId && player_id === creatorPlayerId));
+	let roomPrivacyLabel = $derived(roomProtected ? 'Protected' : 'Public');
+	let visibleCatagories = $derived.by(() => {
+		if (!catagories) return [] as [string, Catagories[string]][];
+
+		return Object.entries(catagories).filter(([, catagory]) => {
+			if (($settings.no_nsfw ?? false) && catagory.flags.is_nsfw) {
+				return false;
+			}
+
+			if (!($settings.show_hidden ?? false) && catagory.flags.is_hidden) {
+				return false;
+			}
+
+			return true;
+		});
+	});
+	let visibleCategoryCount = $derived(visibleCatagories.length);
+	let selectedCategoryCount = $derived(game_state.current_catagory.length);
 
 	async function share_game() {
 		const share_data = getShareData();
@@ -152,10 +178,19 @@
 		window.location.reload();
 	}
 
+	async function handleRemoved(message: string) {
+		clearStoredRoomPassword(id);
+		roomPassword = '';
+		toast.error(message, { duration: 3500 });
+		await goto('/games');
+	}
+
 	onMount(() => {
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}/never-have-i-ever`);
 		player_id = LocalPlayer.id;
 		roomProtected = initialRoomProtected();
+		roomMaxPlayers = initialMaxPlayers();
+		creatorPlayerId = initialCreatorPlayerId();
 		roomPassword = getStoredRoomPassword(id);
 		passwordPromptVisible = roomProtected && !roomPassword;
 		if (!passwordPromptVisible) {
@@ -284,6 +319,22 @@
 		}
 	}
 
+	function saveLobbyMaxPlayers(maxPlayers: number) {
+		roomSizeSaving = true;
+		roomSizeError = null;
+		roomMaxPlayers = maxPlayers;
+		if (!sendSocketAction({ op: 'set_max_players', maxPlayers })) {
+			roomSizeSaving = false;
+		}
+	}
+
+	function removeLobbyPlayer(targetPlayerId: string) {
+		removingPlayerId = targetPlayerId;
+		if (!sendSocketAction({ op: 'remove_player', playerId: targetPlayerId })) {
+			removingPlayerId = null;
+		}
+	}
+
 	function syncGameState(nextGame: NHIEGameState) {
 		const previousQuestion = current_question?.content;
 		const nextQuestion = nextGame.current_question?.content;
@@ -305,8 +356,12 @@
 
 		current_question = nextGame.current_question;
 		players = nextGame.players;
+		roomMaxPlayers = nextGame.maxPlayers ?? 20;
+		creatorPlayerId = nextGame.creatorPlayerId ?? null;
 		roomProtected = Boolean(nextGame.passwordProtected);
 		roomPasswordSaving = false;
+		roomSizeSaving = false;
+		removingPlayerId = null;
 		if (!roomProtected) {
 			clearStoredRoomPassword(id);
 		}
@@ -335,6 +390,7 @@
 			current_catagory
 		};
 	}
+
 	function confirmSelections() {
 		if (game_state.current_catagory.length > 0) {
 			posthog.capture('nhie_categories_confirmed', {
@@ -346,9 +402,11 @@
 			setTransientError('You must select at least one catagory');
 		}
 	}
+
 	function selectCatagories() {
 		sendSocketAction({ op: 'select_categories' });
 	}
+
 	function selectQuestion() {
 		if (!canAdvanceRound) {
 			return;
@@ -357,6 +415,7 @@
 		posthog.capture('nhie_next_question');
 		sendSocketAction({ op: 'next_question' });
 	}
+
 	function reset() {
 		posthog.capture('game_reset', { game_type: 'never-have-i-ever' });
 		if (!sendSocketAction({ op: 'reset_game' })) {
@@ -364,7 +423,6 @@
 		}
 		conf_reset_display = false;
 
-		// Clear timeout on reset
 		if (timeout_interval) {
 			clearInterval(timeout_interval);
 			timeout_interval = null;
@@ -403,7 +461,6 @@
 		}
 	}
 
-	// Debug function for browser console
 	function debugGameState() {
 		console.log('[DEBUG] Current game state:', {
 			game_state,
@@ -416,12 +473,10 @@
 		});
 	}
 
-	// Make debug function available globally
 	if (browser) {
 		(window as any).debugGameState = debugGameState;
 	}
 
-	/// WEBSOCKET STUFF
 	let socket: WebSocket | null = null;
 	let retry_count = 0;
 	let reconnect_timeout: ReturnType<typeof setTimeout> | null = null;
@@ -470,26 +525,20 @@
 						});
 
 						syncGameState(data.game as NHIEGameState);
-							joinPending = false;
-							passwordPromptVisible = false;
-							roomPasswordError = null;
+						joinPending = false;
+						passwordPromptVisible = false;
+						roomPasswordError = null;
 
-						// Handle server-synced timeout (starts when first vote is cast)
 						if (
 							game_state.waiting_for_players &&
 							data.game.timeout_start !== undefined &&
 							data.game.timeout_start > 0 &&
 							data.game.timeout_duration
 						) {
-							console.log(
-								'[DEBUG] Setting timeout:',
-								data.game.timeout_start,
-								data.game.timeout_duration
-							);
+							console.log('[DEBUG] Setting timeout:', data.game.timeout_start, data.game.timeout_duration);
 							timeout_start = data.game.timeout_start;
 							timeout_duration = data.game.timeout_duration;
 
-							// Start or update countdown
 							if (!timeout_interval) {
 								console.log('[DEBUG] Starting countdown interval');
 								timeout_interval = setInterval(() => {
@@ -497,19 +546,15 @@
 									const remaining = Math.max(0, Math.ceil((timeout_duration - elapsed) / 1000));
 									round_timeout = remaining;
 
-									console.log('[DEBUG] Countdown:', remaining, 'seconds remaining');
-
 									if (remaining <= 0) {
-										console.log('[DEBUG] Countdown finished');
 										if (timeout_interval) {
 											clearInterval(timeout_interval);
 											timeout_interval = null;
 										}
 									}
-								}, 100); // Update more frequently for smoother countdown
+								}, 100);
 							}
 						} else if (!game_state.waiting_for_players && timeout_interval) {
-							console.log('[DEBUG] Clearing timeout interval');
 							clearInterval(timeout_interval);
 							timeout_interval = null;
 							round_timeout = 0;
@@ -525,26 +570,22 @@
 						}
 						break;
 					case 'vote_cast':
-						current_round.votes = [
-							...current_round.votes,
-							{ player: data.player, voted: data.vote }
-						];
+						current_round.votes = [...current_round.votes, { player: data.player, voted: data.vote }];
 						if (data.player) {
 							const existingIndex = players.findIndex((player) => player.id === data.player.id);
 							if (existingIndex === -1) {
 								players = [...players, data.player];
 							} else {
-								players = players.map((player) =>
-									player.id === data.player.id ? data.player : player
-								);
+								players = players.map((player) => (player.id === data.player.id ? data.player : player));
 							}
 						}
 						break;
-					case 'error':
+					case 'error': {
 						const message = data?.error?.message || data?.message || 'Server error';
 						const operation = data?.error?.operation;
 						errors = [...errors, data];
 						pendingVote = null;
+
 						if (
 							message === 'This game requires a password' ||
 							message === 'Incorrect game password'
@@ -559,29 +600,39 @@
 								roomPasswordError = message;
 								roomPasswordSaving = false;
 							}
+							if (operation === 'set_max_players') {
+								roomSizeError = message;
+								roomSizeSaving = false;
+							}
+							if (operation === 'remove_player') {
+								removingPlayerId = null;
+							}
 							setTransientError(message);
 						}
+						break;
+					}
+					case 'removed_from_game':
+						removingPlayerId = null;
+						joinPending = false;
+						void handleRemoved(data.message ?? 'You were removed from the game');
 						break;
 					case 'github_push':
 						setTimeout(() => {
 							if (data.showReloadButton) {
 								toast.info(data.notification, {
 									action: { label: 'Reload', onClick: reload_page },
-									// Slightly longer so users can act
 									duration: 6000
 								});
 							} else {
 								toast.info(data.notification);
 							}
 						}, data.delay);
-						// Set flag to reload when we reconnect after deployment
 						should_reload_on_reconnect = true;
 						break;
 					case 'round_timeout':
 						console.log('[DEBUG] Round timeout received:', data.message);
 						toast.info(data.message, { duration: 3000 });
 
-						// Clear timeout state when timeout occurs
 						if (timeout_interval) {
 							clearInterval(timeout_interval);
 							timeout_interval = null;
@@ -590,19 +641,19 @@
 						timeout_start = 0;
 						timeout_duration = 0;
 						break;
-					case 'pong':
+					case 'pong': {
 						const multi_diff = performance.now() - prev_ping_ts;
 
 						if (client_ping !== 0) {
-							client_ping = client_ping * 0.8 + multi_diff * 0.2; // 5 frame average
+							client_ping = client_ping * 0.8 + multi_diff * 0.2;
 						} else {
 							client_ping = multi_diff;
 						}
 						last_pong = performance.now();
 						break;
+					}
 					default:
 						console.log('unhandled');
-					// console.log(data);
 				}
 			} catch (e) {
 				console.log(e);
@@ -840,97 +891,110 @@
 		/>
 	{:else if !game_state.game_completed}
 		{#if game_state.catagory_select}
-			<div
-				class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl"
-				in:fade={{ duration: 260, easing: quintOut }}
-			>
-				<h1>New Game</h1>
-			</div>
-			<div
-				class="z-10 w-full max-w-md mx-auto mt-6 columns-1 dark:text-white panel rounded-t-xl"
-				in:fade={{ duration: 260, easing: quintOut }}
-			>
-				<div in:fly={{ y: 10, duration: 300, easing: backOut }}>
-					<p class="text-xl font-semibold py-2 bg-zinc-900/60 rounded-t-xl">Select Catagories</p>
-					{#if catagories !== undefined}
-						<div class="max-h-96 overflow-auto">
-							{#each Object.entries(catagories) as [catagory_name, catagory], index (catagory_name)}
-								{#if catagory.flags.is_nsfw && $settings?.no_nsfw}
-									<span></span>
-								{:else if catagory.flags.is_hidden && !$settings?.show_hidden}
-									<span></span>
-								{:else}
-									<label class="my-[2px]">
-										<div
-											class="py-1 px-4 w-full text-left text-lg capitalize font-semibold hover:bg-zinc-700/50 duration-75"
-											in:fly={{
-												y: 6,
-												duration: 260,
-												delay: Math.min(index * 18, 300),
-												easing: quintOut
-											}}
-										>
-											<input
-												type="checkbox"
-												class=""
-												checked={game_state.current_catagory.includes(catagory_name)}
-												onchange={() => emitSelectCatagory(catagory_name)}
-											/>
-											<span class="float-right">
-												{#if catagory.flags.is_nsfw}
-													<span class="text-xs mr-2 p-1 bg-red-700 text-white rounded"> NSFW </span>
-												{/if}
-												{catagory_name}
-											</span>
-										</div>
-									</label>
-								{/if}
-							{/each}
+			<div class="mx-auto mt-4 w-full max-w-6xl" in:fade={{ duration: 260, easing: quintOut }}>
+				<div class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_22rem]">
+					<section class="rounded-2xl border border-white/8 bg-zinc-950 p-4 text-left sm:p-5" in:fly={{ y: 10, duration: 260, easing: backOut }}>
+						<div class="flex flex-col gap-3 border-b border-white/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
+							<div>
+								<h1 class="text-xl font-black text-white sm:text-2xl">New game</h1>
+								<p class="mt-1 text-sm text-white/45">
+									{selectedCategoryCount > 0
+										? `${selectedCategoryCount} selected from ${visibleCategoryCount}`
+										: 'Choose at least one category to continue'}
+								</p>
+							</div>
+							<button
+								type="button"
+								class="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+								onclick={() => confirmSelections()}
+								disabled={selectedCategoryCount === 0}
+							>
+								Continue
+							</button>
 						</div>
-					{:else}
-						<p>Loading...</p>
-					{/if}
+
+						{#if catagories !== undefined}
+							<div class="mt-4 overflow-hidden rounded-xl border border-white/8 bg-zinc-900/50">
+								{#each visibleCatagories as [catagory_name, catagory], index (catagory_name)}
+									{@const isSelected = game_state.current_catagory.includes(catagory_name)}
+									<label
+										class={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition ${index > 0 ? 'border-t border-white/6' : ''} ${isSelected ? 'bg-white/[0.06] text-white' : 'text-white/70 hover:bg-white/[0.04] hover:text-white'}`}
+										in:fly={{
+											y: 5,
+											duration: 180,
+											delay: Math.min(index * 10, 120),
+											easing: quintOut
+										}}
+									>
+										<div class="min-w-0 flex-1">
+											<div class="flex flex-wrap items-center gap-2">
+												<span class="text-sm font-semibold capitalize">{catagory_name}</span>
+												{#if catagory.flags.is_nsfw}
+													<span class="rounded-full border border-red-400/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-red-200">NSFW</span>
+												{/if}
+												{#if catagory.flags.is_hidden}
+													<span class="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Hidden</span>
+												{/if}
+											</div>
+										</div>
+										<input
+											type="checkbox"
+											class="h-4 w-4 shrink-0 rounded border-white/20 bg-transparent accent-emerald-500"
+											checked={isSelected}
+											onchange={() => emitSelectCatagory(catagory_name)}
+										/>
+									</label>
+								{/each}
+							</div>
+						{:else}
+							<div class="mt-4 space-y-2">
+								{#each Array.from({ length: 6 }) as _, index (index)}
+									<div class="h-11 animate-pulse rounded-xl border border-white/8 bg-zinc-900/50"></div>
+								{/each}
+							</div>
+						{/if}
+					</section>
+
+					<aside class="space-y-4">
+						<div class="rounded-2xl border border-white/8 bg-zinc-950 px-4 py-3 text-left">
+							<div class="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
+								<div class="rounded-full border border-white/10 px-3 py-1">{connectedPlayerCount}/{roomMaxPlayers} seats</div>
+								<div class="rounded-full border border-white/10 px-3 py-1">{roomPrivacyLabel}</div>
+							</div>
+						</div>
+
+						<PreGameConnection
+							{connection}
+							{players}
+							{creatorPlayerId}
+							currentPlayerId={player_id}
+							canManagePlayers={canManageRoomPassword}
+							{removingPlayerId}
+							onRemovePlayer={removeLobbyPlayer}
+						/>
+
+						{#if canManageRoomPassword}
+							<div class="grid gap-4">
+								<RoomCapacitySettings
+									maxPlayers={roomMaxPlayers}
+									currentPlayers={players.length}
+									minPlayers={2}
+									error={roomSizeError}
+									busy={roomSizeSaving}
+									onSave={saveLobbyMaxPlayers}
+								/>
+								<RoomPasswordSettings
+									passwordProtected={roomProtected}
+									error={roomPasswordError}
+									busy={roomPasswordSaving}
+									onSave={saveLobbyPassword}
+									onClear={clearLobbyPassword}
+								/>
+							</div>
+						{/if}
+					</aside>
 				</div>
 			</div>
-			<button
-				class="rounded-none transition bg-emerald-500 text-white font-semibold py-2 px-4 hover:bg-emerald-400 w-full max-w-md mx-auto rounded-b-xl shadow hover:shadow-xl"
-				onclick={() => confirmSelections()}
-				in:fade={{ duration: 220, delay: 140, easing: quintOut }}
-			>
-				Continue
-			</button>
-			<PreGameConnection {connection} {players} />
-			<div class="mx-auto mt-4 w-full max-w-md">
-				<RoomPasswordSettings
-					passwordProtected={roomProtected}
-					error={roomPasswordError}
-					busy={roomPasswordSaving}
-					onSave={saveLobbyPassword}
-					onClear={clearLobbyPassword}
-				/>
-			</div>
-			<Tutorial
-				id="welcome"
-				steps={[
-					{
-						title: 'Welcome',
-						content: 'Play Never Have I Ever with friends in real-time. No accounts needed.'
-					},
-					{
-						title: 'Pick categories',
-						content: 'Choose one or more categories to tailor the questions to your group.'
-					},
-					{
-						title: 'How rounds work',
-						content: 'A question appears. Everyone votes: Have, Kinda, or Have Not.'
-					},
-					{
-						title: 'Scoring',
-						content:
-							'Have = +1, Kinda = +0.5, Have Not = 0. Highest score wins, but fun matters most.'
-					}
-				]}
-			/>
 			<!-- Removed local overlay popup in favor of global toasts -->
 		{:else}
 			{#if current_question?.content !== undefined}

@@ -11,14 +11,15 @@ import type { GameSocket } from '../../src/lib/router';
 export function createMockWebSocket(
   gameId = 'test-game',
   playerId = 'p1',
-  playing = 'never-have-i-ever'
+  playing = 'never-have-i-ever',
+  userId?: string
 ): GameSocket & { __getMessages: () => { sent: string[], published: Array<{ topic: string; data: string }>, subscriptions: string[] } } {
   const sent: string[] = [];
   const published: Array<{ topic: string; data: string }> = [];
   const subscriptions: string[] = [];
 
   return {
-    data: { game: gameId, player: playerId, playing },
+    data: { game: gameId, player: playerId, playing, userId },
     send: mock((data: string) => sent.push(data)),
     publish: mock((topic: string, data: string) => published.push({ topic, data })),
     subscribe: mock((topic: string) => subscriptions.push(topic)),
@@ -88,6 +89,7 @@ export function createMockGameStateService(): IGameStateService {
     addPlayer: mock(() => Promise.resolve()),
     getPlayer: mock(() => Promise.resolve(null)),
     getPlayers: mock(() => Promise.resolve([])),
+    removePlayer: mock(() => Promise.resolve()),
     updatePlayerConnected: mock(() => Promise.resolve()),
     updatePlayerVote: mock(() => Promise.resolve()),
     incrPlayerScore: mock(() => Promise.resolve()),

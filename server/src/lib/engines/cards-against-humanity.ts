@@ -8,7 +8,7 @@ import type { IHttpService } from "../../services/http-service";
 import type { IGameStateService } from "../../services/game-state-service";
 import type { ICAHGameStateService, CAHBlackCard, CAHWhiteCard, CAHPlayer } from "../../services/cah-game-state-service";
 import { ingestEvent } from "../../axiom";
-import { ValidationError } from "../../errors";
+import { GameFullError, ValidationError } from "../../errors";
 import { hashRoomPassword, normalizeRoomPassword, validateRoomPassword, verifyRoomPassword } from "../../utils/game-password";
 import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
@@ -187,6 +187,46 @@ export function createCardsAgainstHumanityEngine(
     await broadcastAll(gameId);
   }
 
+  async function ensureConnectedCreator(gameId: string, preferredPlayerId?: string): Promise<void> {
+    const [meta, players] = await Promise.all([
+      cahService.getGameMeta(gameId),
+      cahService.getPlayers(gameId),
+    ]);
+
+    if (!meta) return;
+
+    const connectedPlayers = players.filter((player) => player.connected);
+    if (connectedPlayers.length === 0) return;
+
+    const hasConnectedCreator = meta.creatorPlayerId
+      ? connectedPlayers.some((player) => player.id === meta.creatorPlayerId)
+      : false;
+
+    if (hasConnectedCreator) return;
+
+    const nextCreator = preferredPlayerId && connectedPlayers.some((player) => player.id === preferredPlayerId)
+      ? preferredPlayerId
+      : connectedPlayers[0].id;
+
+    await cahService.setGameMeta(gameId, {
+      creatorPlayerId: nextCreator,
+    });
+
+    ingestEvent({
+      gameID: gameId,
+      event: "cah_creator_transferred",
+      playerID: nextCreator,
+    });
+  }
+
+  function normalizeMaxPlayers(value: unknown): number {
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 3 || value > 20) {
+      throw new ValidationError("Room size must be between 3 and 20 players");
+    }
+
+    return value;
+  }
+
   // ── Handlers ───────────────────────────────────────────────────────────
 
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
@@ -199,6 +239,9 @@ export function createCardsAgainstHumanityEngine(
       const exists = await cahService.gameExists(gameId);
       if (!exists) {
         await cahService.createGame(gameId);
+        await cahService.setGameMeta(gameId, {
+          creatorPlayerId: ws.data.player,
+        });
 
         if (roomPassword) {
           validateRoomPassword(roomPassword);
@@ -223,6 +266,15 @@ export function createCardsAgainstHumanityEngine(
 
       const existing = await cahService.getPlayer(gameId, ws.data.player);
       if (!existing) {
+        const [meta, players] = await Promise.all([
+          cahService.getGameMeta(gameId),
+          cahService.getPlayers(gameId),
+        ]);
+
+        if (players.length >= (meta?.maxPlayers ?? 20)) {
+          throw new GameFullError(meta?.maxPlayers ?? 20);
+        }
+
         const player: CAHPlayer = {
           id: ws.data.player,
           name: playername,
@@ -266,6 +318,8 @@ export function createCardsAgainstHumanityEngine(
         }
       }
 
+      await ensureConnectedCreator(gameId, ws.data.player);
+
       try {
         ws.subscribe(gameId);
         ws.subscribe("notifications");
@@ -294,6 +348,10 @@ export function createCardsAgainstHumanityEngine(
         throw new ValidationError("Room password can only be changed before the game starts");
       }
 
+      if (meta.creatorPlayerId !== ws.data.player) {
+        throw new ValidationError("Only the game creator can change the room password");
+      }
+
       const roomPassword = normalizeRoomPassword(data.password);
 
       if (roomPassword) {
@@ -308,8 +366,86 @@ export function createCardsAgainstHumanityEngine(
       await broadcastAll(gameId);
     },
 
+    set_max_players: async (ws, data) => {
+      const gameId = ws.data.game;
+      const meta = await cahService.getGameMeta(gameId);
+
+      if (!meta) {
+        throw new ValidationError("Game not found");
+      }
+
+      if (meta.phase !== "waiting") {
+        throw new ValidationError("Room size can only be changed before the game starts");
+      }
+
+      if (meta.creatorPlayerId !== ws.data.player) {
+        throw new ValidationError("Only the game creator can change the room size");
+      }
+
+      const maxPlayers = normalizeMaxPlayers(data.maxPlayers);
+      const players = await cahService.getPlayers(gameId);
+      if (maxPlayers < players.length) {
+        throw new ValidationError(`Room size cannot be lower than the current player count (${players.length})`);
+      }
+
+      await cahService.setGameMeta(gameId, {
+        maxPlayers,
+      });
+
+      await broadcastAll(gameId);
+    },
+
+    remove_player: async (ws, data) => {
+      const gameId = ws.data.game;
+      const targetPlayerId = data.playerId;
+      const meta = await cahService.getGameMeta(gameId);
+
+      if (!meta) {
+        throw new ValidationError("Game not found");
+      }
+
+      if (meta.phase !== "waiting") {
+        throw new ValidationError("Players can only be removed before the game starts");
+      }
+
+      if (meta.creatorPlayerId !== ws.data.player) {
+        throw new ValidationError("Only the game creator can remove players");
+      }
+
+      if (targetPlayerId === ws.data.player) {
+        throw new ValidationError("The game creator cannot remove themselves");
+      }
+
+      const targetPlayer = await cahService.getPlayer(gameId, targetPlayerId);
+      if (!targetPlayer) {
+        throw new ValidationError("Player not found");
+      }
+
+      await cahService.removePlayer(gameId, targetPlayerId);
+
+      for (const socket of wsService.getGameSockets(gameId)) {
+        if (socket.data.player !== targetPlayerId) continue;
+        wsService.sendToClient(socket, "removed_from_game", {
+          message: "You were removed from the room by the creator",
+        });
+        wsService.removeWebSocket(gameId, socket);
+        try {
+          socket.close(1000, "removed_from_game");
+        } catch (_) {}
+      }
+
+      ingestEvent({
+        gameID: gameId,
+        event: "cah_player_removed",
+        playerID: targetPlayerId,
+        details: { removedBy: ws.data.player },
+      });
+
+      await broadcastAll(gameId);
+    },
+
     select_packs: async (ws, data) => {
-      const { packIds, maxRounds: reqMaxRounds, handSize: reqHandSize } = data;
+      const { packIds, maxRounds: reqMaxRounds, handSize: reqHandSize, maxPlayers: reqMaxPlayers } = data;
       const gameId = ws.data.game;
 
       if (!Array.isArray(packIds) || packIds.length === 0) {
@@ -336,6 +472,16 @@ export function createCardsAgainstHumanityEngine(
       const handSize = (typeof reqHandSize === "number" && reqHandSize >= 3 && reqHandSize <= 15)
         ? Math.floor(reqHandSize)
         : meta.handSize;
+      const maxPlayers = reqMaxPlayers !== undefined
+        ? normalizeMaxPlayers(reqMaxPlayers)
+        : meta.maxPlayers;
+      const players = await cahService.getPlayers(gameId);
+      if (maxPlayers < players.length) {
+        wsService.sendToClient(ws, "error", {
+          message: `Room size cannot be lower than the current player count (${players.length})`
+        });
+        return;
+      }
 
       // Load cards from DB
       const rows = await db.select().from(cahCards).where(inArray(cahCards.pack_name, packIds));
@@ -363,13 +509,13 @@ export function createCardsAgainstHumanityEngine(
         selectedPacks: packIds,
         blackDeck: shuffledBlack,
         whiteDeck: shuffledWhite,
+        maxPlayers,
         maxRounds,
         handSize,
         phase: "waiting",
       });
 
       // Deal hands to all currently connected players
-      const players = await cahService.getPlayers(gameId);
       for (const player of players) {
         if (!player.connected) continue;
         const cards = await drawWhiteCards(gameId, handSize);
@@ -532,9 +678,14 @@ export function createCardsAgainstHumanityEngine(
       // Remember who's connected so they can rejoin the fresh game
       const oldPlayers = await cahService.getPlayers(gameId).catch(() => [] as CAHPlayer[]);
       const connectedPlayers = oldPlayers.filter(p => p.connected);
+      const meta = await cahService.getGameMeta(gameId);
 
       await cahService.deleteGame(gameId);
       await cahService.createGame(gameId);
+      await cahService.setGameMeta(gameId, {
+        maxPlayers: meta?.maxPlayers ?? 20,
+        creatorPlayerId: meta?.creatorPlayerId ?? ws.data.player,
+      });
 
       // Re-add connected players with wiped state
       for (const p of connectedPlayers) {
@@ -557,6 +708,7 @@ export function createCardsAgainstHumanityEngine(
       const disconnectingId = ws.data.player;
 
       await cahService.updatePlayerConnected(gameId, disconnectingId, false);
+      await ensureConnectedCreator(gameId);
       wsService.handleDisconnect(ws);
       ingestEvent({ gameID: gameId, event: "cah_player_disconnected", playerID: disconnectingId });
 

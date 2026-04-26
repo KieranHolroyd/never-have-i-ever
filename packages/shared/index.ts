@@ -59,6 +59,8 @@ export type NHIEGameState = {
   gameType: "never-have-i-ever";
   phase: "category_select" | "waiting" | "game_over";
   players: NHIEPlayer[];
+  maxPlayers: number;
+  creatorPlayerId?: string | null;
   passwordProtected?: boolean;
   /** Currently selected category names */
   catagories: string[];
@@ -90,6 +92,16 @@ export type JoinGameMessage = {
 export type SetRoomPasswordMessage = {
   op: "set_room_password";
   password?: string;
+};
+
+export type SetMaxPlayersMessage = {
+  op: "set_max_players";
+  maxPlayers: number;
+};
+
+export type RemovePlayerMessage = {
+  op: "remove_player";
+  playerId: string;
 };
 
 export type SelectCategoriesMessage = {
@@ -134,6 +146,8 @@ export type DisconnectMessage = {
 export type ClientMessage =
   | JoinGameMessage
   | SetRoomPasswordMessage
+  | SetMaxPlayersMessage
+  | RemovePlayerMessage
   | SelectCategoriesMessage
   | SelectCategoryMessage
   | ConfirmSelectionsMessage

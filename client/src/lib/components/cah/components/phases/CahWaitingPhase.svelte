@@ -1,23 +1,41 @@
 <script lang="ts">
+	import LobbyPlayerList from '../../../shared/LobbyPlayerList.svelte';
+	import RoomCapacitySettings from '../../../shared/RoomCapacitySettings.svelte';
 	import RoomPasswordSettings from '../../../shared/RoomPasswordSettings.svelte';
 	import type { CAHGameState } from '$lib/types';
 
 	interface Props {
 		gameState: CAHGameState;
+		canManageRoomPassword?: boolean;
+		currentPlayerId?: string | null;
+		removingPlayerId?: string | null;
 		onGoBack?: () => void;
+		roomMaxPlayers?: number;
+		roomSizeError?: string | null;
+		roomSizeBusy?: boolean;
 		roomPasswordError?: string | null;
 		roomPasswordBusy?: boolean;
+		onSaveRoomSize?: (maxPlayers: number) => void;
 		onSaveRoomPassword?: (password: string) => void;
 		onClearRoomPassword?: () => void;
+		onRemovePlayer?: (playerId: string) => void;
 	}
 
 	let {
 		gameState,
+		canManageRoomPassword = false,
+		currentPlayerId = null,
+		removingPlayerId = null,
 		onGoBack,
+		roomMaxPlayers = 20,
+		roomSizeError = null,
+		roomSizeBusy = false,
 		roomPasswordError = null,
 		roomPasswordBusy = false,
+		onSaveRoomSize,
 		onSaveRoomPassword,
-		onClearRoomPassword
+		onClearRoomPassword,
+		onRemovePlayer
 	}: Props = $props();
 
 	const connectedPlayers = $derived(gameState.players.filter((p) => p.connected));
@@ -102,14 +120,38 @@
 		</button>
 	</div>
 
-	{#if onSaveRoomPassword && onClearRoomPassword}
-		<RoomPasswordSettings
-			passwordProtected={Boolean(gameState.passwordProtected)}
-			error={roomPasswordError}
-			busy={roomPasswordBusy}
-			onSave={onSaveRoomPassword}
-			onClear={onClearRoomPassword}
-		/>
+	<LobbyPlayerList
+		players={gameState.players}
+		creatorPlayerId={gameState.creatorPlayerId ?? null}
+		{currentPlayerId}
+		canManagePlayers={canManageRoomPassword}
+		{removingPlayerId}
+		{onRemovePlayer}
+		title="Table"
+	/>
+
+	{#if canManageRoomPassword}
+		<div class="grid gap-4">
+			{#if onSaveRoomSize}
+				<RoomCapacitySettings
+					maxPlayers={roomMaxPlayers}
+					currentPlayers={gameState.players.length}
+					minPlayers={3}
+					error={roomSizeError}
+					busy={roomSizeBusy}
+					onSave={onSaveRoomSize}
+				/>
+			{/if}
+			{#if onSaveRoomPassword && onClearRoomPassword}
+				<RoomPasswordSettings
+					passwordProtected={Boolean(gameState.passwordProtected)}
+					error={roomPasswordError}
+					busy={roomPasswordBusy}
+					onSave={onSaveRoomPassword}
+					onClear={onClearRoomPassword}
+				/>
+			{/if}
+		</div>
 	{/if}
 
 	{#if onGoBack}

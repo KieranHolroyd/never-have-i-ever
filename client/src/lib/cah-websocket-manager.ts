@@ -12,6 +12,7 @@ export interface CAHWebSocketManagerConfig {
 	selectedPackIds?: string[];
 	onGameState: (gameState: CAHGameState) => void;
 	onError: (error: string) => void;
+	onRemoved?: (message: string) => void;
 	onConnectionChange: (status: Status, isReconnecting?: boolean, attempts?: number) => void;
 }
 
@@ -28,6 +29,7 @@ export class CAHWebSocketManager {
 			selectedPackIds: config.selectedPackIds,
 			onGameState: config.onGameState,
 			onError: config.onError,
+			onRemoved: config.onRemoved,
 			onConnectionChange: config.onConnectionChange
 		});
 	}
@@ -69,8 +71,15 @@ export class CAHWebSocketManager {
 		this.wsManager.ping();
 	}
 
-	selectPacks(packIds: string[], settings?: { maxRounds?: number; handSize?: number }): void {
+	selectPacks(
+		packIds: string[],
+		settings?: { maxRounds?: number; handSize?: number; maxPlayers?: number }
+	): void {
 		this.wsManager.selectPacks(packIds, settings);
+	}
+
+	removePlayer(playerId: string): void {
+		this.wsManager.removePlayer(playerId);
 	}
 
 	joinGame(create: boolean = true): void {

@@ -10,6 +10,7 @@ export interface GameState {
 	currentRound?: number;
 	gameCompleted?: boolean;
 	waitingForPlayers?: boolean;
+	maxPlayers?: number;
 
 	// CAH specific
 	selectedPacks?: string[];

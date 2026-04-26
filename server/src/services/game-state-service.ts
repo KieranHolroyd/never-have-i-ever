@@ -9,6 +9,8 @@ export type GameMetaHash = {
   phase?: string;
   waitingForPlayers?: boolean;
   gameCompleted?: boolean;
+  max_players?: number;
+  creator_player_id?: string | null;
   password_hash?: string | null;
   current_q_cat?: string;
   current_q_content?: string;
@@ -30,6 +32,7 @@ export interface IGameStateService {
   addPlayer(gameId: string, player: NHIEPlayer, userId?: string): Promise<void>;
   getPlayer(gameId: string, playerId: string): Promise<NHIEPlayer | null>;
   getPlayers(gameId: string): Promise<NHIEPlayer[]>;
+  removePlayer(gameId: string, playerId: string): Promise<void>;
   updatePlayerConnected(gameId: string, playerId: string, connected: boolean): Promise<void>;
   updatePlayerVote(gameId: string, playerId: string, vote: string, voted: boolean): Promise<void>;
   incrPlayerScore(gameId: string, playerId: string, delta: number): Promise<void>;
@@ -95,6 +98,8 @@ export class GameStateService implements IGameStateService {
       phase: g.phase,
       waitingForPlayers: g.waiting_for_players,
       gameCompleted: g.game_completed,
+      max_players: g.max_players,
+      creator_player_id: g.creator_player_id,
       password_hash: g.password_hash,
       current_q_cat: g.current_q_cat,
       current_q_content: g.current_q_content,
@@ -107,6 +112,8 @@ export class GameStateService implements IGameStateService {
     if (fields.phase !== undefined)              update.phase = fields.phase;
     if (fields.waitingForPlayers !== undefined)  update.waiting_for_players = fields.waitingForPlayers;
     if (fields.gameCompleted !== undefined)      update.game_completed = fields.gameCompleted;
+    if (fields.max_players !== undefined)        update.max_players = fields.max_players;
+    if (fields.creator_player_id !== undefined)  update.creator_player_id = fields.creator_player_id;
     if (fields.password_hash !== undefined)      update.password_hash = fields.password_hash;
     if (fields.current_q_cat !== undefined)      update.current_q_cat = fields.current_q_cat;
     if (fields.current_q_content !== undefined)  update.current_q_content = fields.current_q_content;
@@ -152,6 +159,11 @@ export class GameStateService implements IGameStateService {
   async getPlayers(gameId: string): Promise<NHIEPlayer[]> {
     const rows = await db.select().from(gamePlayers).where(eq(gamePlayers.game_id, gameId));
     return rows.map(r => this.rowToPlayer(r));
+  }
+
+  async removePlayer(gameId: string, playerId: string): Promise<void> {
+    await db.delete(gamePlayers)
+      .where(and(eq(gamePlayers.game_id, gameId), eq(gamePlayers.player_id, playerId)));
   }
 
   async updatePlayerConnected(gameId: string, playerId: string, connected: boolean): Promise<void> {
@@ -295,6 +307,8 @@ export class GameStateService implements IGameStateService {
       gameType: "never-have-i-ever",
       phase: (g.phase as NHIEGameState["phase"]) ?? "category_select",
       players,
+      maxPlayers: g.max_players,
+      creatorPlayerId: g.creator_player_id,
       passwordProtected: Boolean(g.password_hash),
       catagories,
       current_question: {
@@ -316,6 +330,7 @@ export class GameStateService implements IGameStateService {
         phase: games.phase,
         waitingForPlayers: games.waiting_for_players,
         gameCompleted: games.game_completed,
+        maxPlayers: games.max_players,
         passwordHash: games.password_hash,
         createdAt: games.created_at,
       }).from(games).orderBy(desc(games.created_at)),
@@ -365,6 +380,7 @@ export class GameStateService implements IGameStateService {
         passwordProtected: Boolean(game.passwordHash),
         phase: game.phase,
         status: game.gameCompleted ? "completed" : game.waitingForPlayers ? "waiting" : "in-progress",
+        maxPlayers: game.maxPlayers,
         playerCount: players.length,
         connectedPlayerCount,
         players,

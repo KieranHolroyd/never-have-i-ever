@@ -42,6 +42,8 @@ export type Settings = {
 export type GameData = {
 	id: string;
 	players: _Player[];
+	maxPlayers: number;
+	creatorPlayerId?: string | null;
 	passwordProtected?: boolean;
 
 	catagories: string[];
@@ -92,6 +94,8 @@ export type CAHGameState = {
 	id: string;
 	players: CAHPlayer[];
 	selectedPacks: string[];
+	maxPlayers: number;
+	creatorPlayerId?: string | null;
 	passwordProtected?: boolean;
 
 	// Game phases
@@ -161,6 +165,7 @@ export type ActiveGameSummary = {
 	passwordProtected: boolean;
 	phase: string;
 	status: ActiveGameStatus;
+	maxPlayers: number;
 	playerCount: number;
 	connectedPlayerCount: number;
 	players: ActiveGamePlayerSummary[];

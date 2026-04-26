@@ -12,6 +12,7 @@ export interface WebSocketManagerConfig {
 	userId?: string;
 	onGameState: (gameState: any) => void;
 	onError: (error: string) => void;
+	onRemoved?: (message: string) => void;
 	onConnectionChange: (status: Status, isReconnecting?: boolean, attempts?: number) => void;
 }
 
@@ -110,6 +111,11 @@ export class WebSocketManager {
 
 					case 'error':
 						this.config.onError(this.getErrorMessage(data));
+						break;
+
+					case 'removed_from_game':
+						this.disconnect();
+						this.config.onRemoved?.(data?.message || 'You were removed from the room');
 						break;
 
 					case 'pong':
@@ -266,7 +272,10 @@ export class WebSocketManager {
 		this.sendMessage('ping');
 	}
 
-	selectPacks(packIds: string[], settings?: { maxRounds?: number; handSize?: number }): void {
+	selectPacks(
+		packIds: string[],
+		settings?: { maxRounds?: number; handSize?: number; maxPlayers?: number }
+	): void {
 		this.sendMessage('select_packs', { packIds, ...settings });
 	}
 
@@ -275,6 +284,14 @@ export class WebSocketManager {
 		this.sendMessage('set_room_password', {
 			...(password !== undefined ? { password } : {})
 		});
+	}
+
+	updateMaxPlayers(maxPlayers: number): void {
+		this.sendMessage('set_max_players', { maxPlayers });
+	}
+
+	removePlayer(playerId: string): void {
+		this.sendMessage('remove_player', { playerId });
 	}
 
 	setRoomPassword(roomPassword?: string): void {

@@ -36,6 +36,8 @@ function createStatefulGameStateService() {
     phase: "waiting",
     waitingForPlayers: false,
     gameCompleted: false,
+    max_players: 20,
+    creator_player_id: "p1",
     current_q_cat: "food",
     current_q_content: "Never have I ever drunk coconut milk.",
     timeout_start: 0,
@@ -60,11 +62,20 @@ function createStatefulGameStateService() {
 
   const service = {
     ...createMockGameStateService(),
+    gameExists: mock(async () => true),
     getPlayer: mock(async (_gameId: string, playerId: string) => {
       const player = players.find((entry) => entry.id === playerId);
       return player ? clone(player) : null;
     }),
     getPlayers: mock(async () => clone(players)),
+    removePlayer: mock(async (_gameId: string, playerId: string) => {
+      const index = players.findIndex((entry) => entry.id === playerId);
+      if (index >= 0) players.splice(index, 1);
+    }),
+    updatePlayerConnected: mock(async (_gameId: string, playerId: string, connected: boolean) => {
+      const player = players.find((entry) => entry.id === playerId);
+      if (player) player.connected = connected;
+    }),
     getGameMeta: mock(async () => clone(meta)),
     setGameMeta: mock(async (_gameId: string, fields: GameMetaHash) => {
       Object.assign(meta, fields);
@@ -176,6 +187,7 @@ describe("Never Have I Ever engine", () => {
       phase: "category_select",
       waitingForPlayers: false,
       gameCompleted: false,
+      max_players: 20,
       current_q_cat: "",
       current_q_content: "",
       timeout_start: 0,
@@ -209,5 +221,124 @@ describe("Never Have I Ever engine", () => {
         password: "wrong-password",
       })
     ).rejects.toThrow("Incorrect game password");
+  });
+
+  it("only lets the creator change the room password", async () => {
+    const gameStateService = createStatefulGameStateService();
+    gameStateService.meta.phase = "category_select";
+    gameStateService.meta.creator_player_id = "p1";
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+
+    await expect(
+      engine.handlers.set_room_password(createMockWebSocket("test-game", "p2"), {
+        op: "set_room_password",
+        password: "secret123",
+      })
+    ).rejects.toThrow("Only the game creator can change the room password");
+
+    await expect(
+      engine.handlers.set_room_password(createMockWebSocket("test-game", "p1"), {
+        op: "set_room_password",
+        password: "secret123",
+      })
+    ).resolves.toBeUndefined();
+
+    expect(gameStateService.meta.password_hash).toEqual(expect.any(String));
+  });
+
+  it("transfers creator when the creator disconnects", async () => {
+    const gameStateService = createStatefulGameStateService();
+    gameStateService.meta.creator_player_id = "p1";
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+
+    await engine.handlers.disconnect(createMockWebSocket("test-game", "p1"), {
+      op: "disconnect",
+    });
+
+    expect(gameStateService.meta.creator_player_id).toBe("p2");
+  });
+
+  it("prevents new players joining when the room is full", async () => {
+    const gameStateService = createStatefulGameStateService();
+    gameStateService.meta.max_players = 2;
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+
+    await expect(
+      engine.handlers.join_game(createMockWebSocket("test-game", "p3"), {
+        op: "join_game",
+        create: false,
+        playername: "Charlie",
+      })
+    ).rejects.toThrow("Game is full (maximum 2 players)");
+  });
+
+  it("only lets the creator change the room size", async () => {
+    const gameStateService = createStatefulGameStateService();
+    gameStateService.meta.phase = "category_select";
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+
+    await expect(
+      engine.handlers.set_max_players(createMockWebSocket("test-game", "p2"), {
+        op: "set_max_players",
+        maxPlayers: 4,
+      })
+    ).rejects.toThrow("Only the game creator can change the room size");
+
+    await expect(
+      engine.handlers.set_max_players(createMockWebSocket("test-game", "p1"), {
+        op: "set_max_players",
+        maxPlayers: 4,
+      })
+    ).resolves.toBeUndefined();
+
+    expect(gameStateService.meta.max_players).toBe(4);
+  });
+
+  it("only lets the creator remove players before the game starts", async () => {
+    const gameStateService = createStatefulGameStateService();
+    gameStateService.meta.phase = "category_select";
+
+    const removedSocket = createMockWebSocket("test-game", "p2");
+    const creatorSocket = createMockWebSocket("test-game", "p1");
+    const wsService = {
+      ...createMockWebSocketService(),
+      getGameSockets: mock(() => new Set([creatorSocket, removedSocket])),
+    };
+    const httpService = createMockHttpService();
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+
+    await expect(
+      engine.handlers.remove_player(createMockWebSocket("test-game", "p2"), {
+        op: "remove_player",
+        playerId: "p1",
+      })
+    ).rejects.toThrow("Only the game creator can remove players");
+
+    await expect(
+      engine.handlers.remove_player(createMockWebSocket("test-game", "p1"), {
+        op: "remove_player",
+        playerId: "p2",
+      })
+    ).resolves.toBeUndefined();
+
+    expect(gameStateService.players.map((player) => player.id)).toEqual(["p1"]);
+    expect(wsService.sendToClient).toHaveBeenCalledWith(
+      removedSocket,
+      "removed_from_game",
+      expect.objectContaining({ message: expect.any(String) })
+    );
+    expect(wsService.removeWebSocket).toHaveBeenCalledWith("test-game", removedSocket);
   });
 });

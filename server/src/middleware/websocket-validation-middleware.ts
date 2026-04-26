@@ -20,6 +20,14 @@ const OperationSchemas: Record<string, z.ZodSchema> = {
     op: z.literal("set_room_password"),
     password: z.string().max(64, "Password too long").optional(),
   }),
+  set_max_players: z.object({
+    op: z.literal("set_max_players"),
+    maxPlayers: z.number().int().min(2, "Minimum room size is 2").max(20, "Maximum room size is 20"),
+  }),
+  remove_player: z.object({
+    op: z.literal("remove_player"),
+    playerId: z.string().min(1, "Player ID is required"),
+  }),
   select_categories: z.object({
     op: z.literal("select_categories"),
     categories: z.array(z.string()).optional(),

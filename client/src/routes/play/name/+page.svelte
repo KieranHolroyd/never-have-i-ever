@@ -3,13 +3,24 @@
 
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import type { ActionData, PageData } from './$types';
 	import { LocalPlayer } from '$lib/player';
 	import { enhance } from '$app/forms';
 	import posthog from 'posthog-js';
 
-	let { data, form } = $props();
+	interface Props {
+		data: PageData;
+		form: ActionData;
+	}
 
-	const user = $derived(data.user ?? null);
+	type AccountUser = {
+		nickname: string;
+		email: string;
+	};
+
+	let { data, form }: Props = $props();
+
+	const user = $derived((data.user as AccountUser | null | undefined) ?? null);
 
 	// If user is signed in, seed the local nickname from their account on first visit
 	$effect(() => {

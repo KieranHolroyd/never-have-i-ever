@@ -54,6 +54,7 @@ export type ActiveGameSummary = {
   passwordProtected: boolean;
   phase: string;
   status: ActiveGameStatus;
+  maxPlayers: number;
   playerCount: number;
   connectedPlayerCount: number;
   players: ActiveGamePlayerSummary[];

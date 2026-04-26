@@ -20,7 +20,7 @@
 		>
 		<p class="mb-2 mt-0 text-zinc-100">{round.question.content}</p>
 		{#each round.players.filter((p) => p.connected) as player (player.id)}
-			<div class={`relative my-1 p-1 font-bold ${colour_map[player.this_round.vote]}`}>
+			<div class={`relative my-1 p-1 font-bold ${colour_map[player.this_round.vote ?? 'null']}`}>
 				{player.name}: {player.this_round.vote ?? 'Not Voted'}
 				<div
 					class="absolute text-xs leading-[1.825] top-1 right-8 bg-emerald-600 border border-zinc-500 rounded-full text-white min-w-[1.5rem] h-6 px-1"

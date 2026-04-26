@@ -5,7 +5,7 @@ import type { IHttpService } from "../../services/http-service";
 import type { IGameStateService } from "../../services/game-state-service";
 import type { NHIEPlayer, NHIEGameState } from "@nhie/shared";
 import { ingestEvent } from "../../axiom";
-import { ValidationError } from "../../errors";
+import { GameFullError, ValidationError } from "../../errors";
 import { hashRoomPassword, normalizeRoomPassword, validateRoomPassword, verifyRoomPassword } from "../../utils/game-password";
 import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
@@ -209,6 +209,46 @@ export function createNeverHaveIEverEngine(
     return false;
   }
 
+  async function ensureConnectedCreator(gameId: string, preferredPlayerId?: string): Promise<void> {
+    const [meta, players] = await Promise.all([
+      gameStateService.getGameMeta(gameId),
+      gameStateService.getPlayers(gameId),
+    ]);
+
+    if (!meta) return;
+
+    const connectedPlayers = players.filter((player) => player.connected);
+    if (connectedPlayers.length === 0) return;
+
+    const hasConnectedCreator = meta.creator_player_id
+      ? connectedPlayers.some((player) => player.id === meta.creator_player_id)
+      : false;
+
+    if (hasConnectedCreator) return;
+
+    const nextCreator = preferredPlayerId && connectedPlayers.some((player) => player.id === preferredPlayerId)
+      ? preferredPlayerId
+      : connectedPlayers[0].id;
+
+    await gameStateService.setGameMeta(gameId, {
+      creator_player_id: nextCreator,
+    });
+
+    ingestEvent({
+      gameID: gameId,
+      event: "creator_transferred",
+      playerID: nextCreator,
+    });
+  }
+
+  function normalizeMaxPlayers(value: unknown): number {
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 2 || value > 20) {
+      throw new ValidationError("Room size must be between 2 and 20 players");
+    }
+
+    return value;
+  }
+
   // ── Handlers ────────────────────────────────────────────────────────────
 
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
@@ -222,6 +262,9 @@ export function createNeverHaveIEverEngine(
       if (!exists) {
         if (!create) throw new Error("Game not found");
         await gameStateService.createGame(gameId);
+        await gameStateService.setGameMeta(gameId, {
+          creator_player_id: ws.data.player,
+        });
 
         if (roomPassword) {
           validateRoomPassword(roomPassword);
@@ -246,6 +289,15 @@ export function createNeverHaveIEverEngine(
 
       const existing = await gameStateService.getPlayer(gameId, ws.data.player);
       if (!existing) {
+        const [meta, players] = await Promise.all([
+          gameStateService.getGameMeta(gameId),
+          gameStateService.getPlayers(gameId),
+        ]);
+
+        if (players.length >= (meta?.max_players ?? 20)) {
+          throw new GameFullError(meta?.max_players ?? 20);
+        }
+
         const player: NHIEPlayer = {
           id: ws.data.player,
           name: playername,
@@ -257,6 +309,8 @@ export function createNeverHaveIEverEngine(
       } else {
         await gameStateService.updatePlayerConnected(gameId, ws.data.player, true);
       }
+
+      await ensureConnectedCreator(gameId, ws.data.player);
 
       try {
         ws.subscribe(gameId);
@@ -284,6 +338,10 @@ export function createNeverHaveIEverEngine(
         throw new ValidationError("Room password can only be changed before the game starts");
       }
 
+      if (meta.creator_player_id !== ws.data.player) {
+        throw new ValidationError("Only the game creator can change the room password");
+      }
+
       const roomPassword = normalizeRoomPassword(data.password);
 
       if (roomPassword) {
@@ -294,6 +352,84 @@ export function createNeverHaveIEverEngine(
       } else {
         await gameStateService.setGameMeta(gameId, { password_hash: null });
       }
+
+      await broadcast(ws);
+    },
+
+    set_max_players: async (ws, data) => {
+      const gameId = ws.data.game;
+      const meta = await gameStateService.getGameMeta(gameId);
+
+      if (!meta) {
+        throw new ValidationError("Game not found");
+      }
+
+      if (meta.phase !== "category_select") {
+        throw new ValidationError("Room size can only be changed before the game starts");
+      }
+
+      if (meta.creator_player_id !== ws.data.player) {
+        throw new ValidationError("Only the game creator can change the room size");
+      }
+
+      const maxPlayers = normalizeMaxPlayers(data.maxPlayers);
+      const players = await gameStateService.getPlayers(gameId);
+      if (maxPlayers < players.length) {
+        throw new ValidationError(`Room size cannot be lower than the current player count (${players.length})`);
+      }
+
+      await gameStateService.setGameMeta(gameId, {
+        max_players: maxPlayers,
+      });
+
+      await broadcast(ws);
+    },
+
+    remove_player: async (ws, data) => {
+      const gameId = ws.data.game;
+      const targetPlayerId = data.playerId;
+      const meta = await gameStateService.getGameMeta(gameId);
+
+      if (!meta) {
+        throw new ValidationError("Game not found");
+      }
+
+      if (meta.phase !== "category_select") {
+        throw new ValidationError("Players can only be removed before the game starts");
+      }
+
+      if (meta.creator_player_id !== ws.data.player) {
+        throw new ValidationError("Only the game creator can remove players");
+      }
+
+      if (targetPlayerId === ws.data.player) {
+        throw new ValidationError("The game creator cannot remove themselves");
+      }
+
+      const targetPlayer = await gameStateService.getPlayer(gameId, targetPlayerId);
+      if (!targetPlayer) {
+        throw new ValidationError("Player not found");
+      }
+
+      await gameStateService.removePlayer(gameId, targetPlayerId);
+
+      for (const socket of wsService.getGameSockets(gameId)) {
+        if (socket.data.player !== targetPlayerId) continue;
+        wsService.sendToClient(socket, "removed_from_game", {
+          message: "You were removed from the room by the creator",
+        });
+        wsService.removeWebSocket(gameId, socket);
+        try {
+          socket.close(1000, "removed_from_game");
+        } catch (_) {}
+      }
+
+      ingestEvent({
+        gameID: gameId,
+        event: "player_removed",
+        playerID: targetPlayerId,
+        details: { removedBy: ws.data.player },
+      });
 
       await broadcast(ws);
     },
@@ -422,9 +558,14 @@ export function createNeverHaveIEverEngine(
 
       // Capture current players before deleting
       const players = await gameStateService.getPlayers(gameId);
+      const meta = await gameStateService.getGameMeta(gameId);
 
       await gameStateService.deleteGame(gameId);
       await gameStateService.createGame(gameId);
+      await gameStateService.setGameMeta(gameId, {
+        max_players: meta?.max_players ?? 20,
+        creator_player_id: meta?.creator_player_id ?? ws.data.player,
+      });
 
       // Re-add players with zeroed scores
       for (const p of players) {
@@ -456,6 +597,7 @@ export function createNeverHaveIEverEngine(
     disconnect: async (ws, _data) => {
       const gameId = ws.data.game;
       await gameStateService.updatePlayerConnected(gameId, ws.data.player, false);
+      await ensureConnectedCreator(gameId);
       wsService.removeWebSocket(gameId, ws);
 
       ingestEvent({ gameID: gameId, event: "player_disconnected", playerID: ws.data.player });
