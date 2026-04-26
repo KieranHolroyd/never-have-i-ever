@@ -1,7 +1,8 @@
 import { db } from "../db";
 import { cahGames, cahGamePlayers, cahSubmissions } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import logger from "../logger";
+import type { ActiveGamePlayerSummary, ActiveGameSummary } from "../types";
 
 // Deterministic Fisher-Yates shuffle seeded by a number.
 // Same seed → same order on every call (stable within a round).
@@ -100,6 +101,7 @@ export interface ICAHGameStateService {
 
   /** Returns full game state; `hand` is only populated for `requestingPlayerId` — all others get `hand: []`. */
   getFullGameState(gameId: string, requestingPlayerId: string): Promise<CAHGameState | null>;
+  listActiveGames(): Promise<ActiveGameSummary[]>;
 }
 
 export class CAHGameStateService implements ICAHGameStateService {
@@ -296,6 +298,68 @@ export class CAHGameStateService implements ICAHGameStateService {
       waitingForPlayers: connectedCount < 3,
       gameCompleted: meta.gameCompleted,
     };
+  }
+
+  async listActiveGames(): Promise<ActiveGameSummary[]> {
+    const [gameRows, playerRows] = await Promise.all([
+      db.select({
+        id: cahGames.id,
+        phase: cahGames.phase,
+        gameCompleted: cahGames.game_completed,
+        createdAt: cahGames.created_at,
+      }).from(cahGames).orderBy(desc(cahGames.created_at)),
+      db.select({
+        gameId: cahGamePlayers.game_id,
+        playerId: cahGamePlayers.player_id,
+        name: cahGamePlayers.name,
+        connected: cahGamePlayers.connected,
+      }).from(cahGamePlayers),
+    ]);
+
+    const playersByGame = new Map<string, ActiveGamePlayerSummary[]>();
+    for (const row of playerRows) {
+      const players = playersByGame.get(row.gameId) ?? [];
+      players.push({
+        id: row.playerId,
+        name: row.name,
+        connected: row.connected,
+      });
+      playersByGame.set(row.gameId, players);
+    }
+
+    return gameRows.flatMap((game) => {
+      const players = (playersByGame.get(game.id) ?? []).sort((left, right) => {
+        if (left.connected !== right.connected) {
+          return left.connected ? -1 : 1;
+        }
+
+        return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+      });
+      const connectedPlayerCount = players.filter((player) => player.connected).length;
+
+      if (connectedPlayerCount === 0) {
+        return [];
+      }
+
+      const primaryPlayerName = players[0]?.name.trim() || "Untitled";
+      const title = primaryPlayerName.endsWith("s")
+        ? `${primaryPlayerName}' game`
+        : `${primaryPlayerName}'s game`;
+
+      return [{
+        id: game.id,
+        gameType: "cards-against-humanity" as const,
+        title,
+        primaryPlayerName,
+        phase: game.phase,
+        status: game.gameCompleted ? "completed" : connectedPlayerCount < 3 ? "waiting" : "in-progress",
+        playerCount: players.length,
+        connectedPlayerCount,
+        players,
+        createdAt: new Date(game.createdAt).toISOString(),
+        href: `/play/${game.id}/cards-against-humanity`,
+      }];
+    });
   }
 
   private rowToPlayer(row: typeof cahGamePlayers.$inferSelect): CAHPlayer {

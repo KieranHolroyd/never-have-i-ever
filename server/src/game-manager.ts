@@ -2,6 +2,7 @@ import { IWebSocketService } from "./services/websocket-service";
 import { IHttpService } from "./services/http-service";
 import type { IGameStateService } from "./services/game-state-service";
 import type { ICAHGameStateService } from "./services/cah-game-state-service";
+import type { ActiveGamesResponse } from "./types";
 import logger from "./logger";
 
 export class GameManager {
@@ -70,6 +71,26 @@ export class GameManager {
       return Response.json({ ...game, active });
     } catch (error) {
       logger.error("Error fetching CAH game:", error);
+      return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+    }
+  }
+
+  async handleActiveGames(): Promise<Response> {
+    try {
+      const [nhieGames, cahGames] = await Promise.all([
+        this.gameStateService ? this.gameStateService.listActiveGames() : Promise.resolve([]),
+        this.cahGameStateService ? this.cahGameStateService.listActiveGames() : Promise.resolve([]),
+      ]);
+
+      const response: ActiveGamesResponse = {
+        games: [...nhieGames, ...cahGames].sort(
+          (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)
+        ),
+      };
+
+      return Response.json(response);
+    } catch (error) {
+      logger.error("Error fetching active games:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
     }
   }

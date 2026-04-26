@@ -92,6 +92,7 @@ function createStatefulCahService() {
     getSubmissions: mock(async () => []),
     clearSubmissions: mock(async () => {}),
     getFullGameState: mock(async () => null),
+    listActiveGames: mock(async () => []),
   };
 
   return { meta, players, service };
@@ -182,6 +183,7 @@ function createJudgingReconnectService() {
     getSubmissions: mock(async () => []),
     clearSubmissions: mock(async () => {}),
     getFullGameState: mock(async () => null),
+    listActiveGames: mock(async () => []),
   };
 
   return { meta, players, service };

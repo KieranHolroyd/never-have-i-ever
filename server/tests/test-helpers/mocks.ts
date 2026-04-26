@@ -102,6 +102,7 @@ export function createMockGameStateService(): IGameStateService {
     pushHistory: mock(() => Promise.resolve()),
     getHistory: mock(() => Promise.resolve([])),
     getFullGameState: mock(() => Promise.resolve(null)),
+    listActiveGames: mock(() => Promise.resolve([])),
     tryAcquireAdvanceLock: mock(() => Promise.resolve(true)),
     releaseAdvanceLock: mock(() => Promise.resolve()),
   };

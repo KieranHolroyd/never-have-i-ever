@@ -38,6 +38,32 @@ export type GameEngine = {
   handlers: Record<string, GameOperationHandler>;
 };
 
+export type ActiveGamePlayerSummary = {
+  id: string;
+  name: string;
+  connected: boolean;
+};
+
+export type ActiveGameStatus = "waiting" | "in-progress" | "completed";
+
+export type ActiveGameSummary = {
+  id: string;
+  gameType: "never-have-i-ever" | "cards-against-humanity";
+  title: string;
+  primaryPlayerName: string;
+  phase: string;
+  status: ActiveGameStatus;
+  playerCount: number;
+  connectedPlayerCount: number;
+  players: ActiveGamePlayerSummary[];
+  createdAt: string;
+  href: string;
+};
+
+export type ActiveGamesResponse = {
+  games: ActiveGameSummary[];
+};
+
 export interface GameEngineRegistry {
   register(engine: GameEngine): void;
   get(type: string): GameEngine | undefined;

@@ -35,6 +35,7 @@ export const ROUTES = {
   SPECIAL: "/special",
   WEBSOCKET: "/ws",
   CATEGORIES_API: "/api/catagories",
+  ACTIVE_GAMES_API: "/api/active-games",
   GAME_API: "/api/game",
   CAH_PACKS_API: "/api/cah-packs",
   CAH_GAME_API: "/api/cah-game",

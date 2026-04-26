@@ -1,8 +1,9 @@
 import { db } from "../db";
 import { games, gamePlayers, gameSelectedCategories, gameQuestions, gameHistory } from "../db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import logger from "../logger";
 import type { NHIEPlayer, NHIEGameState, GameHistoryEntry, Question } from "@nhie/shared";
+import type { ActiveGamePlayerSummary, ActiveGameSummary } from "../types";
 
 export type GameMetaHash = {
   phase?: string;
@@ -51,6 +52,7 @@ export interface IGameStateService {
 
   // ── Full state ─────────────────────────────────────────────────────────
   getFullGameState(gameId: string): Promise<NHIEGameState | null>;
+  listActiveGames(): Promise<ActiveGameSummary[]>;
 
   // ── Distributed locks ──────────────────────────────────────────────────
   /** Try to acquire a session-level PG advisory lock. Returns false if already held. */
@@ -301,6 +303,69 @@ export class GameStateService implements IGameStateService {
       timeout_start: 0,   // populated by engine from in-memory wsService state
       timeout_duration: 0,
     };
+  }
+
+  async listActiveGames(): Promise<ActiveGameSummary[]> {
+    const [gameRows, playerRows] = await Promise.all([
+      db.select({
+        id: games.id,
+        phase: games.phase,
+        waitingForPlayers: games.waiting_for_players,
+        gameCompleted: games.game_completed,
+        createdAt: games.created_at,
+      }).from(games).orderBy(desc(games.created_at)),
+      db.select({
+        gameId: gamePlayers.game_id,
+        playerId: gamePlayers.player_id,
+        name: gamePlayers.name,
+        connected: gamePlayers.connected,
+      }).from(gamePlayers),
+    ]);
+
+    const playersByGame = new Map<string, ActiveGamePlayerSummary[]>();
+    for (const row of playerRows) {
+      const players = playersByGame.get(row.gameId) ?? [];
+      players.push({
+        id: row.playerId,
+        name: row.name,
+        connected: row.connected,
+      });
+      playersByGame.set(row.gameId, players);
+    }
+
+    return gameRows.flatMap((game) => {
+      const players = (playersByGame.get(game.id) ?? []).sort((left, right) => {
+        if (left.connected !== right.connected) {
+          return left.connected ? -1 : 1;
+        }
+
+        return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+      });
+      const connectedPlayerCount = players.filter((player) => player.connected).length;
+
+      if (connectedPlayerCount === 0) {
+        return [];
+      }
+
+      const primaryPlayerName = players[0]?.name.trim() || "Untitled";
+      const title = primaryPlayerName.endsWith("s")
+        ? `${primaryPlayerName}' game`
+        : `${primaryPlayerName}'s game`;
+
+      return [{
+        id: game.id,
+        gameType: "never-have-i-ever" as const,
+        title,
+        primaryPlayerName,
+        phase: game.phase,
+        status: game.gameCompleted ? "completed" : game.waitingForPlayers ? "waiting" : "in-progress",
+        playerCount: players.length,
+        connectedPlayerCount,
+        players,
+        createdAt: new Date(game.createdAt).toISOString(),
+        href: `/play/${game.id}/never-have-i-ever`,
+      }];
+    });
   }
 
   // ── Distributed locks ──────────────────────────────────────────────────
