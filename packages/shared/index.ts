@@ -59,6 +59,7 @@ export type NHIEGameState = {
   gameType: "never-have-i-ever";
   phase: "category_select" | "waiting" | "game_over";
   players: NHIEPlayer[];
+  passwordProtected?: boolean;
   /** Currently selected category names */
   catagories: string[];
   current_question: Question;
@@ -83,6 +84,12 @@ export type JoinGameMessage = {
   op: "join_game";
   create: boolean;
   playername: string;
+  password?: string;
+};
+
+export type SetRoomPasswordMessage = {
+  op: "set_room_password";
+  password?: string;
 };
 
 export type SelectCategoriesMessage = {
@@ -126,6 +133,7 @@ export type DisconnectMessage = {
 /** Discriminated union of all messages the client can send to the server. */
 export type ClientMessage =
   | JoinGameMessage
+  | SetRoomPasswordMessage
   | SelectCategoriesMessage
   | SelectCategoryMessage
   | ConfirmSelectionsMessage

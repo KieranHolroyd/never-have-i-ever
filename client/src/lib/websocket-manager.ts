@@ -6,6 +6,7 @@ export interface WebSocketManagerConfig {
 	gameId: string;
 	playerId: string;
 	playerName: string;
+	roomPassword?: string;
 	gameType: 'cards-against-humanity' | 'never-have-i-ever';
 	selectedPackIds?: string[];
 	userId?: string;
@@ -67,11 +68,7 @@ export class WebSocketManager {
 			this.config.onError(''); // Clear any error
 
 			this.socket?.send(
-				JSON.stringify({
-					op: 'join_game',
-					create: true,
-					playername: this.config.playerName
-				})
+				JSON.stringify(this.createJoinPayload(true))
 			);
 
 			// Send selected packs if available (CAH only)
@@ -112,7 +109,7 @@ export class WebSocketManager {
 						break;
 
 					case 'error':
-						this.config.onError(data.message || 'Server error');
+						this.config.onError(this.getErrorMessage(data));
 						break;
 
 					case 'pong':
@@ -177,6 +174,19 @@ export class WebSocketManager {
 				this.scheduleReconnect();
 			}
 		});
+	}
+
+	private getErrorMessage(data: any): string {
+		return data?.error?.message || data?.message || 'Server error';
+	}
+
+	private createJoinPayload(create: boolean) {
+		return {
+			op: 'join_game',
+			create,
+			playername: this.config.playerName,
+			...(this.config.roomPassword ? { password: this.config.roomPassword } : {})
+		};
 	}
 
 	private scheduleReconnect(): void {
@@ -260,11 +270,23 @@ export class WebSocketManager {
 		this.sendMessage('select_packs', { packIds, ...settings });
 	}
 
-	joinGame(create: boolean = true): void {
-		this.sendMessage('join_game', {
-			create,
-			playername: this.config.playerName
+	updateRoomPassword(password?: string): void {
+		this.setRoomPassword(password);
+		this.sendMessage('set_room_password', {
+			...(password !== undefined ? { password } : {})
 		});
+	}
+
+	setRoomPassword(roomPassword?: string): void {
+		this.config.roomPassword = roomPassword?.trim() || undefined;
+	}
+
+	joinGame(create: boolean = true, roomPassword?: string): void {
+		if (roomPassword !== undefined) {
+			this.setRoomPassword(roomPassword);
+		}
+
+		this.sendMessage('join_game', this.createJoinPayload(create));
 	}
 
 	// Never Have I Ever specific methods

@@ -51,6 +51,7 @@ export type ActiveGameSummary = {
   gameType: "never-have-i-ever" | "cards-against-humanity";
   title: string;
   primaryPlayerName: string;
+  passwordProtected: boolean;
   phase: string;
   status: ActiveGameStatus;
   playerCount: number;

@@ -41,6 +41,7 @@ export const games = pgTable("games", {
   phase: text("phase").notNull().default("category_select"),
   waiting_for_players: boolean("waiting_for_players").notNull().default(false),
   game_completed: boolean("game_completed").notNull().default(false),
+  password_hash: text("password_hash"),
   current_q_cat: text("current_q_cat").notNull().default(""),
   current_q_content: text("current_q_content").notNull().default(""),
   timeout_start: bigint("timeout_start", { mode: "number" }).notNull().default(0),
@@ -89,6 +90,7 @@ export const gameHistory = pgTable("game_history", {
 export const cahGames = pgTable("cah_games", {
   id: text("id").primaryKey(),
   phase: text("phase").notNull().default("waiting"),
+  password_hash: text("password_hash"),
   current_judge: text("current_judge"),
   current_black_card: jsonb("current_black_card"),
   current_round: integer("current_round").notNull().default(0),

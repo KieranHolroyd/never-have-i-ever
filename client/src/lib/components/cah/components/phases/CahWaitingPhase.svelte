@@ -1,12 +1,24 @@
 <script lang="ts">
+	import RoomPasswordSettings from '../../../shared/RoomPasswordSettings.svelte';
 	import type { CAHGameState } from '$lib/types';
 
 	interface Props {
 		gameState: CAHGameState;
 		onGoBack?: () => void;
+		roomPasswordError?: string | null;
+		roomPasswordBusy?: boolean;
+		onSaveRoomPassword?: (password: string) => void;
+		onClearRoomPassword?: () => void;
 	}
 
-	let { gameState, onGoBack }: Props = $props();
+	let {
+		gameState,
+		onGoBack,
+		roomPasswordError = null,
+		roomPasswordBusy = false,
+		onSaveRoomPassword,
+		onClearRoomPassword
+	}: Props = $props();
 
 	const connectedPlayers = $derived(gameState.players.filter((p) => p.connected));
 	const isReady = $derived(connectedPlayers.length >= 3);
@@ -89,6 +101,16 @@
 			{/if}
 		</button>
 	</div>
+
+	{#if onSaveRoomPassword && onClearRoomPassword}
+		<RoomPasswordSettings
+			passwordProtected={Boolean(gameState.passwordProtected)}
+			error={roomPasswordError}
+			busy={roomPasswordBusy}
+			onSave={onSaveRoomPassword}
+			onClear={onClearRoomPassword}
+		/>
+	{/if}
 
 	{#if onGoBack}
 		<button

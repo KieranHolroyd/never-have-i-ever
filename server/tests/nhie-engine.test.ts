@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { NHIEGameState, NHIEPlayer } from "@nhie/shared";
 import type { GameMetaHash, IGameStateService } from "../src/services/game-state-service";
 import { createNeverHaveIEverEngine } from "../src/lib/engines/never-have-i-ever";
+import { hashRoomPassword } from "../src/utils/game-password";
 import {
   createMockGameStateService,
   createMockHttpService,
@@ -168,5 +169,45 @@ describe("Never Have I Ever engine", () => {
     expect(clearTimeoutMock).toHaveBeenCalledWith("timer-30000");
     expect(wsService.setTimeoutStart).toHaveBeenCalledTimes(2);
     expect(wsService.setTimeoutStart).toHaveBeenLastCalledWith("test-game", expect.any(Number));
+  });
+
+  it("requires the correct password to join a protected game", async () => {
+    const protectedMeta: GameMetaHash = {
+      phase: "category_select",
+      waitingForPlayers: false,
+      gameCompleted: false,
+      current_q_cat: "",
+      current_q_content: "",
+      timeout_start: 0,
+      password_hash: await hashRoomPassword("secret123"),
+    };
+
+    const gameStateService = {
+      ...createMockGameStateService(),
+      gameExists: mock(async () => true),
+      getGameMeta: mock(async () => clone(protectedMeta)),
+    } as IGameStateService;
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService);
+    const ws = createMockWebSocket("test-game", "p3");
+
+    await expect(
+      engine.handlers.join_game(ws, {
+        op: "join_game",
+        create: false,
+        playername: "Charlie",
+      })
+    ).rejects.toThrow("This game requires a password");
+
+    await expect(
+      engine.handlers.join_game(ws, {
+        op: "join_game",
+        create: false,
+        playername: "Charlie",
+        password: "wrong-password",
+      })
+    ).rejects.toThrow("Incorrect game password");
   });
 });

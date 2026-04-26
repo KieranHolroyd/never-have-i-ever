@@ -42,6 +42,7 @@ export type Settings = {
 export type GameData = {
 	id: string;
 	players: _Player[];
+	passwordProtected?: boolean;
 
 	catagories: string[];
 
@@ -91,6 +92,7 @@ export type CAHGameState = {
 	id: string;
 	players: CAHPlayer[];
 	selectedPacks: string[];
+	passwordProtected?: boolean;
 
 	// Game phases
 	phase: 'waiting' | 'selecting' | 'judging' | 'scoring' | 'game_over';
@@ -156,6 +158,7 @@ export type ActiveGameSummary = {
 	gameType: 'never-have-i-ever' | 'cards-against-humanity';
 	title: string;
 	primaryPlayerName: string;
+	passwordProtected: boolean;
 	phase: string;
 	status: ActiveGameStatus;
 	playerCount: number;

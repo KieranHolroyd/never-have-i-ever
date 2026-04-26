@@ -74,6 +74,22 @@ export function validateCategorySelection(selectedCategories: string[]): Validat
 	};
 }
 
+export function validateRoomPassword(password: string): ValidationResult {
+	const errors: string[] = [];
+	const normalized = password.trim();
+
+	if (normalized.length > 0 && normalized.length < 4) {
+		errors.push('Room password must be at least 4 characters long');
+	} else if (normalized.length > 64) {
+		errors.push('Room password must be less than 65 characters long');
+	}
+
+	return {
+		isValid: errors.length === 0,
+		errors
+	};
+}
+
 export function validateWebSocketMessage(data: any): ValidationResult {
 	const errors: string[] = [];
 
@@ -92,7 +108,15 @@ export function validateWebSocketMessage(data: any): ValidationResult {
 			if (!data.playername || typeof data.playername !== 'string') {
 				errors.push('join_game requires a playername');
 			}
+				if (data.password !== undefined && typeof data.password !== 'string') {
+					errors.push('join_game password must be a string');
+				}
 			break;
+			case 'set_room_password':
+				if (data.password !== undefined && typeof data.password !== 'string') {
+					errors.push('set_room_password password must be a string');
+				}
+				break;
 		case 'submit_cards':
 			if (!Array.isArray(data.cardIds)) {
 				errors.push('submit_cards requires cardIds array');

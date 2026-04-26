@@ -51,6 +51,7 @@ export type CAHGameState = {
   id: string;
   players: CAHPlayer[];
   selectedPacks: string[];
+  passwordProtected?: boolean;
   phase: "waiting" | "selecting" | "judging" | "scoring" | "game_over";
   currentJudge: string | null;
   currentBlackCard: CAHBlackCard | null;
@@ -66,6 +67,7 @@ export type CAHGameState = {
 
 export type CAHGameMeta = {
   phase: string;
+  passwordHash: string | null;
   currentJudge: string | null;
   currentBlackCard: CAHBlackCard | null;
   currentRound: number;
@@ -130,6 +132,7 @@ export class CAHGameStateService implements ICAHGameStateService {
     const g = rows[0];
     return {
       phase: g.phase,
+      passwordHash: g.password_hash ?? null,
       currentJudge: g.current_judge ?? null,
       currentBlackCard: (g.current_black_card as CAHBlackCard | null) ?? null,
       currentRound: g.current_round,
@@ -146,6 +149,7 @@ export class CAHGameStateService implements ICAHGameStateService {
   async setGameMeta(gameId: string, fields: Partial<CAHGameMeta>): Promise<void> {
     const update: Partial<typeof cahGames.$inferInsert> = {};
     if (fields.phase !== undefined)             update.phase = fields.phase;
+    if (fields.passwordHash !== undefined)      update.password_hash = fields.passwordHash;
     if (fields.currentJudge !== undefined)      update.current_judge = fields.currentJudge;
     if (fields.currentBlackCard !== undefined)  update.current_black_card = fields.currentBlackCard as any;
     if (fields.currentRound !== undefined)      update.current_round = fields.currentRound;
@@ -285,6 +289,7 @@ export class CAHGameStateService implements ICAHGameStateService {
       id: gameId,
       players,
       selectedPacks: meta.selectedPacks,
+      passwordProtected: Boolean(meta.passwordHash),
       phase: meta.phase as CAHGameState["phase"],
       currentJudge: meta.currentJudge,
       currentBlackCard: meta.currentBlackCard,
@@ -306,6 +311,7 @@ export class CAHGameStateService implements ICAHGameStateService {
         id: cahGames.id,
         phase: cahGames.phase,
         gameCompleted: cahGames.game_completed,
+        passwordHash: cahGames.password_hash,
         createdAt: cahGames.created_at,
       }).from(cahGames).orderBy(desc(cahGames.created_at)),
       db.select({
@@ -351,6 +357,7 @@ export class CAHGameStateService implements ICAHGameStateService {
         gameType: "cards-against-humanity" as const,
         title,
         primaryPlayerName,
+        passwordProtected: Boolean(game.passwordHash),
         phase: game.phase,
         status: game.gameCompleted ? "completed" : connectedPlayerCount < 3 ? "waiting" : "in-progress",
         playerCount: players.length,

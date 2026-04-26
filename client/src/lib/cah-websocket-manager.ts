@@ -8,6 +8,7 @@ export interface CAHWebSocketManagerConfig {
 	gameId: string;
 	playerId: string;
 	playerName: string;
+	roomPassword?: string;
 	selectedPackIds?: string[];
 	onGameState: (gameState: CAHGameState) => void;
 	onError: (error: string) => void;
@@ -22,6 +23,7 @@ export class CAHWebSocketManager {
 			gameId: config.gameId,
 			playerId: config.playerId,
 			playerName: config.playerName,
+			roomPassword: config.roomPassword,
 			gameType: 'cards-against-humanity',
 			selectedPackIds: config.selectedPackIds,
 			onGameState: config.onGameState,

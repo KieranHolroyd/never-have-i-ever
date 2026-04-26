@@ -6,6 +6,7 @@ import type { IGameStateService } from "../../services/game-state-service";
 import type { NHIEPlayer, NHIEGameState } from "@nhie/shared";
 import { ingestEvent } from "../../axiom";
 import { ValidationError } from "../../errors";
+import { hashRoomPassword, normalizeRoomPassword, validateRoomPassword, verifyRoomPassword } from "../../utils/game-password";
 import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
 
@@ -215,11 +216,32 @@ export function createNeverHaveIEverEngine(
     join_game: async (ws, data) => {
       const { create, playername } = data;
       const gameId = ws.data.game;
+      const roomPassword = normalizeRoomPassword(data.password);
 
       const exists = await gameStateService.gameExists(gameId);
       if (!exists) {
         if (!create) throw new Error("Game not found");
         await gameStateService.createGame(gameId);
+
+        if (roomPassword) {
+          validateRoomPassword(roomPassword);
+          await gameStateService.setGameMeta(gameId, {
+            password_hash: await hashRoomPassword(roomPassword),
+          });
+        }
+      } else {
+        const meta = await gameStateService.getGameMeta(gameId);
+
+        if (meta?.password_hash) {
+          if (!roomPassword) {
+            throw new ValidationError("This game requires a password");
+          }
+
+          const passwordValid = await verifyRoomPassword(roomPassword, meta.password_hash);
+          if (!passwordValid) {
+            throw new ValidationError("Incorrect game password");
+          }
+        }
       }
 
       const existing = await gameStateService.getPlayer(gameId, ws.data.player);
@@ -248,6 +270,32 @@ export function createNeverHaveIEverEngine(
       // Re-arm the round timer if server restarted while a round was in progress
       const advanced = await maybeRestoreTimeout(ws);
       if (!advanced) await broadcast(ws);
+    },
+
+    set_room_password: async (ws, data) => {
+      const gameId = ws.data.game;
+      const meta = await gameStateService.getGameMeta(gameId);
+
+      if (!meta) {
+        throw new ValidationError("Game not found");
+      }
+
+      if (meta.phase !== "category_select") {
+        throw new ValidationError("Room password can only be changed before the game starts");
+      }
+
+      const roomPassword = normalizeRoomPassword(data.password);
+
+      if (roomPassword) {
+        validateRoomPassword(roomPassword);
+        await gameStateService.setGameMeta(gameId, {
+          password_hash: await hashRoomPassword(roomPassword),
+        });
+      } else {
+        await gameStateService.setGameMeta(gameId, { password_hash: null });
+      }
+
+      await broadcast(ws);
     },
 
     // -----------------------------------------------------------------------

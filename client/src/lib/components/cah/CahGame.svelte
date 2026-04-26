@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { page } from '$app/state';
 	import { LocalPlayer } from '$lib/player';
+	import { clearStoredRoomPassword, getStoredRoomPassword, storeRoomPassword } from '$lib/room-password';
 	import { Status, type CAHGameState, type CAHPlayer } from '$lib/types';
 	import { settingsStore } from '$lib/settings';
 	import { buildSocketUrl } from '$lib/socket-url';
@@ -21,6 +23,7 @@
 	// Import shared components
 	import ConnectionStatus from '../shared/ConnectionStatus.svelte';
 	import ErrorDisplay from '../shared/ErrorDisplay.svelte';
+	import RoomPasswordGate from '../shared/RoomPasswordGate.svelte';
 
 	// Import our refactored components
 	import CahGameHeader from './components/game/CahGameHeader.svelte';
@@ -41,10 +44,20 @@
 	}
 	let { id, userId }: Props = $props();
 
+	function initialRoomProtected() {
+		return Boolean((page.data as { game?: { passwordProtected?: boolean } }).game?.passwordProtected);
+	}
+
 	let wsManager: WebSocketManager | null = null;
 	let gameState = $derived($gameStore);
 	let currentPlayer = $derived($currentPlayerStore);
 	let lastRound: number = $state(0);
+	let roomProtected = $state(false);
+	let roomPassword = $state('');
+	let roomPasswordError = $state<string | null>(null);
+	let passwordPromptVisible = $state(false);
+	let joinPending = $state(false);
+	let roomPasswordSaving = $state(false);
 
 	// Optimistic UI: keep client thin but provide immediate UX while waiting
 	// for the first server state or during in-flight actions.
@@ -188,6 +201,14 @@
 	function handleGameState(newGameState: CAHGameState) {
 		gameStore.set(newGameState);
 		currentPlayerStore.set(newGameState?.players.find((p) => p.id === LocalPlayer.id) || null);
+		roomProtected = Boolean(newGameState.passwordProtected);
+		joinPending = false;
+		passwordPromptVisible = false;
+		roomPasswordError = null;
+		roomPasswordSaving = false;
+		if (!roomProtected) {
+			clearStoredRoomPassword(id);
+		}
 		console.log('Game state:', newGameState);
 		// Server is authoritative with a small grace window: if we're optimistically
 		// in 'waiting' right after selecting packs, keep showing it until the server
@@ -210,9 +231,21 @@
 	}
 
 	function handleError(newError: string) {
+		if (newError === 'This game requires a password' || newError === 'Incorrect game password') {
+			roomPasswordError = newError;
+			passwordPromptVisible = true;
+			joinPending = false;
+			clearStoredRoomPassword(id);
+			roomPassword = '';
+		}
+
 		if (!newError) {
 			clearError();
 		} else {
+			if (roomPasswordSaving) {
+				roomPasswordError = newError;
+				roomPasswordSaving = false;
+			}
 			setError(newError);
 		}
 	}
@@ -236,12 +269,22 @@
 	}
 
 	function connect() {
-		if (wsManager) return;
+		if (wsManager) {
+			wsManager.setRoomPassword(roomPassword);
+			if (wsManager.isConnected()) {
+				wsManager.joinGame(true);
+				return;
+			}
+
+			wsManager.disconnect();
+			wsManager = null;
+		}
 
 		wsManager = new WebSocketManager({
 			gameId: id,
 			playerId: LocalPlayer.id,
 			playerName: LocalPlayer.name || 'Anonymous Player',
+			roomPassword: roomPassword || undefined,
 			gameType: 'cards-against-humanity',
 			userId,
 			onGameState: handleGameState,
@@ -250,6 +293,41 @@
 		});
 
 		wsManager.connect();
+	}
+
+	function submitRoomPassword(password: string) {
+		roomPassword = password;
+		storeRoomPassword(id, password);
+		passwordPromptVisible = false;
+		roomPasswordError = null;
+		joinPending = true;
+		connect();
+	}
+
+	function saveLobbyPassword(password: string) {
+		if (!wsManager?.isConnected()) {
+			roomPasswordError = 'Connection lost. Reconnecting...';
+			return;
+		}
+
+		roomPasswordSaving = true;
+		roomPasswordError = null;
+		roomPassword = password;
+		storeRoomPassword(id, password);
+		wsManager?.updateRoomPassword(password);
+	}
+
+	function clearLobbyPassword() {
+		if (!wsManager?.isConnected()) {
+			roomPasswordError = 'Connection lost. Reconnecting...';
+			return;
+		}
+
+		roomPasswordSaving = true;
+		roomPasswordError = null;
+		roomPassword = '';
+		clearStoredRoomPassword(id);
+		wsManager?.updateRoomPassword('');
 	}
 
 	let selectedCardIds: string[] = $state([]);
@@ -310,7 +388,13 @@
 	});
 
 	onMount(() => {
-		connect();
+		roomProtected = initialRoomProtected();
+		roomPassword = getStoredRoomPassword(id);
+		passwordPromptVisible = roomProtected && !roomPassword;
+		if (!passwordPromptVisible) {
+			joinPending = true;
+			connect();
+		}
 		return () => {
 			wsManager?.disconnect();
 			wsManager = null;
@@ -332,7 +416,14 @@
 	});
 </script>
 
-{#if showPackSelection}
+{#if passwordPromptVisible}
+	<RoomPasswordGate
+		initialValue={roomPassword}
+		error={roomPasswordError}
+		busy={joinPending}
+		onSubmit={submitRoomPassword}
+	/>
+{:else if showPackSelection}
 	<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
 {:else}
 	<div class="min-h-screen bg-[#111111] text-white">
@@ -394,7 +485,14 @@
 									</p>
 								</div>
 							{:else}
-								<CahWaitingPhase gameState={gameState as CAHGameState} onGoBack={resetGame} />
+								<CahWaitingPhase
+									gameState={gameState as CAHGameState}
+									onGoBack={resetGame}
+									roomPasswordError={roomPasswordError}
+									roomPasswordBusy={roomPasswordSaving}
+									onSaveRoomPassword={saveLobbyPassword}
+									onClearRoomPassword={clearLobbyPassword}
+								/>
 							{/if}
 						{:else if (gameState as CAHGameState).phase === 'selecting' && currentPlayer && (currentPlayer as CAHPlayer).isJudge}
 							<CahJudgeSelectingPhase gameState={gameState as CAHGameState} />

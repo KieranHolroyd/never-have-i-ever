@@ -42,10 +42,15 @@ export class GameManager {
         return new Response(JSON.stringify({ error: "service_unavailable" }), { status: 503 });
       }
       const game = await this.gameStateService.getFullGameState(gameId);
+      const meta = await this.gameStateService.getGameMeta(gameId);
       if (!game) {
         return new Response(JSON.stringify({ error: "game_not_found" }), { status: 404 });
       }
-      return Response.json({ ...game, active: game.players.filter(p => p.connected).length > 0 });
+      return Response.json({
+        ...game,
+        active: game.players.filter(p => p.connected).length > 0,
+        passwordProtected: Boolean(meta?.password_hash),
+      });
     } catch (error) {
       logger.error("Error fetching game:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
@@ -64,11 +69,12 @@ export class GameManager {
       }
       // Pass empty string so no player's hand is exposed in the API response
       const game = await this.cahGameStateService.getFullGameState(gameId, "");
+      const meta = await this.cahGameStateService.getGameMeta(gameId);
       if (!game) {
         return new Response(JSON.stringify({ error: "game_not_found" }), { status: 404 });
       }
       const active = game.players.filter((p) => p.connected).length > 0;
-      return Response.json({ ...game, active });
+      return Response.json({ ...game, active, passwordProtected: Boolean(meta?.passwordHash) });
     } catch (error) {
       logger.error("Error fetching CAH game:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });

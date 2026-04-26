@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import type { ActiveGameStatus, ActiveGameSummary } from '$lib/types';
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
 	import MdiCardsPlayingOutline from '~icons/mdi/cards-playing-outline';
+	import MdiLockOutline from '~icons/mdi/lock-outline';
 	import MdiMagnify from '~icons/mdi/magnify';
 	import MdiTimerSand from '~icons/mdi/timer-sand';
 	import MdiTrendingUp from '~icons/mdi/trending-up';
@@ -10,6 +12,9 @@
 	interface Props {
 		data: {
 			games: ActiveGameSummary[];
+			initialSearchQuery: string;
+			initialGameType: GameTypeFilter;
+			initialStatus: StatusFilter;
 		};
 	}
 
@@ -34,6 +39,7 @@
 	let searchQuery = $state('');
 	let selectedGameType = $state<GameTypeFilter>('all');
 	let selectedStatus = $state<StatusFilter>('all');
+	let filtersInitialized = $state(false);
 
 	const totalGames = $derived(data.games.length);
 	const waitingGames = $derived(data.games.filter((game) => game.status === 'waiting').length);
@@ -110,6 +116,54 @@
 			.map((part) => part[0]?.toUpperCase() ?? '')
 			.join('');
 	}
+
+	function syncFiltersToUrl() {
+		if (!browser || !filtersInitialized) {
+			return;
+		}
+
+		const url = new URL(window.location.href);
+		const normalizedQuery = searchQuery.trim();
+
+		if (normalizedQuery) {
+			url.searchParams.set('q', normalizedQuery);
+		} else {
+			url.searchParams.delete('q');
+		}
+
+		if (selectedGameType !== 'all') {
+			url.searchParams.set('type', selectedGameType);
+		} else {
+			url.searchParams.delete('type');
+		}
+
+		if (selectedStatus !== 'all') {
+			url.searchParams.set('status', selectedStatus);
+		} else {
+			url.searchParams.delete('status');
+		}
+
+		if (url.search === window.location.search) {
+			return;
+		}
+
+		window.history.replaceState(window.history.state, '', url);
+	}
+
+	$effect(() => {
+		if (filtersInitialized) {
+			return;
+		}
+
+		searchQuery = data.initialSearchQuery;
+		selectedGameType = data.initialGameType;
+		selectedStatus = data.initialStatus;
+		filtersInitialized = true;
+	});
+
+	$effect(() => {
+		syncFiltersToUrl();
+	});
 </script>
 
 <div class="py-12 sm:py-16">
@@ -240,6 +294,12 @@
 											{/if}
 											<span>{formatGameType(game.gameType)}</span>
 										</span>
+											{#if game.passwordProtected}
+												<span class="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+													<MdiLockOutline class="h-3.5 w-3.5" />
+													<span>Protected</span>
+												</span>
+											{/if}
 										<span class={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(game.status)}`}>
 											{formatStatus(game.status)}
 										</span>

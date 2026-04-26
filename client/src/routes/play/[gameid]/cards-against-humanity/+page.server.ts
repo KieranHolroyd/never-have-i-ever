@@ -4,6 +4,7 @@ import { redirect } from '@sveltejs/kit';
 
 type ClientCAHGameData = CAHGameState & {
 	active: boolean;
+	passwordProtected?: boolean;
 };
 
 export async function load({ params, fetch }) {
@@ -37,7 +38,8 @@ export async function load({ params, fetch }) {
 			currentRound: 0,
 			waitingForPlayers: true,
 			gameCompleted: false,
-			active: false
+			active: false,
+			passwordProtected: false
 		} as ClientCAHGameData
 	};
 }

@@ -14,6 +14,11 @@ const OperationSchemas: Record<string, z.ZodSchema> = {
     op: z.literal("join_game"),
     create: z.boolean().optional(),
     playername: z.string().min(1, "Player name is required").max(50, "Player name too long").optional(),
+    password: z.string().min(1, "Password cannot be empty").max(64, "Password too long").optional(),
+  }),
+  set_room_password: z.object({
+    op: z.literal("set_room_password"),
+    password: z.string().max(64, "Password too long").optional(),
   }),
   select_categories: z.object({
     op: z.literal("select_categories"),

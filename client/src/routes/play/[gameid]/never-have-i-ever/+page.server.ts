@@ -5,22 +5,32 @@ import { env } from '$env/dynamic/public';
 
 type ClientGameData = GameData & {
 	active: boolean;
+	passwordProtected?: boolean;
 };
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
 	if (!params.gameid) {
 		return redirect(307, '/');
 	}
-	const req = await fetch(`${env.PUBLIC_API_URL}api/game?id=${params.gameid}`);
+
 	let game: ClientGameData | null = null;
-	if (req.status === 200) {
-		game = (await req.json()) as ClientGameData;
+	try {
+		const req = await fetch(`${env.PUBLIC_API_URL}api/game?id=${params.gameid}`);
+		if (req.status === 200) {
+			game = (await req.json()) as ClientGameData;
+		}
+	} catch {
+		// fall through and return an empty state below
 	}
 
-	const req2 = await fetch(`${env.PUBLIC_API_URL}api/catagories`);
 	let cats: Catagories | null = null;
-	if (req2.status === 200) {
-		cats = (await req2.json()) as Catagories;
+	try {
+		const req2 = await fetch(`${env.PUBLIC_API_URL}api/catagories`);
+		if (req2.status === 200) {
+			cats = (await req2.json()) as Catagories;
+		}
+	} catch {
+		// fall through and return an empty state below
 	}
 
 	if (!game || !cats) {

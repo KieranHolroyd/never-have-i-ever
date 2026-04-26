@@ -77,7 +77,8 @@ export default defineConfig({
 			timeout: 120000
 		},
 		{
-			command: 'npm run dev',
+			command:
+				'PUBLIC_API_URL=http://localhost:3000/ PUBLIC_SOCKET_URL=ws://localhost:3000/ws npm run dev',
 			url: 'http://localhost:5173',
 			reuseExistingServer: !process.env.CI,
 			timeout: 120000

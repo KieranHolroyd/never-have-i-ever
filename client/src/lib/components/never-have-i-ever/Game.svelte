@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { env } from '$env/dynamic/public';
+	import { page } from '$app/state';
 	import { buildSocketUrl } from '$lib/socket-url';
 	import { LocalPlayer } from '$lib/player';
 	import { goto } from '$app/navigation';
@@ -12,8 +13,11 @@
 		type Catagories,
 		type NHIEGameState
 	} from '$lib/types';
+	import { clearStoredRoomPassword, getStoredRoomPassword, storeRoomPassword } from '$lib/room-password';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import PreGameConnection from './PreGameConnection.svelte';
+	import RoomPasswordGate from '../shared/RoomPasswordGate.svelte';
+	import RoomPasswordSettings from '../shared/RoomPasswordSettings.svelte';
 	import { toast } from '$lib/toast';
 	import Tutorial from '../Tutorial.svelte';
 	import { colour_map } from '$lib/colour';
@@ -36,7 +40,17 @@
 
 	let { id, catagories = $bindable(), userId }: Props = $props();
 
+	function initialRoomProtected() {
+		return Boolean((page.data as { game?: { passwordProtected?: boolean } }).game?.passwordProtected);
+	}
+
 	let should_reload_on_reconnect = $state(false);
+	let roomProtected = $state(false);
+	let roomPassword = $state('');
+	let roomPasswordError = $state<string | null>(null);
+	let passwordPromptVisible = $state(false);
+	let joinPending = $state(false);
+	let roomPasswordSaving = $state(false);
 
 	let settings = settingsStore;
 
@@ -141,7 +155,12 @@
 	onMount(() => {
 		if (LocalPlayer.name === null) return goto(`/play/name?redirect=/play/${id}/never-have-i-ever`);
 		player_id = LocalPlayer.id;
-		setupsock();
+		roomProtected = initialRoomProtected();
+		roomPassword = getStoredRoomPassword(id);
+		passwordPromptVisible = roomProtected && !roomPassword;
+		if (!passwordPromptVisible) {
+			attemptJoin();
+		}
 
 		if (catagories === undefined) {
 			fetch(`${env.PUBLIC_API_URL}api/catagories`)
@@ -217,6 +236,54 @@
 		return true;
 	}
 
+	function getJoinPayload() {
+		return {
+			op: 'join_game',
+			create: true,
+			playername: my_name,
+			...(roomPassword ? { password: roomPassword } : {})
+		};
+	}
+
+	function attemptJoin() {
+		joinPending = true;
+		roomPasswordError = null;
+
+		if (socket && socket.readyState === WebSocket.OPEN) {
+			socket.send(JSON.stringify(getJoinPayload()));
+			return;
+		}
+
+		setupsock();
+	}
+
+	function submitRoomPassword(password: string) {
+		roomPassword = password;
+		storeRoomPassword(id, password);
+		passwordPromptVisible = false;
+		attemptJoin();
+	}
+
+	function saveLobbyPassword(password: string) {
+		roomPasswordSaving = true;
+		roomPasswordError = null;
+		roomPassword = password;
+		storeRoomPassword(id, password);
+		if (!sendSocketAction({ op: 'set_room_password', password })) {
+			roomPasswordSaving = false;
+		}
+	}
+
+	function clearLobbyPassword() {
+		roomPasswordSaving = true;
+		roomPasswordError = null;
+		roomPassword = '';
+		clearStoredRoomPassword(id);
+		if (!sendSocketAction({ op: 'set_room_password', password: '' })) {
+			roomPasswordSaving = false;
+		}
+	}
+
 	function syncGameState(nextGame: NHIEGameState) {
 		const previousQuestion = current_question?.content;
 		const nextQuestion = nextGame.current_question?.content;
@@ -238,6 +305,11 @@
 
 		current_question = nextGame.current_question;
 		players = nextGame.players;
+		roomProtected = Boolean(nextGame.passwordProtected);
+		roomPasswordSaving = false;
+		if (!roomProtected) {
+			clearStoredRoomPassword(id);
+		}
 
 		if (game_state.catagory_select || previousQuestion !== nextQuestion) {
 			pendingVote = null;
@@ -398,6 +470,9 @@
 						});
 
 						syncGameState(data.game as NHIEGameState);
+							joinPending = false;
+							passwordPromptVisible = false;
+							roomPasswordError = null;
 
 						// Handle server-synced timeout (starts when first vote is cast)
 						if (
@@ -466,8 +541,26 @@
 						}
 						break;
 					case 'error':
+						const message = data?.error?.message || data?.message || 'Server error';
+						const operation = data?.error?.operation;
 						errors = [...errors, data];
 						pendingVote = null;
+						if (
+							message === 'This game requires a password' ||
+							message === 'Incorrect game password'
+						) {
+							roomPasswordError = message;
+							passwordPromptVisible = true;
+							joinPending = false;
+							clearStoredRoomPassword(id);
+							roomPassword = '';
+						} else {
+							if (operation === 'set_room_password') {
+								roomPasswordError = message;
+								roomPasswordSaving = false;
+							}
+							setTransientError(message);
+						}
 						break;
 					case 'github_push':
 						setTimeout(() => {
@@ -520,7 +613,7 @@
 		socket?.addEventListener('open', (event) => {
 			connection = Status.CONNECTED;
 			measure_ping();
-			socket?.send(JSON.stringify({ op: 'join_game', create: true, playername: my_name }));
+			socket?.send(JSON.stringify(getJoinPayload()));
 			posthog.capture('game_joined', { game_type: 'never-have-i-ever', game_id: id });
 			retry_count = 0;
 			// Clear any pending timeouts on successful connection
@@ -738,7 +831,14 @@
 <div
 	class="text-zinc-100 text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]"
 >
-	{#if !game_state.game_completed}
+	{#if passwordPromptVisible}
+		<RoomPasswordGate
+			initialValue={roomPassword}
+			error={roomPasswordError}
+			busy={joinPending}
+			onSubmit={submitRoomPassword}
+		/>
+	{:else if !game_state.game_completed}
 		{#if game_state.catagory_select}
 			<div
 				class="mx-auto mt-4 prose-panel lg:prose-lg xl:prose-xl"
@@ -800,6 +900,15 @@
 				Continue
 			</button>
 			<PreGameConnection {connection} {players} />
+			<div class="mx-auto mt-4 w-full max-w-md">
+				<RoomPasswordSettings
+					passwordProtected={roomProtected}
+					error={roomPasswordError}
+					busy={roomPasswordSaving}
+					onSave={saveLobbyPassword}
+					onClear={clearLobbyPassword}
+				/>
+			</div>
 			<Tutorial
 				id="welcome"
 				steps={[

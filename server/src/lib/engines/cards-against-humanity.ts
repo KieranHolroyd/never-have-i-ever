@@ -8,6 +8,8 @@ import type { IHttpService } from "../../services/http-service";
 import type { IGameStateService } from "../../services/game-state-service";
 import type { ICAHGameStateService, CAHBlackCard, CAHWhiteCard, CAHPlayer } from "../../services/cah-game-state-service";
 import { ingestEvent } from "../../axiom";
+import { ValidationError } from "../../errors";
+import { hashRoomPassword, normalizeRoomPassword, validateRoomPassword, verifyRoomPassword } from "../../utils/game-password";
 import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
 
@@ -192,10 +194,31 @@ export function createCardsAgainstHumanityEngine(
     join_game: async (ws, data) => {
       const { playername } = data;
       const gameId = ws.data.game;
+      const roomPassword = normalizeRoomPassword(data.password);
 
       const exists = await cahService.gameExists(gameId);
       if (!exists) {
         await cahService.createGame(gameId);
+
+        if (roomPassword) {
+          validateRoomPassword(roomPassword);
+          await cahService.setGameMeta(gameId, {
+            passwordHash: await hashRoomPassword(roomPassword),
+          });
+        }
+      } else {
+        const meta = await cahService.getGameMeta(gameId);
+
+        if (meta?.passwordHash) {
+          if (!roomPassword) {
+            throw new ValidationError("This game requires a password");
+          }
+
+          const passwordValid = await verifyRoomPassword(roomPassword, meta.passwordHash);
+          if (!passwordValid) {
+            throw new ValidationError("Incorrect game password");
+          }
+        }
       }
 
       const existing = await cahService.getPlayer(gameId, ws.data.player);
@@ -257,6 +280,32 @@ export function createCardsAgainstHumanityEngine(
       } else {
         await broadcastAll(gameId);
       }
+    },
+
+    set_room_password: async (ws, data) => {
+      const gameId = ws.data.game;
+      const meta = await cahService.getGameMeta(gameId);
+
+      if (!meta) {
+        throw new ValidationError("Game not found");
+      }
+
+      if (meta.phase !== "waiting") {
+        throw new ValidationError("Room password can only be changed before the game starts");
+      }
+
+      const roomPassword = normalizeRoomPassword(data.password);
+
+      if (roomPassword) {
+        validateRoomPassword(roomPassword);
+        await cahService.setGameMeta(gameId, {
+          passwordHash: await hashRoomPassword(roomPassword),
+        });
+      } else {
+        await cahService.setGameMeta(gameId, { passwordHash: null });
+      }
+
+      await broadcastAll(gameId);
     },
 
     select_packs: async (ws, data) => {

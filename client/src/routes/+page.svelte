@@ -40,6 +40,18 @@
 		<p class="mt-5 text-zinc-400 text-base sm:text-lg max-w-sm mx-auto leading-relaxed">
 			No accounts. No installs. Share a link and start playing.
 		</p>
+		<a
+			href="/games"
+			class="group mt-8 inline-flex items-center gap-3 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 transition-all hover:border-emerald-400/50 hover:bg-emerald-500/15 hover:text-emerald-200"
+		>
+			<span>
+				Browse active games
+				{#if data.active_games_count > 0}
+					<span class="text-emerald-100/80">({data.active_games_count} live)</span>
+				{/if}
+			</span>
+			<MdiArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+		</a>
 	</div>
 
 	<!-- Game Cards -->

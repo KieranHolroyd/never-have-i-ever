@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createCardsAgainstHumanityEngine } from "../src/lib/engines/cards-against-humanity";
+import { hashRoomPassword } from "../src/utils/game-password";
 import type {
   CAHGameMeta,
   CAHPlayer,
@@ -31,6 +32,7 @@ function createStatefulCahService() {
 
   const meta: CAHGameMeta = {
     phase: "selecting",
+    passwordHash: null,
     currentJudge: "p2",
     currentBlackCard: {
       id: "b1",
@@ -126,6 +128,7 @@ function createJudgingReconnectService() {
 
   const meta: CAHGameMeta = {
     phase: 'judging',
+    passwordHash: null,
     currentJudge: 'p2',
     currentBlackCard: {
       id: 'b1',
@@ -249,5 +252,34 @@ describe("Cards Against Humanity engine", () => {
     expect(meta.phase).toBe('judging');
     expect(meta.currentJudge).toBe('p2');
     expect(meta.whiteDeck).toEqual([]);
+  });
+
+  it("requires the correct password to join a protected game", async () => {
+    const { meta, service } = createStatefulCahService();
+    meta.phase = "waiting";
+    meta.selectedPacks = [];
+    meta.passwordHash = await hashRoomPassword("secret123");
+
+    const wsService = createMockWebSocketService();
+    const httpService = createMockHttpService();
+    const engine = createCardsAgainstHumanityEngine(wsService, httpService, {} as any, service);
+    const ws = createMockWebSocket("test-game", "p9", "cards-against-humanity");
+
+    await expect(
+      engine.handlers.join_game(ws, {
+        op: "join_game",
+        create: false,
+        playername: "Late Joiner",
+      })
+    ).rejects.toThrow("This game requires a password");
+
+    await expect(
+      engine.handlers.join_game(ws, {
+        op: "join_game",
+        create: false,
+        playername: "Late Joiner",
+        password: "wrong-password",
+      })
+    ).rejects.toThrow("Incorrect game password");
   });
 });

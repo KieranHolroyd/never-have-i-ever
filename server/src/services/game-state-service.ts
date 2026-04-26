@@ -9,6 +9,7 @@ export type GameMetaHash = {
   phase?: string;
   waitingForPlayers?: boolean;
   gameCompleted?: boolean;
+  password_hash?: string | null;
   current_q_cat?: string;
   current_q_content?: string;
   /** Epoch ms timestamp, or 0 to clear */
@@ -94,6 +95,7 @@ export class GameStateService implements IGameStateService {
       phase: g.phase,
       waitingForPlayers: g.waiting_for_players,
       gameCompleted: g.game_completed,
+      password_hash: g.password_hash,
       current_q_cat: g.current_q_cat,
       current_q_content: g.current_q_content,
       timeout_start: g.timeout_start,
@@ -105,6 +107,7 @@ export class GameStateService implements IGameStateService {
     if (fields.phase !== undefined)              update.phase = fields.phase;
     if (fields.waitingForPlayers !== undefined)  update.waiting_for_players = fields.waitingForPlayers;
     if (fields.gameCompleted !== undefined)      update.game_completed = fields.gameCompleted;
+    if (fields.password_hash !== undefined)      update.password_hash = fields.password_hash;
     if (fields.current_q_cat !== undefined)      update.current_q_cat = fields.current_q_cat;
     if (fields.current_q_content !== undefined)  update.current_q_content = fields.current_q_content;
     if (fields.timeout_start !== undefined)      update.timeout_start = fields.timeout_start;
@@ -292,6 +295,7 @@ export class GameStateService implements IGameStateService {
       gameType: "never-have-i-ever",
       phase: (g.phase as NHIEGameState["phase"]) ?? "category_select",
       players,
+      passwordProtected: Boolean(g.password_hash),
       catagories,
       current_question: {
         catagory: g.current_q_cat,
@@ -312,6 +316,7 @@ export class GameStateService implements IGameStateService {
         phase: games.phase,
         waitingForPlayers: games.waiting_for_players,
         gameCompleted: games.game_completed,
+        passwordHash: games.password_hash,
         createdAt: games.created_at,
       }).from(games).orderBy(desc(games.created_at)),
       db.select({
@@ -357,6 +362,7 @@ export class GameStateService implements IGameStateService {
         gameType: "never-have-i-ever" as const,
         title,
         primaryPlayerName,
+        passwordProtected: Boolean(game.passwordHash),
         phase: game.phase,
         status: game.gameCompleted ? "completed" : game.waitingForPlayers ? "waiting" : "in-progress",
         playerCount: players.length,
