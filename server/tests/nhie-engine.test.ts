@@ -182,6 +182,56 @@ describe("Never Have I Ever engine", () => {
     expect(wsService.setTimeoutStart).toHaveBeenLastCalledWith("test-game", expect.any(Number));
   });
 
+  it("lets manual skip win over a stale queued auto-advance callback", async () => {
+    const gameStateService = createStatefulGameStateService();
+    const wsService = createStatefulWebSocketService();
+    const httpService = {
+      ...createMockHttpService(),
+      getQuestionsList: mock(async () => ({
+        food: {
+          questions: [
+            "Never have I ever eaten ghost pepper.",
+            "Never have I ever made fresh pasta."
+          ]
+        }
+      }))
+    };
+
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+    const alice = createMockWebSocket("test-game", "p1");
+    const bob = createMockWebSocket("test-game", "p2");
+
+    const scheduled: Array<{ fn: () => Promise<void> | void; delay?: number }> = [];
+    const setTimeoutMock = mock((fn: Parameters<typeof setTimeout>[0], delay?: Parameters<typeof setTimeout>[1]) => {
+      scheduled.push({ fn: fn as () => Promise<void> | void, delay });
+      return `timer-${scheduled.length}` as any;
+    });
+    const clearTimeoutMock = mock(() => {});
+    globalThis.setTimeout = setTimeoutMock as unknown as typeof setTimeout;
+    globalThis.clearTimeout = clearTimeoutMock as unknown as typeof clearTimeout;
+
+    await engine.handlers.vote(alice, { option: 1 });
+    await engine.handlers.vote(bob, { option: 2 });
+
+    expect(scheduled.map((entry) => entry.delay)).toEqual([30_000, 10_000]);
+
+    const broadcastsBeforeSkip = (wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls.length;
+
+    await engine.handlers.next_question(alice, { op: "next_question" });
+
+    const broadcastsAfterSkip = (wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls.length;
+    expect(broadcastsAfterSkip).toBeGreaterThan(broadcastsBeforeSkip);
+
+    const staleResultsWindowCallback = scheduled[1]?.fn;
+    expect(staleResultsWindowCallback).toBeDefined();
+
+    // Simulate a queued stale callback observing the old waiting state after the manual skip cleared it.
+    gameStateService.meta.waitingForPlayers = true;
+    await staleResultsWindowCallback?.();
+
+    expect((wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls.length).toBe(broadcastsAfterSkip);
+  });
+
   it("requires the correct password to join a protected game", async () => {
     const protectedMeta: GameMetaHash = {
       phase: "category_select",

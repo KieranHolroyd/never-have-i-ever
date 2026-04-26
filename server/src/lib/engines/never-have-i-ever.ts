@@ -29,6 +29,7 @@ export function createNeverHaveIEverEngine(
 ): GameEngine {
   // ── In-memory timeout handles (not persisted — only this process's timers) ──
   const roundTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  const roundTimeoutTokens = new Map<string, symbol>();
   // Track the active timeout duration per game so clients get an accurate countdown
   const roundTimeoutDurations = new Map<string, number>();
   // ── Broadcast helper ────────────────────────────────────────────────────
@@ -138,14 +139,23 @@ export function createNeverHaveIEverEngine(
       clearTimeout(t);
       roundTimeouts.delete(gameId);
     }
+    roundTimeoutTokens.delete(gameId);
     roundTimeoutDurations.delete(gameId);
     wsService.deleteTimeoutStart(gameId);
   }
 
   function scheduleTimeout(ws: GameSocket, delayMs: number): void {
     const gameId = ws.data.game;
-    const handle = setTimeout(async () => {
+    const token = Symbol(gameId);
+    roundTimeoutTokens.set(gameId, token);
+
+    let handle: ReturnType<typeof setTimeout>;
+    handle = setTimeout(async () => {
+      if (roundTimeoutTokens.get(gameId) !== token) return;
+      if (roundTimeouts.get(gameId) !== handle) return;
+
       roundTimeouts.delete(gameId);
+      roundTimeoutTokens.delete(gameId);
       logger.info(`Round timeout fired for game ${gameId}`);
 
       const meta = await gameStateService.getGameMeta(gameId);
