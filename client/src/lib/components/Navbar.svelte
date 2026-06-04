@@ -76,12 +76,16 @@
 
 			<button
 				type="button"
+				data-settings-toggle
 				class="ml-1 rounded-lg p-2 transition {settingsOpen
 					? 'bg-emerald-500/15 text-emerald-300'
 					: 'text-white/45 hover:bg-white/[0.05] hover:text-white'}"
 				aria-label="Settings"
 				aria-expanded={settingsOpen}
-				onclick={() => (settingsOpen = !settingsOpen)}
+				onclick={(e) => {
+					e.stopPropagation();
+					settingsOpen = !settingsOpen;
+				}}
 			>
 				{#if settingsOpen}
 					<MdiClose class="h-5 w-5" />

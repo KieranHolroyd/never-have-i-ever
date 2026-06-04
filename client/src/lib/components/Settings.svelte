@@ -30,8 +30,12 @@
 	<div class="fixed right-2 top-2 z-50">
 		<button
 			type="button"
+			data-settings-toggle
 			class="rounded-lg p-2 text-white/45 hover:bg-white/5 hover:text-white"
-			onclick={() => (show = !show)}
+			onclick={(e) => {
+				e.stopPropagation();
+				show = !show;
+			}}
 			aria-label="Settings"
 		>
 			Settings
@@ -39,7 +43,13 @@
 	</div>
 {/if}
 
-<div use:clickOutside={() => (show = false)}>
+<div
+	use:clickOutside={{
+		onClose: () => (show = false),
+		isActive: () => show,
+		exclude: '[data-settings-toggle]'
+	}}
+>
 	<div
 		class="{show
 			? 'pointer-events-auto translate-x-0 opacity-100'

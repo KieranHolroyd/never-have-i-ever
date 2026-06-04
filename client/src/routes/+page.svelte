@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import MdiCardsPlayingOutline from '~icons/mdi/cards-playing-outline';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
@@ -7,9 +7,10 @@
 	import MdiLightningBolt from '~icons/mdi/lightning-bolt';
 	import MdiAccountMultiple from '~icons/mdi/account-multiple';
 	import { LocalPlayer } from '$lib/player';
+	import { safeCapture } from '$lib/analytics';
 	import SiteButton from '$lib/components/ui/SiteButton.svelte';
 	import type { PageData } from './$types';
-	import posthog from 'posthog-js';
+	import type { Component } from 'svelte';
 
 	interface Props {
 		data: PageData;
@@ -17,7 +18,7 @@
 
 	let { data }: Props = $props();
 
-	const steps = [
+	const steps: { icon: Component; title: string; body: string }[] = [
 		{
 			icon: MdiLinkVariant,
 			title: 'Share a link',
@@ -35,20 +36,21 @@
 		}
 	];
 
-	function startNhie() {
-		posthog.capture('game_started', { game_type: 'never-have-i-ever' });
-		if (LocalPlayer.name === null) {
-			return goto(`/play/name?redirect=/play/${data.newgame_nhie_id}/never-have-i-ever`);
-		}
-		goto(`/play/${data.newgame_nhie_id}/never-have-i-ever`);
+	function playHref(gameId: string, gameType: string): string {
+		const dest = `/play/${gameId}/${gameType}`;
+		if (browser && LocalPlayer.name !== null) return dest;
+		return `/play/name?redirect=${encodeURIComponent(dest)}`;
 	}
 
-	function startCah() {
-		posthog.capture('game_started', { game_type: 'cards-against-humanity' });
-		if (LocalPlayer.name === null) {
-			return goto(`/play/name?redirect=/play/${data.newgame_cah_id}/cards-against-humanity`);
-		}
-		goto(`/play/${data.newgame_cah_id}/cards-against-humanity`);
+	const nhieHref = $derived(playHref(data.newgame_nhie_id, 'never-have-i-ever'));
+	const cahHref = $derived(playHref(data.newgame_cah_id, 'cards-against-humanity'));
+
+	function trackNhieStart() {
+		safeCapture('game_started', { game_type: 'never-have-i-ever' });
+	}
+
+	function trackCahStart() {
+		safeCapture('game_started', { game_type: 'cards-against-humanity' });
 	}
 </script>
 
@@ -90,10 +92,15 @@
 			</p>
 
 			<div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-				<SiteButton onclick={startNhie} class="w-full min-w-[10rem] sm:w-auto">
+				<SiteButton href={nhieHref} onclick={trackNhieStart} class="w-full min-w-[10rem] sm:w-auto">
 					Start Never Have I Ever
 				</SiteButton>
-				<SiteButton onclick={startCah} variant="secondary" class="w-full min-w-[10rem] sm:w-auto">
+				<SiteButton
+					href={cahHref}
+					onclick={trackCahStart}
+					variant="secondary"
+					class="w-full min-w-[10rem] sm:w-auto"
+				>
 					Start Cards Against Humanity
 				</SiteButton>
 			</div>
@@ -110,11 +117,12 @@
 		<h2 class="mt-2 text-center text-2xl font-black text-white sm:text-3xl">Three steps to game night</h2>
 		<ol class="mt-8 grid gap-4 sm:grid-cols-3">
 			{#each steps as step, i (step.title)}
+				{@const StepIcon = step.icon}
 				<li class="site-surface relative p-5 text-center sm:text-left">
 					<span
 						class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-emerald-400"
 					>
-						<step.icon class="h-5 w-5" />
+						<StepIcon class="h-5 w-5" />
 					</span>
 					<span class="site-phase-label mb-1 block text-fuchsia-300/60">Step {i + 1}</span>
 					<h3 class="text-lg font-black text-white">{step.title}</h3>
@@ -161,14 +169,10 @@
 						<li>· Category decks &amp; NSFW filters</li>
 						<li>· Real-time voting &amp; round history</li>
 					</ul>
-					<button
-						type="button"
-						class="site-btn-primary mt-8 w-full gap-2 group-hover:bg-emerald-400"
-						onclick={startNhie}
-					>
+					<SiteButton href={nhieHref} onclick={trackNhieStart} fullWidth class="mt-8 gap-2 group-hover:bg-emerald-400">
 						Play Never Have I Ever
 						<MdiArrowRight class="h-5 w-5" />
-					</button>
+					</SiteButton>
 				</div>
 			</article>
 
@@ -198,14 +202,16 @@
 						<li>· Official &amp; community card packs</li>
 						<li>· Judge rounds &amp; live leaderboard</li>
 					</ul>
-					<button
-						type="button"
-						class="mt-8 w-full gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-500 group-hover:shadow-[0_0_32px_-8px_rgba(139,92,246,0.5)]"
-						onclick={startCah}
+					<SiteButton
+						href={cahHref}
+						onclick={trackCahStart}
+						variant="violet"
+						fullWidth
+						class="mt-8 gap-2 group-hover:shadow-[0_0_32px_-8px_rgba(139,92,246,0.5)]"
 					>
 						Play Cards Against Humanity
-						<MdiArrowRight class="inline h-5 w-5" />
-					</button>
+						<MdiArrowRight class="h-5 w-5" />
+					</SiteButton>
 				</div>
 			</article>
 		</div>
@@ -213,9 +219,7 @@
 
 	<!-- Bottom CTA -->
 	<section class="mx-auto mt-16 max-w-3xl">
-		<div
-			class="site-surface relative overflow-hidden px-6 py-10 text-center sm:px-10"
-		>
+		<div class="site-surface relative overflow-hidden px-6 py-10 text-center sm:px-10">
 			<div
 				class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(16,185,129,0.08),_transparent_70%)]"
 				aria-hidden="true"
@@ -225,7 +229,7 @@
 				Your next room is one click away.
 			</p>
 			<div class="relative mt-6 flex flex-wrap justify-center gap-3">
-				<SiteButton onclick={startNhie}>Start a room</SiteButton>
+				<SiteButton href={nhieHref} onclick={trackNhieStart}>Start a room</SiteButton>
 				<SiteButton href="/games" variant="secondary">Join a live game</SiteButton>
 			</div>
 		</div>

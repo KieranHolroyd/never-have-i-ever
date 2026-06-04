@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+	type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'violet';
 
 	interface Props {
 		variant?: Variant;
@@ -29,7 +29,8 @@
 		primary: 'site-btn-primary',
 		secondary: 'site-btn-secondary',
 		ghost: 'site-btn-ghost',
-		danger: 'site-btn-danger'
+		danger: 'site-btn-danger',
+		violet: 'site-btn-violet'
 	};
 
 	const base = $derived(`${variantClass[variant]} ${fullWidth ? 'w-full' : ''} ${className}`);

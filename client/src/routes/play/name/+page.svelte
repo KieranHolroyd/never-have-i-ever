@@ -6,7 +6,7 @@
 	import type { ActionData, PageData } from './$types';
 	import { LocalPlayer } from '$lib/player';
 	import { enhance } from '$app/forms';
-	import posthog from 'posthog-js';
+	import { safeCapture, safeIdentify } from '$lib/analytics';
 	import SiteCard from '$lib/components/ui/SiteCard.svelte';
 
 	interface Props {
@@ -46,14 +46,14 @@
 		const isNew = LocalPlayer.name === null;
 		LocalPlayer.name = nickname;
 
-		posthog.identify(LocalPlayer.id, { nickname });
-		posthog.capture('nickname_set', { is_new: isNew });
-
 		if (redirect_url !== null) {
-			return goto(redirect_url);
+			void goto(redirect_url);
 		} else {
-			return goto('/play/name');
+			void goto('/play/name');
 		}
+
+		safeIdentify(LocalPlayer.id, { nickname });
+		safeCapture('nickname_set', { is_new: isNew });
 	}
 </script>
 
