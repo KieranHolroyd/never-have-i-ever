@@ -39,6 +39,8 @@
 	import CahScoringPhase from './components/phases/CahScoringPhase.svelte';
 	import CahGameOverPhase from './components/phases/CahGameOverPhase.svelte';
 	import CahCardPackSelection from './CahCardPackSelection.svelte';
+	import CahGameShell, { type CahStep } from './CahGameShell.svelte';
+	import CahPlayerStrip from './game/CahPlayerStrip.svelte';
 
 	interface Props {
 		id: string;
@@ -450,6 +452,43 @@
 		);
 	});
 
+	const cahStep = $derived.by((): CahStep => {
+		if (gameState?.phase === 'game_over') return 'results';
+		if (showPackSelection) return 'packs';
+		if (
+			gameState?.phase === 'waiting' &&
+			((gameState.selectedPacks?.length ?? 0) > 0 || optimisticPhase === 'waiting')
+		) {
+			return 'lobby';
+		}
+		return 'play';
+	});
+
+	const shellConnection = $derived.by((): Status => {
+		const s = $connectionStore.status;
+		if (s === 'connected') return Status.CONNECTED;
+		if (s === 'connecting') return Status.CONNECTING;
+		return Status.DISCONNECTED;
+	});
+
+	async function share_game() {
+		const share_data = {
+			title: 'Cards Against Humanity ~ games.kieran.dev',
+			text: 'play Cards Against Humanity with me!',
+			url: `https://games.kieran.dev/play/${id}/cards-against-humanity`
+		};
+		if (navigator.share) {
+			await navigator.share(share_data);
+		} else {
+			await navigator.clipboard.writeText(share_data.url);
+			toast.success('Copied game link to clipboard');
+		}
+	}
+
+	function returnToPackSelection() {
+		optimisticPhase = 'pack_selection';
+	}
+
 	onMount(() => {
 		roomProtected = initialRoomProtected();
 		roomMaxPlayers = initialMaxPlayers();
@@ -488,39 +527,35 @@
 		busy={joinPending}
 		onSubmit={submitRoomPassword}
 	/>
-{:else if showPackSelection}
-	<CahCardPackSelection gameId={id} onPacksSelected={handlePacksSelected} />
 {:else}
-	<div class="min-h-screen bg-[#111111] text-white">
-		<!-- Sticky top bar -->
-		<header
-			class="sticky top-0 z-30 border-b border-white/[0.07] bg-[#111111]/96 backdrop-blur-md px-4 py-3 sm:px-6 lg:px-8"
-		>
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex items-center gap-3">
-					<span class="text-[11px] font-black uppercase tracking-[0.35em] text-white/25"
-						>Cards Against Humanity</span
-					>
-					{#if gameState}
-						<div
-							class="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white/50"
-						>
-							{gameState.phase?.replace('_', ' ') ?? 'waiting'}
-						</div>
-					{/if}
+	<CahGameShell
+		currentStep={cahStep}
+		connection={shellConnection}
+		onShare={share_game}
+		showPlayMenu={cahStep === 'play' || cahStep === 'lobby'}
+		onReset={resetGame}
+		onChangePacks={returnToPackSelection}
+	>
+		{#if showPackSelection}
+			<CahCardPackSelection gameId={id} embedded onPacksSelected={handlePacksSelected} />
+		{:else}
+			<div class="mx-auto max-w-4xl">
+				<div class="mb-4 flex items-center justify-end gap-2">
+					<ConnectionStatus showPing={true} />
 				</div>
-				<ConnectionStatus showPing={true} />
-			</div>
-			<ErrorDisplay />
-		</header>
+				<ErrorDisplay />
 
-		<!-- Main layout: content + sidebar -->
-		<div class="flex items-start gap-6 p-4 sm:p-6 lg:p-8">
-			<!-- Primary content -->
-			<div class="min-w-0 flex-1 space-y-5">
+				<div class="flex items-start gap-6">
+					<div class="min-w-0 flex-1 space-y-5">
 				{#if gameState}
-					<CahGameHeader gameState={gameState as CAHGameState} />
-					<CahBlackCard gameState={gameState as CAHGameState} />
+					{@const cahState = gameState as CAHGameState}
+					<CahGameHeader gameState={cahState} />
+					<CahBlackCard gameState={cahState} />
+					<CahPlayerStrip
+						players={cahState.players}
+						currentPlayerId={LocalPlayer.id}
+						judgeId={cahState.currentJudge}
+					/>
 
 					{#key gameState.phase}
 						{#if gameState.phase === 'waiting'}
@@ -694,14 +729,18 @@
 				{/if}
 			</div>
 
-			<!-- Sticky player sidebar -->
-			<aside
-				class="hidden w-72 shrink-0 lg:sticky lg:top-[3.375rem] lg:block lg:self-start xl:w-80"
-			>
-				{#if gameState}
-					<CahPlayerList gameState={gameState as CAHGameState} currentPlayerId={LocalPlayer.id} />
-				{/if}
-			</aside>
-		</div>
-	</div>
+					<aside
+						class="hidden w-72 shrink-0 lg:sticky lg:top-28 lg:block lg:self-start xl:w-80"
+					>
+						{#if gameState}
+							<CahPlayerList
+								gameState={gameState as CAHGameState}
+								currentPlayerId={LocalPlayer.id}
+							/>
+						{/if}
+					</aside>
+				</div>
+			</div>
+		{/if}
+	</CahGameShell>
 {/if}

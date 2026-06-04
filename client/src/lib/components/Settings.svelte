@@ -1,17 +1,18 @@
 <script lang="ts">
 	import clickOutside from '$lib/clickOutside';
-	import MdiSettings from '~icons/mdi/settings';
-	import MdiClose from '~icons/mdi/close';
 	import MdiSave from '~icons/mdi/content-save';
-
 	import { browser } from '$app/environment';
 	import { toast } from '$lib/toast';
 	import { settingsStore } from '$lib/settings';
 
-	let show = $state(false);
+	interface Props {
+		show?: boolean;
+		embedded?: boolean;
+	}
+
+	let { show = $bindable(false), embedded = false }: Props = $props();
 
 	let settings = settingsStore;
-	let error: string | null = $state(null);
 
 	function save_settings() {
 		try {
@@ -20,102 +21,91 @@
 				toast.success('Settings saved');
 			}
 		} catch (e) {
-			error = String(e ?? 'Failed to save settings');
-			toast.error(error);
+			toast.error(String(e ?? 'Failed to save settings'));
 		}
 	}
 </script>
 
-<div use:clickOutside={() => (show = false)}>
-	<!-- Trigger: sits in top-right corner, visually integrated with the horizontal navbar -->
-	<div class="fixed z-50 top-2 right-2">
+{#if !embedded}
+	<div class="fixed right-2 top-2 z-50">
 		<button
-			class="rounded-md p-1.5 transition-colors {show
-				? 'bg-zinc-800 text-white'
-				: 'text-zinc-400 hover:text-white hover:bg-zinc-800'}"
+			type="button"
+			class="rounded-lg p-2 text-white/45 hover:bg-white/5 hover:text-white"
 			onclick={() => (show = !show)}
 			aria-label="Settings"
 		>
-			{#if show}
-				<MdiClose class="h-5 w-5" />
-			{:else}
-				<MdiSettings class="h-5 w-5" />
-			{/if}
+			Settings
 		</button>
 	</div>
+{/if}
 
-	<!-- Right-side slide-in panel -->
+<div use:clickOutside={() => (show = false)}>
 	<div
 		class="{show
-			? 'pointer-events-auto opacity-100 translate-x-0'
-			: 'pointer-events-none opacity-0 translate-x-4'} transition duration-200 prose dark:prose-invert z-40 fixed top-0 right-0 py-5 px-5 w-full md:w-80 min-h-screen bg-zinc-900/95 text-zinc-100 backdrop-blur-md border-l border-zinc-700/60 shadow-2xl"
+			? 'pointer-events-auto translate-x-0 opacity-100'
+			: 'pointer-events-none translate-x-4 opacity-0'} fixed right-0 top-0 z-50 min-h-screen w-full border-l border-white/8 bg-zinc-950/98 p-5 shadow-2xl backdrop-blur-md transition duration-200 md:w-80"
 	>
-		<h1 class="mt-2 mb-4 text-xl">Settings</h1>
-		<label class="my-[2px] block">
-			<div
-				class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
+		<p class="site-phase-label mb-1">Preferences</p>
+		<h2 class="mb-5 text-xl font-black text-white">Settings</h2>
+
+		<div class="space-y-2">
+			<label
+				class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/8 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-white/80"
 			>
+				<span>No NSFW questions</span>
 				<input
 					type="checkbox"
-					class=""
-					onchange={(e) => {
-						$settings = { ...$settings, no_nsfw: e?.currentTarget?.checked };
-					}}
+					class="h-4 w-4 accent-emerald-500"
 					checked={$settings.no_nsfw ?? false}
+					onchange={(e) => {
+						$settings = { ...$settings, no_nsfw: e.currentTarget.checked };
+					}}
 				/>
-				<span class="float-right"> No NSFW Questions </span>
-			</div>
-			<label class="my-[2px] block">
-				<div
-					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
-				>
-					<input
-						type="checkbox"
-						class=""
-						onchange={(e) => {
-							$settings = { ...$settings, no_tutorials: e?.currentTarget?.checked };
-						}}
-						checked={$settings.no_tutorials ?? false}
-					/>
-					<span class="float-right"> No Tutorials </span>
-				</div>
 			</label>
-			<label class="my-[2px] block">
-				<div
-					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
-				>
-					<input
-						type="checkbox"
-						class=""
-						onchange={(e) => {
-							$settings = { ...$settings, show_hidden: e?.currentTarget?.checked };
-						}}
-						checked={$settings.show_hidden ?? false}
-					/>
-					<span class="float-right"> Show Hidden Questions </span>
-				</div>
-			</label>
-			<label class="my-[2px] block">
-				<div
-					class="py-2 px-4 w-full text-left text-base capitalize font-semibold rounded-md border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 transition"
-				>
-					<input
-						type="checkbox"
-						class=""
-						onchange={(e) => {
-							$settings = { ...$settings, show_debug: e?.currentTarget?.checked };
-						}}
-						checked={$settings.show_debug ?? false}
-					/>
-					<span class="float-right"> Show Debug Info </span>
-				</div>
-			</label>
-			<button
-				class="mt-4 w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-				onclick={save_settings}
+			<label
+				class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/8 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-white/80"
 			>
-				<MdiSave class="inline-block mr-2" /> Save
-			</button>
-		</label>
+				<span>No tutorials</span>
+				<input
+					type="checkbox"
+					class="h-4 w-4 accent-emerald-500"
+					checked={$settings.no_tutorials ?? false}
+					onchange={(e) => {
+						$settings = { ...$settings, no_tutorials: e.currentTarget.checked };
+					}}
+				/>
+			</label>
+			<label
+				class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/8 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-white/80"
+			>
+				<span>Show hidden questions</span>
+				<input
+					type="checkbox"
+					class="h-4 w-4 accent-emerald-500"
+					checked={$settings.show_hidden ?? false}
+					onchange={(e) => {
+						$settings = { ...$settings, show_hidden: e.currentTarget.checked };
+					}}
+				/>
+			</label>
+			<label
+				class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/8 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-white/80"
+			>
+				<span>Show debug info</span>
+				<input
+					type="checkbox"
+					class="h-4 w-4 accent-emerald-500"
+					checked={$settings.show_debug ?? false}
+					onchange={(e) => {
+						$settings = { ...$settings, show_debug: e.currentTarget.checked };
+					}}
+				/>
+			</label>
+		</div>
+
+		<button type="button" class="site-btn-primary mt-6 w-full" onclick={save_settings}>
+			<MdiSave class="mr-2 inline h-4 w-4" />
+			Save
+		</button>
 	</div>
 </div>

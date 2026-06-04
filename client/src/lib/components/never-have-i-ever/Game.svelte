@@ -15,22 +15,15 @@
 	} from '$lib/types';
 	import { clearStoredRoomPassword, getStoredRoomPassword, storeRoomPassword } from '$lib/room-password';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
-	import PreGameConnection from './PreGameConnection.svelte';
 	import RoomPasswordGate from '../shared/RoomPasswordGate.svelte';
-	import RoomPasswordSettings from '../shared/RoomPasswordSettings.svelte';
-	import RoomCapacitySettings from '../shared/RoomCapacitySettings.svelte';
 	import { toast } from '$lib/toast';
 	import Tutorial from '../Tutorial.svelte';
-	import { colour_map } from '$lib/colour';
-	import History from './History.svelte';
 	import { settingsStore } from '$lib/settings';
-	import { fade, fly } from 'svelte/transition';
-	import { flip } from 'svelte/animate';
-	import { backOut, quintOut } from 'svelte/easing';
-
-	import MdiUndoVariant from '~icons/mdi/undo-variant';
-	import MdiListBox from '~icons/mdi/list-box';
-	import MdiShareOutline from '~icons/mdi/share-outline';
+	import NhieGameShell, { type NhieStep } from './NhieGameShell.svelte';
+	import NhieLobbyPhase from './phases/NhieLobbyPhase.svelte';
+	import NhieCategoryPhase from './phases/NhieCategoryPhase.svelte';
+	import NhiePlayPhase from './phases/NhiePlayPhase.svelte';
+	import NhieGameOverPhase from './phases/NhieGameOverPhase.svelte';
 	import posthog from 'posthog-js';
 
 	interface Props {
@@ -87,7 +80,7 @@
 	} | null = $state(null);
 	let pendingVote: VoteOptions | null = $state(null);
 	let conf_reset_display = $state(false);
-	let categories_click = $state(false);
+	let setupStep = $state<'lobby' | 'categories'>('lobby');
 
 	let game_state: {
 		catagory_select: boolean;
@@ -160,6 +153,12 @@
 	});
 	let visibleCategoryCount = $derived(visibleCatagories.length);
 	let selectedCategoryCount = $derived(game_state.current_catagory.length);
+
+	let nhieStep = $derived.by((): NhieStep => {
+		if (game_state.game_completed) return 'results';
+		if (!game_state.catagory_select) return 'play';
+		return setupStep === 'categories' ? 'categories' : 'lobby';
+	});
 
 	async function share_game() {
 		const share_data = getShareData();
@@ -369,6 +368,10 @@
 		if (game_state.catagory_select || previousQuestion !== nextQuestion) {
 			pendingVote = null;
 		}
+
+		if (nextGame.phase === 'category_select' && previousQuestion !== undefined) {
+			setupStep = 'categories';
+		}
 	}
 
 	function isVoteActive(option: VoteOptions) {
@@ -404,7 +407,10 @@
 	}
 
 	function selectCatagories() {
-		sendSocketAction({ op: 'select_categories' });
+		if (!sendSocketAction({ op: 'select_categories' })) {
+			return;
+		}
+		setupStep = 'categories';
 	}
 
 	function selectQuestion() {
@@ -422,6 +428,7 @@
 			return;
 		}
 		conf_reset_display = false;
+		setupStep = 'lobby';
 
 		if (timeout_interval) {
 			clearInterval(timeout_interval);
@@ -879,194 +886,83 @@
 	/// ----------------
 </script>
 
-<div
-	class="text-zinc-100 text-center min-h-screen px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)]"
->
-	{#if passwordPromptVisible}
-		<RoomPasswordGate
-			initialValue={roomPassword}
-			error={roomPasswordError}
-			busy={joinPending}
-			onSubmit={submitRoomPassword}
-		/>
-	{:else if !game_state.game_completed}
+{#if passwordPromptVisible}
+	<RoomPasswordGate
+		initialValue={roomPassword}
+		error={roomPasswordError}
+		busy={joinPending}
+		onSubmit={submitRoomPassword}
+	/>
+{:else}
+	<NhieGameShell
+		currentStep={nhieStep}
+		{connection}
+		onShare={share_game}
+		showPlayMenu={nhieStep === 'play'}
+		onReset={() => (conf_reset_display ? reset() : conf_reset())}
+		onOpenCategories={selectCatagories}
+		confirmResetVisible={conf_reset_display}
+	>
 		{#if game_state.catagory_select}
-			<div class="mx-auto mt-4 w-full max-w-6xl" in:fade={{ duration: 260, easing: quintOut }}>
-				<div class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_22rem]">
-					<section class="rounded-2xl border border-white/8 bg-zinc-950 p-4 text-left sm:p-5" in:fly={{ y: 10, duration: 260, easing: backOut }}>
-						<div class="flex flex-col gap-3 border-b border-white/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
-							<div>
-								<h1 class="text-xl font-black text-white sm:text-2xl">New game</h1>
-								<p class="mt-1 text-sm text-white/45">
-									{selectedCategoryCount > 0
-										? `${selectedCategoryCount} selected from ${visibleCategoryCount}`
-										: 'Choose at least one category to continue'}
-								</p>
-							</div>
-							<button
-								type="button"
-								class="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
-								onclick={() => confirmSelections()}
-								disabled={selectedCategoryCount === 0}
-							>
-								Continue
-							</button>
-						</div>
-
-						{#if catagories !== undefined}
-							<div class="mt-4 overflow-hidden rounded-xl border border-white/8 bg-zinc-900/50">
-								{#each visibleCatagories as [catagory_name, catagory], index (catagory_name)}
-									{@const isSelected = game_state.current_catagory.includes(catagory_name)}
-									<label
-										class={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition ${index > 0 ? 'border-t border-white/6' : ''} ${isSelected ? 'bg-white/[0.06] text-white' : 'text-white/70 hover:bg-white/[0.04] hover:text-white'}`}
-										in:fly={{
-											y: 5,
-											duration: 180,
-											delay: Math.min(index * 10, 120),
-											easing: quintOut
-										}}
-									>
-										<div class="min-w-0 flex-1">
-											<div class="flex flex-wrap items-center gap-2">
-												<span class="text-sm font-semibold capitalize">{catagory_name}</span>
-												{#if catagory.flags.is_nsfw}
-													<span class="rounded-full border border-red-400/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-red-200">NSFW</span>
-												{/if}
-												{#if catagory.flags.is_hidden}
-													<span class="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Hidden</span>
-												{/if}
-											</div>
-										</div>
-										<input
-											type="checkbox"
-											class="h-4 w-4 shrink-0 rounded border-white/20 bg-transparent accent-emerald-500"
-											checked={isSelected}
-											onchange={() => emitSelectCatagory(catagory_name)}
-										/>
-									</label>
-								{/each}
-							</div>
-						{:else}
-							<div class="mt-4 space-y-2">
-								{#each Array.from({ length: 6 }) as _, index (index)}
-									<div class="h-11 animate-pulse rounded-xl border border-white/8 bg-zinc-900/50"></div>
-								{/each}
-							</div>
-						{/if}
-					</section>
-
-					<aside class="space-y-4">
-						<div class="rounded-2xl border border-white/8 bg-zinc-950 px-4 py-3 text-left">
-							<div class="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
-								<div class="rounded-full border border-white/10 px-3 py-1">{connectedPlayerCount}/{roomMaxPlayers} seats</div>
-								<div class="rounded-full border border-white/10 px-3 py-1">{roomPrivacyLabel}</div>
-							</div>
-						</div>
-
-						<PreGameConnection
-							{connection}
-							{players}
-							{creatorPlayerId}
-							currentPlayerId={player_id}
-							canManagePlayers={canManageRoomPassword}
-							{removingPlayerId}
-							onRemovePlayer={removeLobbyPlayer}
-						/>
-
-						{#if canManageRoomPassword}
-							<div class="grid gap-4">
-								<RoomCapacitySettings
-									maxPlayers={roomMaxPlayers}
-									currentPlayers={players.length}
-									minPlayers={2}
-									error={roomSizeError}
-									busy={roomSizeSaving}
-									onSave={saveLobbyMaxPlayers}
-								/>
-								<RoomPasswordSettings
-									passwordProtected={roomProtected}
-									error={roomPasswordError}
-									busy={roomPasswordSaving}
-									onSave={saveLobbyPassword}
-									onClear={clearLobbyPassword}
-								/>
-							</div>
-						{/if}
-					</aside>
-				</div>
-			</div>
-			<!-- Removed local overlay popup in favor of global toasts -->
-		{:else}
-			{#if current_question?.content !== undefined}
-				{#key current_question?.content}
-					<div class="panel card" in:fade={{ duration: 180, easing: quintOut }}>
-						<div in:fly={{ y: 8, duration: 220, easing: backOut }}>
-							<p class="m-0 text-xs uppercase font-bold" data-testid="question-category">
-								Catagory: {current_question?.catagory}
-							</p>
-							<p class="relative text-lg my-1 p-1" data-testid="question-content">
-								{current_question?.content}
-							</p>
-						</div>
-					</div>
-				{/key}
-				{#if error}
-					<p class="text-red-700">{error}</p>
-				{/if}
-				<div class="panel card">
-					<p class="panel-heading">Players</p>
-					{#each connectedPlayers as player, index (player.id)}
-						<div
-							class={`relative my-1 p-1 font-bold text ${colour_map[player.this_round.vote ?? 'null']} transition-colors duration-300 ease-out`}
-							in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: quintOut }}
-							animate:flip
-							data-testid={`player-${player.name}`}
-						>
-							{player.name}: {player.this_round.vote ?? 'Not Voted'}
-							<div
-								class="absolute text-xs leading-[1.825] top-1 right-1 bg-red-600 border border-white rounded-full text-white min-w-[1.5rem] h-6 px-1"
-								data-testid={`player-score-${player.name}`}
-							>
-								{player.score}
-							</div>
-						</div>
-					{/each}
-				</div>
+			{#if setupStep === 'lobby'}
+				<NhieLobbyPhase
+					{connection}
+					{players}
+					{connectedPlayerCount}
+					{roomMaxPlayers}
+					{roomPrivacyLabel}
+					{creatorPlayerId}
+					currentPlayerId={player_id}
+					canManageRoomPassword={canManageRoomPassword}
+					{removingPlayerId}
+					roomSizeError={roomSizeError}
+					roomSizeSaving={roomSizeSaving}
+					roomPasswordError={roomPasswordError}
+					roomPasswordSaving={roomPasswordSaving}
+					roomProtected={roomProtected}
+					onRemovePlayer={removeLobbyPlayer}
+					onSaveRoomSize={saveLobbyMaxPlayers}
+					onSaveRoomPassword={saveLobbyPassword}
+					onClearRoomPassword={clearLobbyPassword}
+					onContinueToCategories={() => (setupStep = 'categories')}
+				/>
 			{:else}
-				<h2>Choose a question</h2>
+				<NhieCategoryPhase
+					{visibleCatagories}
+					selectedCategories={game_state.current_catagory}
+					{visibleCategoryCount}
+					{selectedCategoryCount}
+					catagoriesLoaded={catagories !== undefined}
+					onToggleCategory={emitSelectCatagory}
+					onConfirm={confirmSelections}
+					onBackToLobby={() => (setupStep = 'lobby')}
+				/>
 			{/if}
-			{#if game_state.waiting_for_players}
-				<div
-					class="panel card mt-4 bg-yellow-100/70 dark:bg-yellow-900/60 border-yellow-400 dark:border-yellow-600"
-					in:fade={{ duration: 140, easing: quintOut }}
-				>
-					<div class="text-center">
-						<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-							Round in Progress
-						</h3>
-						<div class="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
-							{votedPlayerCount} / {connectedPlayerCount} players voted
-						</div>
-						{#if timeout_start === 0}
-							<div class="text-xs text-yellow-600 dark:text-yellow-400">
-								Timer starts when first player votes
-							</div>
-						{:else if round_timeout > 0}
-							<div class="text-xs text-yellow-600 dark:text-yellow-400">
-								Auto-proceed in {round_timeout}s • Skip available when all voted
-							</div>
-						{:else}
-							<div class="text-xs text-yellow-600 dark:text-yellow-400">
-								Processing next question...
-							</div>
-						{/if}
-					</div>
-				</div>
-			{/if}
+		{:else if game_state.game_completed}
+			<NhieGameOverPhase
+				{players}
+				history={game_state.history}
+				onReset={reset}
+			/>
+		{:else}
+			<NhiePlayPhase
+				currentQuestion={current_question}
+				{connectedPlayers}
+				waitingForPlayers={game_state.waiting_for_players}
+				{votedPlayerCount}
+				{connectedPlayerCount}
+				roundTimeout={round_timeout}
+				timeoutStart={timeout_start}
+				{canAdvanceRound}
+				{allConnectedPlayersVoted}
+				{error}
+				{isVoteActive}
+				onVote={vote}
+				onAdvance={selectQuestion}
+			/>
 
-			<!-- Debug Info -->
 			{#if $settings?.show_debug}
-				<div class="panel card mb-2 p-2 text-left text-xs">
+				<div class="panel mx-auto mt-4 max-w-lg p-2 text-left text-xs">
 					<div>Timer: {round_timeout}s | Start: {timeout_start} | Duration: {timeout_duration}</div>
 					<div>
 						Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval
@@ -1074,7 +970,8 @@
 							: 'inactive'}
 					</div>
 					<button
-						class="mt-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
+						type="button"
+						class="mt-1 rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600"
 						onclick={debugGameState}
 					>
 						Debug State
@@ -1082,120 +979,25 @@
 				</div>
 			{/if}
 
-			<!-- Restyled Action Bar -->
-			<div
-				class="fixed bottom-0 left-0 w-full z-30"
-				in:fly={{ y: 32, duration: 320, easing: quintOut }}
-			>
-				<div
-					class="w-full grid grid-cols-9 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-700/60"
-				>
-					<button
-						class={`col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-emerald-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.6)] ${isVoteActive(VoteOptions.Have) ? 'bg-emerald-700/70' : ''}`}
-						onclick={() => vote(VoteOptions.Have)}
-						aria-pressed={isVoteActive(VoteOptions.Have)}
-						data-testid="have-button"
-					>
-						Have
-					</button>
-					<button
-						class={`col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 border-x border-slate-700/60 transition-all duration-200 ease-out hover:text-sky-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-sky-400/40 hover:shadow-[0_8px_24px_-12px_rgba(56,189,248,0.6)] ${isVoteActive(VoteOptions.Kinda) ? 'bg-sky-700/70' : ''}`}
-						onclick={() => vote(VoteOptions.Kinda)}
-						aria-pressed={isVoteActive(VoteOptions.Kinda)}
-					>
-						Kinda
-					</button>
-					<button
-						class={`col-span-3 text-white text-2xl md:text-3xl font-semibold py-3 transition-all duration-200 ease-out hover:text-rose-300 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring focus-visible:ring-rose-400/40 hover:shadow-[0_8px_24px_-12px_rgba(244,63,94,0.6)] ${isVoteActive(VoteOptions.HaveNot) ? 'bg-rose-700/70' : ''}`}
-						onclick={() => vote(VoteOptions.HaveNot)}
-						aria-pressed={isVoteActive(VoteOptions.HaveNot)}
-						data-testid="have-not-button"
-					>
-						Have not
-					</button>
-				</div>
-				<div
-					class="w-full grid grid-cols-9 bg-zinc-900/90 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),0.5rem)]"
-				>
-					<button
-						class="col-span-2 text-white bg-zinc-700 hover:bg-rose-600 text-xl md:text-2xl py-3"
-						onclick={() => conf_reset()}
-					>
-						<MdiUndoVariant class="w-7 h-7 mx-auto" />
-					</button>
-					<button
-						class="col-span-5 text-white bg-emerald-600 hover:bg-emerald-500 text-3xl md:text-5xl py-4"
-						onclick={() => selectQuestion()}
-						disabled={!canAdvanceRound}
-					>
-						{#if game_state.waiting_for_players}
-							{#if allConnectedPlayersVoted}
-								Skip Round
-							{:else}
-								Waiting for Votes
-							{/if}
-						{:else}
-							Next Question
-						{/if}
-					</button>
-					<button
-						class="col-span-2 text-white bg-zinc-700 hover:bg-zinc-600 text-xl md:text-2xl py-3"
-						ondblclick={() => selectCatagories()}
-						onclick={() => {
-							categories_click = true;
-							setTimeout(() => (categories_click = false), 1000);
-						}}
-					>
-						<MdiListBox class="w-7 h-7 mx-auto" />
-					</button>
-				</div>
-			</div>
-
 			{#if !$settings.no_tutorials}
-				<div
-					class={`fixed bottom-4 right-4 z-50 py-2 px-4 rounded-md bg-zinc-800 border-t-2 border-zinc-700 shadow pointer-events-none text-zinc-300 ${
-						categories_click ? 'opacity-40' : 'opacity-0'
-					} overflow-hidden transition-all duration-200`}
-				>
-					<p>Double Click</p>
-				</div>
+				<Tutorial
+					id="ingame"
+					steps={[
+						{
+							title: 'Vote quickly',
+							content:
+								'When a question appears, tap Have, Kinda, or Have not. The bar shows how many players have voted.'
+						},
+						{
+							title: 'Advance the round',
+							content:
+								'Use Next question or Skip round when everyone has voted. Reset and categories are in the ⋮ menu.'
+						},
+						{ title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
+					]}
+				/>
 			{/if}
-			<Tutorial
-				id="ingame"
-				steps={[
-					{
-						title: 'Vote quickly',
-						content:
-							'When a question appears, tap your answer. The next round can start once everyone has voted.'
-					},
-					{
-						title: 'Anyone can drive',
-						content:
-							'Any player can skip to the next question, reset, or reopen category selection.'
-					},
-					{ title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
-				]}
-			/>
 			<ConnectionInfoPanel {connection} {players} {errors} ping={client_ping} />
 		{/if}
-	{:else}
-		<h1 class="text-2xl font-semibold text-zinc-100">There are no more questions</h1>
-		{#each players as player (player.id)}
-			<p class="mx-auto max-w-lg p-3">
-				<b>{player.name}</b> has {player.score} points
-			</p>
-		{/each}
-
-		<History history={game_state.history} />
-		<button onclick={() => reset()}>Reset Game</button>
-	{/if}
-	{#if conf_reset_display}
-		<button class="red-button mt-4" onclick={() => reset()}>Confirm Reset</button>
-	{/if}
-	<!-- Global toasts replace per-page notification overlays -->
-</div>
-<div class="fixed z-20 top-16 left-2">
-	<button class="relative rounded-full p-2 panel duration-200" title="Share!" onclick={share_game}>
-		<MdiShareOutline class="text-zinc-100 h-8 w-8" />
-	</button>
-</div>
+	</NhieGameShell>
+{/if}

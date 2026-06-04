@@ -108,17 +108,17 @@
 	</div>
 
 	<!-- Top-level stat pills -->
-	<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">
-			<p class="text-2xl font-bold text-white">{totalGames}</p>
-			<p class="text-xs text-zinc-400 mt-1">Games Played</p>
+	<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+		<div class="site-surface p-4 text-center">
+			<p class="text-2xl font-black text-white">{totalGames}</p>
+			<p class="site-phase-label mt-1">Games played</p>
 		</div>
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">
-			<p class="text-2xl font-bold text-emerald-400">{totalWins}</p>
-			<p class="text-xs text-zinc-400 mt-1">Wins</p>
+		<div class="site-podium-gold rounded-2xl border p-4 text-center">
+			<p class="text-2xl font-black text-amber-200">{totalWins}</p>
+			<p class="site-phase-label mt-1 text-amber-200/60">Wins</p>
 		</div>
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">
-			<p class="text-2xl font-bold text-white">{winRate}%</p>
+		<div class="site-surface p-4 text-center">
+			<p class="text-2xl font-black text-fuchsia-300">{winRate}%</p>
 			<p class="text-xs text-zinc-400 mt-1">Win Rate</p>
 		</div>
 		<div class="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">

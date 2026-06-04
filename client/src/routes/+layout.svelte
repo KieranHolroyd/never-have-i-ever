@@ -6,9 +6,9 @@
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import Toaster from '$lib/components/Toaster.svelte';
-	import { UUIDv4Regex } from '$lib/regex';
 	import { LocalPlayer } from '$lib/player';
 	import { browser } from '$app/environment';
+
 	interface Props {
 		children: import('svelte').Snippet;
 		data: import('./$types').LayoutData;
@@ -16,10 +16,17 @@
 
 	let { children, data }: Props = $props();
 
-	let isPlayingGame = $derived(UUIDv4Regex.test(page.url.pathname.split('/').pop() ?? ''));
-	let isCahGame = $derived(page.url.pathname.includes('cards-against-humanity'));
+	let settingsOpen = $state(false);
 
-	// Sync account nickname → localStorage so game components can read it
+	const isGameRoute = $derived(
+		page.url.pathname.includes('/play/') &&
+			(page.url.pathname.includes('never-have-i-ever') ||
+				page.url.pathname.includes('cards-against-humanity'))
+	);
+
+	const siteDescription =
+		'Play Never Have I Ever and Cards Against Humanity online with friends. No install — share a link and start.';
+
 	$effect(() => {
 		if (browser && data.user?.nickname) {
 			LocalPlayer.name = data.user.nickname;
@@ -31,18 +38,9 @@
 	<title>Games ~ Kieran.dev</title>
 	<meta name="og:title" content="Games ~ Kieran.dev" />
 	<meta name="twitter:title" content="Games ~ Kieran.dev" />
-	<meta
-		name="description"
-		content="A collection* of games to play with friends (*not actually a collection yet)"
-	/>
-	<meta
-		name="og:description"
-		content="A collection* of games to play with friends (*not actually a collection yet)"
-	/>
-	<meta
-		name="twitter:description"
-		content="A collection* of games to play with friends (*not actually a collection yet)"
-	/>
+	<meta name="description" content={siteDescription} />
+	<meta name="og:description" content={siteDescription} />
+	<meta name="twitter:description" content={siteDescription} />
 	<meta name="keywords" content={keywords.join(', ')} />
 	<meta property="twitter:card" content="app" />
 	<meta property="twitter:image" content="https://games.kieran.dev/android-chrome-512x512-gs.png" />
@@ -50,16 +48,23 @@
 	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 
-<div class="min-h-screen bg-zinc-950 text-zinc-100">
-	<Navbar />
-	{#if isCahGame}
+<div class="site-page-bg relative">
+	<div
+		class="pointer-events-none fixed inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_55%),radial-gradient(ellipse_at_80%_0%,_rgba(232,121,249,0.06),_transparent_50%)]"
+		aria-hidden="true"
+	></div>
+
+	<Navbar compact={isGameRoute} bind:settingsOpen />
+
+	{#if isGameRoute}
 		{@render children()}
 	{:else}
-		<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+		<div class="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 			{@render children()}
 			<Footer />
 		</div>
 	{/if}
+
 	<Toaster />
-	<Settings />
+	<Settings bind:show={settingsOpen} embedded />
 </div>

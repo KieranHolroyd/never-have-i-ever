@@ -30,26 +30,26 @@
 		</div>
 
 		<!-- Tab switcher -->
-		<div class="flex rounded-xl bg-zinc-800/60 p-1 mb-6 gap-1">
+		<div class="mb-6 flex gap-1 rounded-xl border border-white/8 bg-zinc-900/60 p-1">
 			<button
 				type="button"
-				class="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors
-					{tab === 'login' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}"
+				class="flex-1 rounded-lg py-2 text-sm font-bold transition-colors
+					{tab === 'login' ? 'bg-emerald-500/20 text-emerald-200' : 'text-white/40 hover:text-white'}"
 				onclick={() => (tab = 'login')}
 			>
 				Sign in
 			</button>
 			<button
 				type="button"
-				class="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors
-					{tab === 'register' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}"
+				class="flex-1 rounded-lg py-2 text-sm font-bold transition-colors
+					{tab === 'register' ? 'bg-emerald-500/20 text-emerald-200' : 'text-white/40 hover:text-white'}"
 				onclick={() => (tab = 'register')}
 			>
 				Sign up
 			</button>
 		</div>
 
-		<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+		<div class="site-surface p-6">
 			<!-- Google OAuth button — same for both tabs -->
 			<a
 				href="/auth/google{redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}"

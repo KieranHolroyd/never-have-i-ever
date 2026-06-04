@@ -85,20 +85,20 @@
 		<div
 			role="dialog"
 			aria-modal="true"
-			class="relative w-[min(680px,95vw)] max-h-[85vh] overflow-hidden rounded-2xl border border-slate-700/70 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl ring-1 ring-white/10"
+			class="relative w-[min(680px,95vw)] max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl ring-1 ring-emerald-500/10"
 			in:scale={{ start: 0.96, duration: 150 }}
 		>
 			<!-- Header -->
-			<div class="px-6 py-4 border-b border-slate-700/60 bg-slate-900/60">
+			<div class="border-b border-white/8 bg-zinc-900/80 px-6 py-4">
 				<div class="flex items-center justify-between gap-4">
 					<div>
 						<h2 class="text-xl font-bold tracking-tight">
 							{steps.length > 0 ? steps[currentStep]?.title || title : title}
 						</h2>
-						<p class="text-xs text-slate-400">{currentStep + 1} / {totalSteps}</p>
+						<p class="text-xs text-white/40">{currentStep + 1} / {totalSteps}</p>
 					</div>
 					<button
-						class="px-2 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/60"
+						class="rounded-md px-2 py-1 text-white/50 hover:bg-white/5 hover:text-white"
 						aria-label="Skip tutorial"
 						onclick={skip}
 					>
@@ -127,27 +127,27 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="px-6 py-4 border-t border-slate-700/60 bg-slate-900/60">
+			<div class="border-t border-white/8 bg-zinc-900/80 px-6 py-4">
 				<div class="flex items-center justify-between gap-4">
 					<div class="flex items-center gap-2">
 						<input
 							id={`dontshow-${id}`}
 							type="checkbox"
-							class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
+							class="rounded border-white/20 accent-emerald-500"
 							bind:checked={dontShowAgain}
 						/>
-						<label for={`dontshow-${id}`} class="text-sm text-slate-300">Don't show again</label>
+						<label for={`dontshow-${id}`} class="text-sm text-white/60">Don't show again</label>
 					</div>
 					<div class="flex items-center gap-2">
 						<button
-							class="px-3 py-2 rounded-lg bg-slate-700/70 text-white text-sm font-medium hover:bg-slate-600 disabled:opacity-50"
+							class="site-btn-secondary px-3 py-2 text-sm disabled:opacity-50"
 							onclick={prev}
 							disabled={currentStep === 0}
 						>
 							Back
 						</button>
 						<button
-							class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold shadow hover:bg-emerald-500"
+							class="site-btn-primary px-4 py-2 text-sm"
 							onclick={next}
 						>
 							{isLastStep ? 'Finish' : 'Next'}
@@ -159,7 +159,7 @@
 					<div class="mt-3 flex items-center justify-center gap-2">
 						{#each Array(totalSteps) as _, i}
 							<span
-								class={`h-2 w-2 rounded-full ${i === currentStep ? 'bg-emerald-400' : 'bg-slate-600'}`}
+								class={`h-2 w-2 rounded-full ${i === currentStep ? 'bg-fuchsia-400' : 'bg-white/20'}`}
 							></span>
 						{/each}
 					</div>

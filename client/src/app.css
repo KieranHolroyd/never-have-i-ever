@@ -25,3 +25,100 @@ button {
 .prose-panel {
 	@apply prose dark:prose-invert;
 }
+
+/* Site-wide design system */
+.site-phase-label {
+	@apply text-[11px] font-black uppercase tracking-[0.28em] text-white/35;
+}
+.site-surface {
+	@apply rounded-2xl border border-white/8 bg-zinc-950;
+}
+.site-hero {
+	@apply relative overflow-hidden rounded-3xl border border-white/8 bg-zinc-950 px-6 py-8 sm:px-10 sm:py-10;
+}
+.site-hero-glow {
+	@apply pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(232,121,249,0.12),_transparent_35%)];
+}
+.site-btn-primary {
+	@apply inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500;
+}
+.site-btn-secondary {
+	@apply inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white;
+}
+.site-btn-ghost {
+	@apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white/50 transition hover:bg-white/5 hover:text-white;
+}
+.site-btn-danger {
+	@apply inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-500;
+}
+.site-accent-nhie {
+	@apply border-emerald-500/25 shadow-[0_0_48px_-12px_rgba(16,185,129,0.35)];
+}
+.site-accent-cah {
+	@apply border-violet-500/25 shadow-[0_0_48px_-12px_rgba(139,92,246,0.35)];
+}
+.site-chip-selected-emerald {
+	@apply border-emerald-400/50 bg-emerald-500/15 text-white ring-2 ring-emerald-400/30;
+}
+.site-chip-default {
+	@apply border-white/10 bg-zinc-900/80 text-white/75 hover:border-emerald-500/30 hover:bg-white/[0.04];
+}
+.site-chip-selected-violet {
+	@apply border-violet-400/50 bg-violet-500/15 text-white ring-2 ring-violet-400/30;
+}
+.site-podium-gold {
+	@apply border-amber-400/40 bg-gradient-to-b from-amber-500/20 to-zinc-950;
+}
+.site-podium-silver {
+	@apply border-zinc-400/30 bg-gradient-to-b from-zinc-400/15 to-zinc-950;
+}
+.site-podium-bronze {
+	@apply border-orange-700/40 bg-gradient-to-b from-orange-600/15 to-zinc-950;
+}
+.site-page-bg {
+	@apply min-h-screen bg-zinc-950 text-zinc-100;
+}
+.site-home-hero {
+	@apply relative overflow-hidden rounded-3xl border border-white/8 bg-zinc-950 px-6 py-12 sm:px-10 sm:py-16 lg:py-20;
+}
+.site-home-hero-glow {
+	@apply pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,_rgba(16,185,129,0.22),_transparent),radial-gradient(ellipse_60%_40%_at_100%_50%,_rgba(139,92,246,0.15),_transparent),radial-gradient(ellipse_50%_40%_at_0%_80%,_rgba(232,121,249,0.1),_transparent)];
+}
+.site-home-title-gradient {
+	@apply bg-gradient-to-r from-emerald-300 via-white to-fuchsia-300 bg-clip-text text-transparent;
+}
+
+/* NHIE aliases */
+.nhie-phase-label {
+	@apply text-[11px] font-black uppercase tracking-[0.28em] text-white/35;
+}
+.nhie-hero-card {
+	@apply relative mx-auto w-full max-w-lg rounded-3xl border border-emerald-500/25 bg-gradient-to-b from-zinc-900 to-zinc-950 p-6 sm:p-8 text-center shadow-[0_0_48px_-12px_rgba(16,185,129,0.35)] ring-1 ring-white/10;
+}
+.nhie-hero-question {
+	@apply text-2xl sm:text-3xl font-black leading-snug text-white;
+}
+.nhie-vote-have {
+	@apply bg-emerald-600/80 text-white shadow-[0_8px_24px_-12px_rgba(16,185,129,0.65)];
+}
+.nhie-vote-kinda {
+	@apply bg-sky-600/80 text-white shadow-[0_8px_24px_-12px_rgba(56,189,248,0.55)];
+}
+.nhie-vote-not {
+	@apply bg-rose-600/80 text-white shadow-[0_8px_24px_-12px_rgba(244,63,94,0.55)];
+}
+.nhie-chip-selected {
+	@apply border-emerald-400/50 bg-emerald-500/15 text-white ring-2 ring-emerald-400/30;
+}
+.nhie-chip-default {
+	@apply border-white/10 bg-zinc-900/80 text-white/75 hover:border-emerald-500/30 hover:bg-white/[0.04];
+}
+.nhie-podium-gold {
+	@apply border-amber-400/40 bg-gradient-to-b from-amber-500/20 to-zinc-950;
+}
+.nhie-podium-silver {
+	@apply border-zinc-400/30 bg-gradient-to-b from-zinc-400/15 to-zinc-950;
+}
+.nhie-podium-bronze {
+	@apply border-orange-700/40 bg-gradient-to-b from-orange-600/15 to-zinc-950;
+}

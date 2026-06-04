@@ -7,6 +7,7 @@
 	import { LocalPlayer } from '$lib/player';
 	import { enhance } from '$app/forms';
 	import posthog from 'posthog-js';
+	import SiteCard from '$lib/components/ui/SiteCard.svelte';
 
 	interface Props {
 		data: PageData;
@@ -56,15 +57,16 @@
 	}
 </script>
 
-<div class="min-h-[60vh] flex items-center justify-center py-12 px-4">
+<div class="flex min-h-[60vh] items-center justify-center py-12 px-4">
 	<div class="w-full max-w-sm">
 		<div class="mb-8 text-center">
 			<div
-				class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-zinc-800 mb-4"
+				class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/8 bg-zinc-900"
 			>
-				<IcRoundAccountCircle class="h-8 w-8 text-zinc-300" />
+				<IcRoundAccountCircle class="h-8 w-8 text-emerald-400/80" />
 			</div>
-			<h1 class="text-2xl font-bold text-white">
+			<p class="site-phase-label mb-2">Before you play</p>
+			<h1 class="text-2xl font-black text-white">
 				{user ? `Hey, ${user.nickname}` : (LocalPlayer.name !== null ? `Hey, ${LocalPlayer.name}` : 'Choose a nickname')}
 			</h1>
 			<p class="mt-2 text-zinc-400 text-sm">
@@ -77,8 +79,7 @@
 		</div>
 
 		{#if user}
-			<!-- Signed-in: update nickname via server action -->
-			<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+			<SiteCard padding="md">
 				<form method="POST" action="?/updateNickname" use:enhance={() => {
 					return ({ result }) => {
 						if (result.type === 'success') {
@@ -106,16 +107,10 @@
 					{#if form?.error}
 						<p class="mt-2 text-xs text-red-400">{form.error}</p>
 					{/if}
-					<button
-						class="mt-4 w-full rounded-lg bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600
-							px-4 py-2.5 text-white font-semibold text-sm transition-colors
-							focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-					>
-						Update nickname
-					</button>
+					<button type="submit" class="site-btn-primary mt-4 w-full">Update nickname</button>
 				</form>
 
-				<div class="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between">
+				<div class="mt-4 flex items-center justify-between border-t border-white/8 pt-4">
 					<span class="text-xs text-zinc-500">{user.email}</span>
 					<form method="POST" action="/auth/logout">
 						<button class="text-xs text-zinc-400 hover:text-red-400 transition-colors">
@@ -123,10 +118,9 @@
 						</button>
 					</form>
 				</div>
-			</div>
+			</SiteCard>
 		{:else}
-			<!-- Guest: local nickname -->
-			<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+			<SiteCard padding="md">
 				<label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2" for="name">
 					Nickname
 				</label>
@@ -143,15 +137,10 @@
 				{#if error !== ''}
 					<p class="mt-2 text-xs text-red-400">{error}</p>
 				{/if}
-				<button
-					class="mt-4 w-full rounded-lg bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600
-						px-4 py-2.5 text-white font-semibold text-sm transition-colors
-						focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-					onclick={choose_nickname}
-				>
+				<button type="button" class="site-btn-primary mt-4 w-full" onclick={choose_nickname}>
 					{LocalPlayer.name === null ? 'Set nickname' : 'Update nickname'}
 				</button>
-			</div>
+			</SiteCard>
 
 			<p class="mt-4 text-center text-sm text-zinc-500">
 				or

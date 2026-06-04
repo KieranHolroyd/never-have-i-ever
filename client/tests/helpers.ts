@@ -10,25 +10,34 @@ export class GameHelper {
 
 	async startNewGame(playerName: string = 'Test Player') {
 		await this.page.goto('/');
-		await this.page.locator('text=Start New Game').click();
+		await this.page.getByRole('button', { name: /Never Have I Ever/i }).click();
 
 		// Handle name input if redirected
 		if (this.page.url().includes('/play/name')) {
-			await this.page.locator('input[name="playerName"]').fill(playerName);
-			await this.page.locator('text=Continue').click();
+			await this.page.locator('input[name="name"]').fill(playerName);
+			await this.page.getByRole('button', { name: /continue/i }).click();
 		}
 
 		return this.page.url();
 	}
 
-	async selectCategories(categoryIndices: number[] = [0]) {
-		await this.page.waitForSelector('input[type="checkbox"]');
+	async goToCategorySelection() {
+		const chooseBtn = this.page.getByRole('button', { name: 'Choose categories' });
+		if (await chooseBtn.isVisible()) {
+			await chooseBtn.click();
+		}
+		await this.page.waitForSelector('[data-testid="nhie-categories"]');
+	}
 
+	async selectCategories(categoryIndices: number[] = [0]) {
+		await this.goToCategorySelection();
+
+		const chips = this.page.locator('[data-testid="category-chip"]');
 		for (const index of categoryIndices) {
-			await this.page.locator('input[type="checkbox"]').nth(index).check();
+			await chips.nth(index).click();
 		}
 
-		await this.page.locator('text=Continue').click();
+		await this.page.getByRole('button', { name: /Start game/i }).click();
 	}
 
 	async waitForQuestion() {
@@ -36,11 +45,37 @@ export class GameHelper {
 	}
 
 	async vote(option: 'Have' | 'Kinda' | 'Have not') {
-		await this.page.locator(`text=${option}`).click();
+		if (option === 'Have') {
+			await this.page.locator('[data-testid="have-button"]').click();
+		} else if (option === 'Have not') {
+			await this.page.locator('[data-testid="have-not-button"]').click();
+		} else {
+			await this.page.getByRole('button', { name: 'Kinda', exact: true }).click();
+		}
 	}
 
 	async nextQuestion() {
-		await this.page.locator('text=Next Question').click();
+		await this.page.getByRole('button', { name: /Next question/i }).click();
+	}
+
+	async startCah() {
+		await this.page.goto('/');
+		await this.page.getByRole('button', { name: /Cards Against Humanity/i }).click();
+		if (this.page.url().includes('/play/name')) {
+			await this.page.locator('input[name="name"]').fill('Test Player');
+			await this.page.getByRole('button', { name: /nickname/i }).click();
+		}
+	}
+
+	async selectCahPacks(indices: number[] = [0]) {
+		await this.page.waitForSelector('[data-testid="cah-pack-selection"]');
+		const chips = this.page.locator('[data-testid="cah-pack-selection"] button').filter({
+			has: this.page.locator('h3')
+		});
+		for (const index of indices) {
+			await chips.nth(index).click();
+		}
+		await this.page.getByRole('button', { name: /Start game/i }).click();
 	}
 
 	async getPlayerScore(playerName: string) {
@@ -49,7 +84,7 @@ export class GameHelper {
 	}
 
 	async waitForConnection() {
-		await this.page.waitForSelector('text=connected', { timeout: 10000 });
+		await this.page.waitForSelector('text=Connected', { timeout: 10000 });
 	}
 }
 

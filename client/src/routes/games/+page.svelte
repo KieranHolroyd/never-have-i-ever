@@ -2,6 +2,9 @@
 	import { browser } from '$app/environment';
 	import type { ActiveGameStatus, ActiveGameSummary } from '$lib/types';
 	import ActiveGameCard from '$lib/components/games/ActiveGameCard.svelte';
+	import SiteHero from '$lib/components/ui/SiteHero.svelte';
+	import SiteCard from '$lib/components/ui/SiteCard.svelte';
+	import SiteButton from '$lib/components/ui/SiteButton.svelte';
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
 	import MdiMagnify from '~icons/mdi/magnify';
@@ -126,51 +129,37 @@
 </script>
 
 <div class="py-12 sm:py-16">
-	<!-- Hero / stats banner -->
-	<section class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/80 px-6 py-8 sm:px-10 sm:py-10">
-		<div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.2),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.16),_transparent_30%)]"></div>
-		<div class="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-end">
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
-					Drop-in rooms
-				</p>
-				<h1 class="mt-3 max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
-					Active games worth joining.
-				</h1>
-				<p class="mt-4 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
-					Search by player, narrow by game type, and jump straight into rooms that already
-					have momentum.
-				</p>
+	<SiteHero
+		label="Drop-in rooms"
+		title="Active games worth joining."
+		subtitle="Search by player, narrow by game type, and jump into rooms that already have momentum."
+	>
+		{#snippet stats()}
+			<div class="site-surface p-4">
+				<div class="flex items-center gap-2 site-phase-label">
+					<MdiAccountGroup class="h-4 w-4" />
+					<span>Total</span>
+				</div>
+				<p class="mt-3 text-3xl font-black text-white">{totalGames}</p>
 			</div>
-
-			<div class="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-					<div class="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-zinc-500">
-						<MdiAccountGroup class="h-4 w-4" />
-						<span>Total rooms</span>
-					</div>
-					<p class="mt-3 text-3xl font-black text-white">{totalGames}</p>
+			<div class="site-surface p-4">
+				<div class="flex items-center gap-2 site-phase-label">
+					<MdiTimerSand class="h-4 w-4" />
+					<span>Waiting</span>
 				</div>
-				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-					<div class="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-zinc-500">
-						<MdiTimerSand class="h-4 w-4" />
-						<span>Waiting</span>
-					</div>
-					<p class="mt-3 text-3xl font-black text-white">{waitingGames}</p>
-				</div>
-				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-					<div class="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-zinc-500">
-						<MdiTrendingUp class="h-4 w-4" />
-						<span>Live now</span>
-					</div>
-					<p class="mt-3 text-3xl font-black text-white">{inProgressGames}</p>
-				</div>
+				<p class="mt-3 text-3xl font-black text-white">{waitingGames}</p>
 			</div>
-		</div>
-	</section>
+			<div class="site-surface p-4">
+				<div class="flex items-center gap-2 site-phase-label">
+					<MdiTrendingUp class="h-4 w-4" />
+					<span>Live</span>
+				</div>
+				<p class="mt-3 text-3xl font-black text-white">{inProgressGames}</p>
+			</div>
+		{/snippet}
+	</SiteHero>
 
-	<!-- Search & filters -->
-	<section class="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5">
+	<SiteCard class="mt-6" padding="md">
 		<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
 			<label class="relative block">
 				<span class="sr-only">Search games</span>
@@ -207,7 +196,7 @@
 				</select>
 			</label>
 		</div>
-	</section>
+	</SiteCard>
 
 	<!-- Games list -->
 	<section class="mt-8">
@@ -218,13 +207,10 @@
 					{filteredGames.length} result{filteredGames.length === 1 ? '' : 's'}
 				</p>
 			</div>
-			<a
-				href="/"
-				class="inline-flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-white"
-			>
+			<SiteButton href="/" variant="secondary">
 				Start your own
-				<MdiArrowRight class="h-4 w-4" />
-			</a>
+				<MdiArrowRight class="ml-1 inline h-4 w-4" />
+			</SiteButton>
 		</div>
 
 		{#if filteredGames.length > 0}
@@ -251,13 +237,10 @@
 					>
 						Clear filters
 					</button>
-					<a
-						href="/"
-						class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400"
-					>
+					<SiteButton href="/">
 						Start a game
-						<MdiArrowRight class="h-4 w-4" />
-					</a>
+						<MdiArrowRight class="ml-1 inline h-4 w-4" />
+					</SiteButton>
 				</div>
 			</div>
 		{/if}

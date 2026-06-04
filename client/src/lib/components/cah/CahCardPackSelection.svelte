@@ -12,10 +12,11 @@
 
 	interface Props {
 		gameId: string;
+		embedded?: boolean;
 		onPacksSelected?: (packs: string[], settings: { maxRounds: number; handSize: number; maxPlayers: number }) => void;
 	}
 
-	let { gameId, onPacksSelected }: Props = $props();
+	let { gameId, embedded = false, onPacksSelected }: Props = $props();
 
 	let selectedPacks: SelectedPacks = $state({});
 	let showNSFW: boolean = $state(true);
@@ -155,27 +156,29 @@
 	let selectedPackList = $derived(cardPacks.filter((pack) => selectedIds.includes(pack.id)));
 </script>
 
-<div class="min-h-screen bg-[#111111] text-white">
-	<!-- Sticky header — matches CahGame.svelte -->
-	<header
-		class="sticky top-0 z-30 border-b border-white/[0.07] bg-[#111111]/96 backdrop-blur-md px-4 py-3 sm:px-6 lg:px-8"
-	>
-		<div class="flex items-center justify-between gap-4">
+<div class="pb-24" data-testid="cah-pack-selection">
+	{#if !embedded}
+		<div class="mb-6 flex items-center justify-between gap-4">
 			<div>
-				<span class="text-[11px] font-black uppercase tracking-[0.35em] text-white/25"
-					>Cards Against Humanity</span
-				>
-				<h1 class="mt-0.5 text-lg font-black text-white">Choose your card packs</h1>
+				<p class="site-phase-label">Cards Against Humanity</p>
+				<h1 class="text-2xl font-black text-white">Choose your card packs</h1>
 			</div>
-			<button
-				class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-white/50 transition hover:bg-white/[0.08] hover:text-white/80"
-				onclick={goBack}
-			>
-				<MdiClose class="h-4 w-4" />
+			<button type="button" class="site-btn-secondary" onclick={goBack}>
+				<MdiClose class="mr-1 inline h-4 w-4" />
 				Cancel
 			</button>
 		</div>
-	</header>
+	{:else}
+		<div class="mb-4">
+			<p class="site-phase-label">Packs</p>
+			<h2 class="text-2xl font-black text-white">Pick your decks</h2>
+			<p class="mt-1 text-sm text-white/45">
+				{selectedIds.length > 0
+					? `${selectedIds.length} selected`
+					: 'Select at least one pack to continue'}
+			</p>
+		</div>
+	{/if}
 
 	{#if isStarting}
 		<!-- Full-page starting state -->
@@ -614,11 +617,12 @@
 						<p class="text-xs text-white/35">{totals.totalBlack}B / {totals.totalWhite}W cards</p>
 					</div>
 					<button
-						class="rounded-xl bg-white px-6 py-3 text-sm font-black text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-30"
+						type="button"
+						class="site-btn-primary shrink-0 disabled:opacity-40"
 						onclick={startGame}
 						disabled={selectedIds.length === 0}
 					>
-						Start game
+						Start game ({selectedIds.length})
 					</button>
 				</div>
 			</div>

@@ -37,7 +37,7 @@
 	</div>
 {:else}
 	<div
-		class="flex items-center justify-between mb-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/70"
+		class="site-surface mb-4 flex items-center justify-between p-3"
 	>
 		<div class="flex items-center gap-3">
 			<div
