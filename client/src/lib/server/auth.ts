@@ -1,6 +1,14 @@
 import { eq, and, gt } from 'drizzle-orm';
 import { db } from './db';
-import { users, userSessions, authTokens, googleAccounts, type User } from './auth-schema';
+import {
+	users,
+	userSessions,
+	authTokens,
+	googleAccounts,
+	userCoreColumns,
+	withDefaultPreferences,
+	type User
+} from './auth-schema';
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 
@@ -42,12 +50,13 @@ export async function createSession(userId: string): Promise<string> {
 export async function getSessionUser(sessionId: string): Promise<User | null> {
 	if (!sessionId) return null;
 	const rows = await db
-		.select({ user: users })
+		.select(userCoreColumns)
 		.from(userSessions)
 		.innerJoin(users, eq(userSessions.user_id, users.id))
 		.where(and(eq(userSessions.id, sessionId), gt(userSessions.expires_at, new Date())))
 		.limit(1);
-	return rows[0]?.user ?? null;
+	const row = rows[0];
+	return row ? withDefaultPreferences(row) : null;
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -62,20 +71,20 @@ export async function createUser(
 	nickname: string
 ): Promise<User> {
 	const password_hash = await hashPassword(password);
-	const [user] = await db
+	const [row] = await db
 		.insert(users)
 		.values({ email: email.toLowerCase().trim(), password_hash, nickname })
-		.returning();
-	return user;
+		.returning(userCoreColumns);
+	return withDefaultPreferences(row);
 }
 
 export async function findUserByEmail(email: string): Promise<User | null> {
-	const [user] = await db
-		.select()
+	const [row] = await db
+		.select(userCoreColumns)
 		.from(users)
 		.where(eq(users.email, email.toLowerCase().trim()))
 		.limit(1);
-	return user ?? null;
+	return row ? withDefaultPreferences(row) : null;
 }
 
 export async function updateNickname(userId: string, nickname: string): Promise<void> {
@@ -127,7 +136,7 @@ export async function consumeAuthToken(
 	type: 'password_reset' | 'email_verification'
 ): Promise<User | null> {
 	const rows = await db
-		.select({ token: authTokens, user: users })
+		.select({ token: authTokens, ...userCoreColumns })
 		.from(authTokens)
 		.innerJoin(users, eq(authTokens.user_id, users.id))
 		.where(
@@ -139,11 +148,13 @@ export async function consumeAuthToken(
 		)
 		.limit(1);
 
-	if (!rows[0]) return null;
+	const row = rows[0];
+	if (!row) return null;
 
+	const { token: authTokenRow, ...userRow } = row;
 	// Delete the token so it can only be used once
-	await db.delete(authTokens).where(eq(authTokens.id, token));
-	return rows[0].user;
+	await db.delete(authTokens).where(eq(authTokens.id, authTokenRow.id));
+	return withDefaultPreferences(userRow);
 }
 
 export async function markEmailVerified(userId: string): Promise<void> {
@@ -154,12 +165,13 @@ export async function markEmailVerified(userId: string): Promise<void> {
 
 export async function findUserByGoogleId(googleId: string): Promise<User | null> {
 	const rows = await db
-		.select({ user: users })
+		.select(userCoreColumns)
 		.from(googleAccounts)
 		.innerJoin(users, eq(googleAccounts.user_id, users.id))
 		.where(eq(googleAccounts.google_id, googleId))
 		.limit(1);
-	return rows[0]?.user ?? null;
+	const row = rows[0];
+	return row ? withDefaultPreferences(row) : null;
 }
 
 export async function getGoogleAccountForUser(
@@ -181,10 +193,11 @@ export async function createUserFromGoogle(
 ): Promise<User> {
 	// Random unguessable password — Google-only users can set one via the reset flow
 	const password_hash = await hashPassword(randomBytes(32).toString('hex'));
-	const [user] = await db
+	const [row] = await db
 		.insert(users)
 		.values({ email: email.toLowerCase().trim(), password_hash, nickname, email_verified: true })
-		.returning();
+		.returning(userCoreColumns);
+	const user = withDefaultPreferences(row);
 	await db.insert(googleAccounts).values({ google_id: googleId, user_id: user.id, email });
 	return user;
 }

@@ -2,7 +2,7 @@ import { env } from '$env/dynamic/public';
 import type { ActiveGamesResponse } from '$lib/types';
 import { v4 } from 'uuid';
 
-	export async function load({ fetch }) {
+export async function load({ fetch }) {
 	let active_games_count = 0;
 
 	try {

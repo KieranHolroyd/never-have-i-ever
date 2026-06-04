@@ -70,6 +70,31 @@ export const googleAccounts = pgTable(
 );
 
 export type User = typeof users.$inferSelect;
+
+/** Columns safe to read before `preferences` migration is applied. */
+export const userCoreColumns = {
+	id: users.id,
+	email: users.email,
+	password_hash: users.password_hash,
+	nickname: users.nickname,
+	email_verified: users.email_verified,
+	created_at: users.created_at,
+	updated_at: users.updated_at
+};
+
+export type UserCoreRow = {
+	id: string;
+	email: string;
+	password_hash: string;
+	nickname: string;
+	email_verified: boolean;
+	created_at: Date;
+	updated_at: Date;
+};
+
+export function withDefaultPreferences(row: UserCoreRow, preferences: Settings = {}): User {
+	return { ...row, preferences };
+}
 export type UserSession = typeof userSessions.$inferSelect;
 export type AuthToken = typeof authTokens.$inferSelect;
 export type GoogleAccount = typeof googleAccounts.$inferSelect;

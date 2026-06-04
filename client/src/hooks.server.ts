@@ -4,7 +4,17 @@ import { getSessionUser, SESSION_COOKIE } from '$lib/server/auth';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get(SESSION_COOKIE);
-	event.locals.user = sessionId ? await getSessionUser(sessionId) : null;
+	if (sessionId) {
+		try {
+			event.locals.user = await getSessionUser(sessionId);
+		} catch (err) {
+			console.error('[auth] Session lookup failed:', err);
+			event.locals.user = null;
+			event.cookies.delete(SESSION_COOKIE, { path: '/' });
+		}
+	} else {
+		event.locals.user = null;
+	}
 
 	const { pathname } = event.url;
 
