@@ -5,7 +5,9 @@ import {
 	timestamp,
 	index,
 	boolean,
+	jsonb,
 } from 'drizzle-orm/pg-core';
+import type { Settings } from '$lib/types';
 
 export const users = pgTable('users', {
 	id: uuid('id').primaryKey().defaultRandom(),
@@ -13,6 +15,7 @@ export const users = pgTable('users', {
 	password_hash: text('password_hash').notNull(),
 	nickname: text('nickname').notNull(),
 	email_verified: boolean('email_verified').notNull().default(false),
+	preferences: jsonb('preferences').$type<Settings>().notNull().default({}),
 	created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

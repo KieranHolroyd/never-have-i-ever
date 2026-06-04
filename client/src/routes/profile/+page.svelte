@@ -17,6 +17,7 @@
 	import MdiLinkVariant from '~icons/mdi/link-variant';
 	import MdiLinkVariantOff from '~icons/mdi/link-variant-off';
 	import LogosGoogle from '~icons/logos/google-icon';
+	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 
 	interface Props {
 		data: PageData;
@@ -275,6 +276,17 @@
 			</button>
 		</div>
 	{/if}
+
+	<!-- Gameplay preferences (synced to account) -->
+	<div class="site-surface p-5 sm:p-6">
+		<h2 class="text-lg font-semibold text-white">Gameplay preferences</h2>
+		<p class="mt-1 text-sm text-white/45">
+			These settings apply in games and sync to your account on every device.
+		</p>
+		<div class="mt-5">
+			<SettingsPanel showAccountBanner={false} />
+		</div>
+	</div>
 
 	<!-- Account settings -->
 	<div class="space-y-3">

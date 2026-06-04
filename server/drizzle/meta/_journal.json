@@ -64,6 +64,13 @@
       "when": 1777200968013,
       "tag": "0008_wooden_dust",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777300000000,
+      "tag": "0009_user_preferences",
+      "breakpoints": true
     }
   ]
 }

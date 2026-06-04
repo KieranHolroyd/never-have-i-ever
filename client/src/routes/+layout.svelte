@@ -8,6 +8,7 @@
 	import Toaster from '$lib/components/Toaster.svelte';
 	import { LocalPlayer } from '$lib/player';
 	import { browser } from '$app/environment';
+	import { initSettings, clearAccountSettingsSync } from '$lib/settings';
 
 	interface Props {
 		children: import('svelte').Snippet;
@@ -31,6 +32,14 @@
 		if (browser && data.user?.nickname) {
 			LocalPlayer.name = data.user.nickname;
 		}
+	});
+
+	$effect(() => {
+		if (!browser) return;
+		initSettings(data.preferences, data.user);
+		return () => {
+			if (!data.user) clearAccountSettingsSync();
+		};
 	});
 </script>
 
