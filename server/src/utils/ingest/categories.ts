@@ -1,40 +1,15 @@
-import type { Catagories } from "@nhie/shared";
 import { migrate } from "../../migrate";
-import { db } from "../../db";
-import { categories } from "../../db/schema";
+import { closeDatabasePool } from "../../db";
+import { seedCategories } from "../../seed/categories";
 
 async function ingestCategories() {
-  await migrate();
-
-  const data = await Bun.file(
-    `${import.meta.dir}/../../../assets/data.json`
-  ).json() as Catagories;
-
-  console.log(`Found ${Object.keys(data).length} categories to ingest`);
-
-  const rows = Object.entries(data).map(([name, category]) => ({
-    name,
-    questions: category.questions,
-    is_nsfw: category.flags.is_nsfw,
-  }));
-
-  await db
-    .insert(categories)
-    .values(rows)
-    .onConflictDoUpdate({
-      target: categories.name,
-      set: {
-        questions: categories.questions,
-        is_nsfw: categories.is_nsfw,
-        updated_at: new Date(),
-      },
-    });
-
-  console.log(`Successfully ingested ${rows.length} categories into PostgreSQL`);
+	await migrate();
+	const count = await seedCategories();
+	console.log(`Successfully ingested ${count} categories into PostgreSQL`);
+	await closeDatabasePool();
 }
 
 ingestCategories().catch((error) => {
-  console.error('Failed to ingest categories:', error);
-  process.exit(1);
+	console.error("Failed to ingest categories:", error);
+	process.exit(1);
 });
-

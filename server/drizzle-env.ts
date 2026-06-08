@@ -1,5 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const serverDir = dirname(fileURLToPath(import.meta.url));
 
 const ENV_FILES = {
   local: ".env.local",
@@ -37,7 +40,7 @@ export function loadDrizzleEnv(): DrizzleEnv {
   const mode: DrizzleEnv =
     process.env.DRIZZLE_ENV === "production" ? "production" : "local";
   const file = ENV_FILES[mode];
-  const path = resolve(import.meta.dirname, file);
+  const path = resolve(serverDir, file);
 
   if (existsSync(path)) {
     parseEnvFile(path);
@@ -45,6 +48,6 @@ export function loadDrizzleEnv(): DrizzleEnv {
   }
 
   // Backwards compatibility with server/.env
-  parseEnvFile(resolve(import.meta.dirname, ".env"));
+  parseEnvFile(resolve(serverDir, ".env"));
   return mode;
 }

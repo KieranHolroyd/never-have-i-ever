@@ -6,5 +6,16 @@
     "server",
     "packages/*"
   ],
+  "scripts": {
+    "db:generate": "pnpm --filter server db:generate",
+    "db:migrate": "pnpm --filter server db:migrate",
+    "db:migrate:prod": "pnpm --filter server db:migrate:prod",
+    "db:push": "pnpm --filter server db:push",
+    "db:push:prod": "pnpm --filter server db:push:prod",
+    "db:studio": "pnpm --filter server db:studio",
+    "db:studio:prod": "pnpm --filter server db:studio:prod",
+    "db:seed": "pnpm --filter server db:seed",
+    "db:seed:prod": "pnpm --filter server db:seed:prod"
+  },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }
