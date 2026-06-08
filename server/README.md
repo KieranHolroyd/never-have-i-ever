@@ -13,13 +13,13 @@ cp .env.example .env   # set DATABASE_URL, GAME_DATA_DIR
 bun run dev
 ```
 
-## Railway (Railpack)
+## Railway (Docker)
 
 See [RAILWAY.md](./RAILWAY.md) for deploy settings. Summary:
 
 - Root directory: repo root (`/`)
 - Config file: `/server/railway.json`
-- Build env: `RAILPACK_CONFIG_FILE=server/railpack.json`
+- Dockerfile: `server/Dockerfile`
 
 ## Docker
 

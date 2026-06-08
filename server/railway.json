@@ -1,7 +1,8 @@
 {
 	"$schema": "https://railway.com/railway.schema.json",
 	"build": {
-		"builder": "RAILPACK",
+		"builder": "DOCKERFILE",
+		"dockerfilePath": "server/Dockerfile",
 		"watchPatterns": [
 			"server/**",
 			"packages/shared/**",
@@ -10,7 +11,6 @@
 		]
 	},
 	"deploy": {
-		"startCommand": "bun run --cwd server start",
 		"healthcheckPath": "/",
 		"healthcheckTimeout": 300,
 		"restartPolicyType": "ON_FAILURE"
