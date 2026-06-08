@@ -1,0 +1,5 @@
+# Speed up server deploys — client is hosted separately (e.g. Vercel)
+client/
+.github/
+deploy-server.sh
+agent-transcripts/

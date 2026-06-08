@@ -1,15 +1,30 @@
 # server
 
-To install dependencies:
+Never Have I Ever game server (Bun + PostgreSQL + WebSockets).
+
+## Development
+
+From the **repository root**:
 
 ```bash
 bun install
+cd server
+cp .env.example .env   # set DATABASE_URL, GAME_DATA_DIR
+bun run dev
 ```
 
-To run:
+## Railway (Railpack)
+
+See [RAILWAY.md](./RAILWAY.md) for deploy settings. Summary:
+
+- Root directory: repo root (`/`)
+- Config file: `/server/railway.json`
+- Build env: `RAILPACK_CONFIG_FILE=server/railpack.json`
+
+## Docker
 
 ```bash
-bun run index.ts
+docker compose -f server/docker-compose.yml up --build
 ```
 
-This project was created using `bun init` in bun v1.0.3. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+Build context is the repo root (`docker-compose.yml` uses `context: ..`).
