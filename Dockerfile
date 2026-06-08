@@ -1,14 +1,11 @@
-# syntax=docker/dockerfile:1
 # Game server image — build context is the repository root.
-# Application code lives under server/; shared types under packages/shared/.
+# Application code lives under server/; workspace packages under packages/.
 
 FROM oven/bun:1.3-slim
 
 WORKDIR /app
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-	--mount=type=cache,target=/var/lib/apt,sharing=locked \
-	apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
 	ca-certificates \
 	jq \
 	&& rm -rf /var/lib/apt/lists/* \
@@ -27,8 +24,7 @@ RUN mkdir -p client && echo '{"name":"app","private":true}' > client/package.jso
 # Server package manifest — install deps before copying source
 COPY server/package.json ./server/
 
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install
+RUN bun install
 
 # Server runtime files
 COPY server/assets/data.json ./server/assets/
