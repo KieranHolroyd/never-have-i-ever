@@ -56,6 +56,7 @@
 	"type": "module",
 	"dependencies": {
 		"@better-auth/drizzle-adapter": "^1.6.14",
+		"@nhie/db": "workspace:*",
 		"@nhie/shared": "workspace:*",
 		"@react-email/components": "^1.0.12",
 		"@react-email/render": "^2.0.7",

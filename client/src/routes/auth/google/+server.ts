@@ -1,34 +1,31 @@
 import { redirect } from '@sveltejs/kit';
-import { randomBytes } from 'node:crypto';
-import { buildGoogleAuthUrl, OAUTH_STATE_COOKIE, OAUTH_LINK_COOKIE } from '$lib/server/google-oauth';
+import { auth } from '$lib/server/auth';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = ({ url, cookies }) => {
+export const GET: RequestHandler = async ({ url, request, locals }) => {
+	const origin = env.PUBLIC_ORIGIN ?? url.origin;
+	const callbackURL = url.searchParams.get('redirect') ?? '/profile';
 	const link = url.searchParams.get('link') === '1';
-	const state = randomBytes(16).toString('hex');
-
-	const redirectUri = `${env.PUBLIC_ORIGIN ?? url.origin}/auth/google/callback`;
-	const authUrl = buildGoogleAuthUrl(state, redirectUri);
-
-	// CSRF protection: store state in a short-lived http-only cookie
-	cookies.set(OAUTH_STATE_COOKIE, state, {
-		path: '/auth/google/callback',
-		httpOnly: true,
-		sameSite: 'lax',
-		secure: true,
-		maxAge: 60 * 10, // 10 minutes
-	});
 
 	if (link) {
-		cookies.set(OAUTH_LINK_COOKIE, '1', {
-			path: '/auth/google/callback',
-			httpOnly: true,
-			sameSite: 'lax',
-			secure: true,
-			maxAge: 60 * 10,
+		if (!locals.user) redirect(302, '/auth?redirect=/profile');
+		const result = await auth.api.linkSocialAccount({
+			body: {
+				provider: 'google',
+				callbackURL: `${origin}/profile?google_linked=1`,
+				errorCallbackURL: `${origin}/profile?google_error=already_linked`,
+			},
+			headers: request.headers,
 		});
+		if (result.url) redirect(302, result.url);
+		redirect(302, '/profile');
 	}
 
-	redirect(302, authUrl);
+	const result = await auth.api.signInSocial({
+		body: { provider: 'google', callbackURL },
+		headers: request.headers,
+	});
+	if (result.url) redirect(302, result.url);
+	redirect(302, callbackURL);
 };

@@ -1,0 +1,34 @@
+# Frontend (deployed separately)
+client/
+
+# Dependencies (installed in image)
+**/node_modules
+
+# Git / CI
+.git/
+.github/
+
+# Docs & tooling
+*.md
+deploy-server.sh
+agent-transcripts/
+.vscode/
+.idea/
+
+# Server dev/test (not needed in production image)
+server/tests/
+server/**/*.test.ts
+server/test-results/
+
+# Env & secrets
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Runtime game data (mounted as volume in production)
+server/assets/games/*.json
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -2,12 +2,13 @@
 	"$schema": "https://railway.com/railway.schema.json",
 	"build": {
 		"builder": "DOCKERFILE",
-		"dockerfilePath": "server/Dockerfile",
+		"dockerfilePath": "Dockerfile",
 		"watchPatterns": [
 			"server/**",
-			"packages/shared/**",
+			"packages/**",
 			"package.json",
-			"bun.lock"
+			"bun.lock",
+			"Dockerfile"
 		]
 	},
 	"deploy": {

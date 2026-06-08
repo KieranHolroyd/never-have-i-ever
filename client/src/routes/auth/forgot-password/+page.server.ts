@@ -1,6 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { findUserByEmail, createAuthToken } from '$lib/server/auth';
-import { sendPasswordResetEmail } from '$lib/server/mailer';
+import { auth } from '$lib/server/auth';
 import { env } from '$env/dynamic/private';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -15,16 +14,14 @@ export const actions: Actions = {
 			return fail(400, { error: 'Please enter a valid email address.' });
 		}
 
-		// Always return success to avoid leaking whether the account exists
-		const user = await findUserByEmail(email);
-		if (user) {
-			const token = await createAuthToken(user.id, 'password_reset');
-			const origin = env.PUBLIC_ORIGIN ?? url.origin;
-			const resetUrl = `${origin}/auth/reset-password/${token}`;
-			await sendPasswordResetEmail(user.email, user.nickname, resetUrl).catch(() => {
-				// Log but don't surface email errors to the user
-			});
-		}
+		const origin = env.PUBLIC_ORIGIN ?? url.origin;
+		await auth.api.requestPasswordReset({
+			body: {
+				email,
+				redirectTo: `${origin}/auth/reset-password`,
+			},
+			headers: request.headers,
+		}).catch(() => {});
 
 		return { success: true };
 	},

@@ -57,6 +57,16 @@ export default defineConfig({
 		// Drop console and debugger statements in production
 		drop: ['console', 'debugger']
 	},
+	ssr: {
+		// better-auth pulls optional kysely adapters that break Vite bundling
+		external: [
+			'better-auth',
+			'@better-auth/drizzle-adapter',
+			'@better-auth/core',
+			'@better-auth/kysely-adapter',
+			'kysely',
+		],
+	},
 	optimizeDeps: {
 		// Pre-bundle dependencies for faster dev server startup
 		include: ['uuid', 'lucide-svelte', 'svelte-outside-click'],

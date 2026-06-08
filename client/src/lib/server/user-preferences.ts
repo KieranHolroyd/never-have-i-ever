@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
+import { users } from '@nhie/db/schema';
 import { db } from './db';
-import { users } from './auth-schema';
 import type { Settings } from '$lib/types';
 import { DEFAULT_SETTINGS, normalizeSettings, parsePreferencesJson } from '$lib/settings-defaults';
 import { isMissingColumnError } from './db-errors';
@@ -29,14 +29,12 @@ export async function updateUserPreferences(
 	try {
 		await db
 			.update(users)
-			.set({ preferences: normalized, updated_at: new Date() })
+			.set({ preferences: normalized, updatedAt: new Date() })
 			.where(eq(users.id, userId));
 		return normalized;
 	} catch (err) {
 		if (isMissingColumnError(err)) {
-			console.error(
-				'[settings] users.preferences column missing — run server/drizzle/0009_user_preferences.sql'
-			);
+			console.error('[settings] users.preferences column missing — run server migrations');
 			return normalized;
 		}
 		throw err;

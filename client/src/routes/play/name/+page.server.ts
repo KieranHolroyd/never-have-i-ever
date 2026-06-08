@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { updateNickname } from '$lib/server/auth';
+import { auth } from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.user) {
@@ -19,7 +19,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Nickname must be 1–30 characters.' });
 		}
 
-		await updateNickname(locals.user.id, nickname);
+		await auth.api.updateUser({
+			body: { name: nickname },
+			headers: request.headers,
+		});
 		return { success: true };
-	}
+	},
 };

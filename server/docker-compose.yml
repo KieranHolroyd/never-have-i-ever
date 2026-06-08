@@ -2,7 +2,7 @@ services:
   web:
     build:
       context: ..
-      dockerfile: server/Dockerfile
+      dockerfile: Dockerfile
     restart: always
     stop_signal: SIGINT
     stop_grace_period: 2s

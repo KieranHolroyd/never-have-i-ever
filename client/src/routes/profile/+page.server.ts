@@ -1,29 +1,19 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { sql } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
+import { accounts } from '@nhie/db/schema';
 import { db } from '$lib/server/db';
-import {
-	verifyPassword,
-	updateNickname,
-	updateEmail,
-	updatePassword,
-	findUserByEmail,
-	createAuthToken,
-	unlinkGoogleAccount,
-	getGoogleAccountForUser,
-} from '$lib/server/auth';
-import { sendEmailVerificationEmail } from '$lib/server/mailer';
+import { auth } from '$lib/server/auth';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad, Actions } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, request }) => {
 	if (!locals.user) {
 		redirect(302, '/auth?redirect=/profile');
 	}
 
 	const userId = locals.user.id;
 
-	const [nhieRows, cahRows, recentNhie, recentCah, googleAccount] = await Promise.all([
-		// NHIE stats from materialized view
+	const [nhieRows, cahRows, recentNhie, recentCah, googleRows] = await Promise.all([
 		db.execute(sql`
 			SELECT
 				total_games::int,
@@ -34,7 +24,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			WHERE user_id = ${userId}
 			LIMIT 1
 		`),
-		// CAH stats from materialized view
 		db.execute(sql`
 			SELECT
 				total_games::int,
@@ -45,7 +34,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			WHERE user_id = ${userId}
 			LIMIT 1
 		`),
-		// 5 most recent NHIE games this user played
 		db.execute(sql`
 			SELECT
 				g.id,
@@ -61,7 +49,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			ORDER BY g.created_at DESC
 			LIMIT 5
 		`),
-		// 5 most recent CAH games this user played
 		db.execute(sql`
 			SELECT
 				g.id,
@@ -78,7 +65,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 			ORDER BY g.created_at DESC
 			LIMIT 5
 		`),
-		getGoogleAccountForUser(userId),
+		db
+			.select({ accountId: accounts.accountId })
+			.from(accounts)
+			.where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'google')))
+			.limit(1),
 	]);
 
 	const nhieStats = nhieRows[0] as {
@@ -119,6 +110,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const recentNhieGames = (recentNhie as unknown as RecentNhieGame[]) ?? [];
 	const recentCahGames = (recentCah as unknown as RecentCahGame[]) ?? [];
 
+	let googleAccount: { google_id: string; email: string } | null = null;
+	try {
+		const listed = await auth.api.listUserAccounts({ headers: request.headers });
+		const google = listed.find((a) => a.providerId === 'google');
+		if (google) {
+			googleAccount = { google_id: google.accountId, email: locals.user.email };
+		}
+	} catch {
+		const google = googleRows.find((row) => row.accountId);
+		if (google) {
+			googleAccount = { google_id: google.accountId, email: locals.user.email };
+		}
+	}
+
 	return {
 		user: locals.user,
 		nhieStats: nhieStats ?? { total_games: 0, games_completed: 0, total_score: 0, wins: 0 },
@@ -136,7 +141,15 @@ export const actions: Actions = {
 		const nickname = String(data.get('nickname') ?? '').trim();
 		if (nickname.length < 1 || nickname.length > 30)
 			return fail(400, { action: 'update_nickname', error: 'Nickname must be 1–30 characters.' });
-		await updateNickname(locals.user.id, nickname);
+
+		try {
+			await auth.api.updateUser({
+				body: { name: nickname },
+				headers: request.headers,
+			});
+		} catch {
+			return fail(400, { action: 'update_nickname', error: 'Failed to update nickname.' });
+		}
 		return { action: 'update_nickname', success: true };
 	},
 
@@ -149,13 +162,21 @@ export const actions: Actions = {
 			return fail(400, { action: 'update_email', error: 'Invalid email address.' });
 		if (!password)
 			return fail(400, { action: 'update_email', error: 'Current password is required.' });
-		const user = await findUserByEmail(locals.user.email);
-		if (!user || !(await verifyPassword(password, user.password_hash)))
+
+		try {
+			await auth.api.verifyPassword({ body: { password }, headers: request.headers });
+		} catch {
 			return fail(400, { action: 'update_email', error: 'Incorrect password.' });
-		const existing = await findUserByEmail(email);
-		if (existing && existing.id !== locals.user.id)
+		}
+
+		try {
+			await auth.api.changeEmail({
+				body: { newEmail: email, callbackURL: `${env.PUBLIC_ORIGIN ?? ''}/profile` },
+				headers: request.headers,
+			});
+		} catch {
 			return fail(400, { action: 'update_email', error: 'That email is already in use.' });
-		await updateEmail(locals.user.id, email);
+		}
 		return { action: 'update_email', success: true };
 	},
 
@@ -171,26 +192,39 @@ export const actions: Actions = {
 			return fail(400, { action: 'update_password', error: 'New password must be at least 8 characters.' });
 		if (next !== confirm)
 			return fail(400, { action: 'update_password', error: 'Passwords do not match.' });
-		const user = await findUserByEmail(locals.user.email);
-		if (!user || !(await verifyPassword(current, user.password_hash)))
+
+		try {
+			await auth.api.changePassword({
+				body: { currentPassword: current, newPassword: next },
+				headers: request.headers,
+			});
+		} catch {
 			return fail(400, { action: 'update_password', error: 'Incorrect current password.' });
-		await updatePassword(locals.user.id, next);
+		}
 		return { action: 'update_password', success: true };
 	},
 
-	resend_verification: async ({ locals, url }) => {
+	resend_verification: async ({ locals, request }) => {
 		if (!locals.user) return fail(401, { action: 'resend_verification', error: 'Not authenticated.' });
 		if (locals.user.email_verified) return { action: 'resend_verification', success: true };
-		const token = await createAuthToken(locals.user.id, 'email_verification');
-		const origin = env.PUBLIC_ORIGIN ?? url.origin;
-		const verifyUrl = `${origin}/auth/verify-email/${token}`;
-		await sendEmailVerificationEmail(locals.user.email, locals.user.nickname, verifyUrl).catch(() => {});
+		await auth.api
+			.sendVerificationEmail({
+				body: { email: locals.user.email, callbackURL: '/profile' },
+				headers: request.headers,
+			})
+			.catch(() => {});
 		return { action: 'resend_verification', success: true };
 	},
 
-	unlink_google: async ({ locals }) => {
-		if (!locals.user) return fail(401, { action: 'unlink_google', error: 'Not authenticated.' });
-		await unlinkGoogleAccount(locals.user.id);
+	unlink_google: async ({ request }) => {
+		try {
+			await auth.api.unlinkAccount({
+				body: { providerId: 'google' },
+				headers: request.headers,
+			});
+		} catch {
+			return fail(400, { action: 'unlink_google', error: 'Could not unlink Google account.' });
+		}
 		return { action: 'unlink_google', success: true };
 	},
 };

@@ -1,24 +1,21 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
+import { building } from '$app/environment';
 import { getPostHogClient } from '$lib/server/posthog';
-import { getSessionUser, SESSION_COOKIE } from '$lib/server/auth';
+import { auth } from '$lib/server/auth';
+import { toAppUser } from '$lib/server/auth/user';
+import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const sessionId = event.cookies.get(SESSION_COOKIE);
-	if (sessionId) {
-		try {
-			event.locals.user = await getSessionUser(sessionId);
-		} catch (err) {
-			console.error('[auth] Session lookup failed:', err);
-			event.locals.user = null;
-			event.cookies.delete(SESSION_COOKIE, { path: '/' });
-		}
-	} else {
+	try {
+		const session = await auth.api.getSession({ headers: event.request.headers });
+		event.locals.user = session?.user ? toAppUser(session.user) : null;
+	} catch (err) {
+		console.error('[auth] Session lookup failed:', err);
 		event.locals.user = null;
 	}
 
 	const { pathname } = event.url;
 
-	// Reverse proxy for PostHog — route /ingest/* to PostHog EU servers
 	if (pathname.startsWith('/ingest')) {
 		const useAssetHost =
 			pathname.startsWith('/ingest/static/') || pathname.startsWith('/ingest/array/');
@@ -50,7 +47,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return response;
 	}
 
-	return resolve(event);
+	return svelteKitHandler({ event, resolve, auth, building });
 };
 
 export const handleError: HandleServerError = async ({ error, status, message }) => {

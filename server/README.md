@@ -15,11 +15,11 @@ bun run dev
 
 ## Railway (Docker)
 
-See [RAILWAY.md](./RAILWAY.md) for deploy settings. Summary:
+See [RAILWAY.md](../RAILWAY.md) at the repo root. Summary:
 
 - Root directory: repo root (`/`)
-- Config file: `/server/railway.json`
-- Dockerfile: `server/Dockerfile`
+- Config file: `/railway.json`
+- Dockerfile: `/Dockerfile` (copies `server/` into the image)
 
 ## Docker
 

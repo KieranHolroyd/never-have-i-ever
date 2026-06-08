@@ -31,7 +31,11 @@ async function getLastRecordedMigration() {
 }
 
 async function schemaMatchesLatestPush(): Promise<boolean> {
-  const result = await db.execute<{ has_games_password: boolean; has_cah_games_password: boolean; has_google_accounts: boolean }>(sql`
+  const result = await db.execute<{
+    has_games_password: boolean;
+    has_cah_games_password: boolean;
+    has_sessions: boolean;
+  }>(sql`
     SELECT
       EXISTS (
         SELECT 1
@@ -46,12 +50,12 @@ async function schemaMatchesLatestPush(): Promise<boolean> {
       EXISTS (
         SELECT 1
         FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'google_accounts'
-      ) AS has_google_accounts
+        WHERE table_schema = 'public' AND table_name = 'sessions'
+      ) AS has_sessions
   `);
 
   const row = result[0];
-  return Boolean(row?.has_games_password && row?.has_cah_games_password && row?.has_google_accounts);
+  return Boolean(row?.has_games_password && row?.has_cah_games_password && row?.has_sessions);
 }
 
 async function baselineExistingSchema(): Promise<void> {
