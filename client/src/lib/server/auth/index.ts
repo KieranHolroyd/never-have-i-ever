@@ -6,8 +6,11 @@ import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as schema from '@nhie/db/schema';
 import * as relations from '@nhie/db/relations';
+import { verifications } from '@nhie/db/schema';
+import { eq } from 'drizzle-orm';
 import { sendEmailVerificationEmail, sendPasswordResetEmail } from '$lib/server/mailer';
 import { hashPassword, verifyPassword } from './password';
+import { getAuthPublicOrigin, getAuthTrustedOrigins } from './public-origin';
 
 const authSchema = {
 	...schema,
@@ -18,7 +21,7 @@ const authSchema = {
 	verification: schema.verifications,
 };
 
-const publicOrigin = env.BETTER_AUTH_URL ?? env.PUBLIC_ORIGIN ?? 'http://localhost:5173';
+const publicOrigin = getAuthPublicOrigin();
 
 export const auth = betterAuth({
 	baseURL: publicOrigin,
@@ -29,7 +32,7 @@ export const auth = betterAuth({
 		usePlural: true,
 		schema: authSchema,
 	}),
-	trustedOrigins: [publicOrigin],
+	trustedOrigins: getAuthTrustedOrigins(),
 	advanced: {
 		database: {
 			generateId: (options) => {
@@ -60,8 +63,19 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		minPasswordLength: 8,
-		sendResetPassword: async ({ user, url }) => {
-			await sendPasswordResetEmail(user.email, user.name, url);
+		sendResetPassword: async ({ user, url, token }) => {
+			try {
+				await sendPasswordResetEmail(user.email, user.name, url);
+			} catch (err) {
+				console.error('[auth] Password reset email failed:', err);
+				if (token) {
+					await db
+						.delete(verifications)
+						.where(eq(verifications.identifier, `reset-password:${token}`))
+						.catch(() => {});
+				}
+				throw err;
+			}
 		},
 		password: {
 			hash: hashPassword,

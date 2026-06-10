@@ -5,9 +5,40 @@ import { EmailVerificationEmail } from './emails/EmailVerificationEmail';
 import { env } from '$env/dynamic/private';
 import * as React from 'react';
 
-const resend = new Resend(env.RESEND_API_KEY);
-
 const FROM = env.EMAIL_FROM ?? 'games.kieran.dev <noreply@kieran.dev>';
+
+function getResendClient(): Resend {
+	const apiKey = env.RESEND_API_KEY?.trim();
+	if (!apiKey) {
+		throw new Error('RESEND_API_KEY is not configured.');
+	}
+	return new Resend(apiKey);
+}
+
+async function sendEmail(payload: {
+	to: string;
+	subject: string;
+	html: string;
+	text: string;
+}): Promise<void> {
+	const resend = getResendClient();
+	const result = await resend.emails.send({
+		from: FROM,
+		to: payload.to,
+		subject: payload.subject,
+		html: payload.html,
+		text: payload.text,
+	});
+
+	if (result.error) {
+		const message =
+			typeof result.error.message === 'string'
+				? result.error.message
+				: 'Failed to send email.';
+		console.error('[mailer] Resend error:', result.error);
+		throw new Error(message);
+	}
+}
 
 export async function sendPasswordResetEmail(
 	to: string,
@@ -18,8 +49,7 @@ export async function sendPasswordResetEmail(
 	const text = await render(React.createElement(PasswordResetEmail, { nickname, resetUrl }), {
 		plainText: true,
 	});
-	await resend.emails.send({
-		from: FROM,
+	await sendEmail({
 		to,
 		subject: 'Reset your password — games.kieran.dev',
 		html,
@@ -39,8 +69,7 @@ export async function sendEmailVerificationEmail(
 		React.createElement(EmailVerificationEmail, { nickname, verifyUrl }),
 		{ plainText: true }
 	);
-	await resend.emails.send({
-		from: FROM,
+	await sendEmail({
 		to,
 		subject: 'Verify your email — games.kieran.dev',
 		html,
