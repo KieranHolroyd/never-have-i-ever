@@ -180,6 +180,52 @@ describe("Never Have I Ever engine", () => {
     expect(clearTimeoutMock).toHaveBeenCalledWith("timer-30000");
     expect(wsService.setTimeoutStart).toHaveBeenCalledTimes(2);
     expect(wsService.setTimeoutStart).toHaveBeenLastCalledWith("test-game", expect.any(Number));
+
+    const roundTimeoutBroadcasts = (wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls
+      .filter((call) => call[1] === "round_timeout");
+    expect(roundTimeoutBroadcasts).toHaveLength(0);
+  });
+
+  it("does not broadcast round_timeout when the results window expires", async () => {
+    const gameStateService = createStatefulGameStateService();
+    const wsService = createStatefulWebSocketService();
+    const httpService = {
+      ...createMockHttpService(),
+      getQuestionsList: mock(async () => ({
+        food: {
+          questions: [
+            "Never have I ever eaten ghost pepper.",
+            "Never have I ever made fresh pasta.",
+          ],
+        },
+      })),
+    };
+
+    const engine = createNeverHaveIEverEngine(wsService, httpService, gameStateService.service);
+    const alice = createMockWebSocket("test-game", "p1");
+    const bob = createMockWebSocket("test-game", "p2");
+
+    const scheduled: Array<{ fn: () => Promise<void> | void; delay?: number }> = [];
+    globalThis.setTimeout = mock((fn: Parameters<typeof setTimeout>[0], delay?: Parameters<typeof setTimeout>[1]) => {
+      scheduled.push({ fn: fn as () => Promise<void> | void, delay });
+      return `timer-${scheduled.length}` as any;
+    }) as unknown as typeof setTimeout;
+    globalThis.clearTimeout = mock(() => {}) as unknown as typeof clearTimeout;
+
+    await engine.handlers.vote(alice, { option: 1 });
+    await engine.handlers.vote(bob, { option: 2 });
+
+    const resultsWindowCallback = scheduled.find((entry) => entry.delay === 10_000)?.fn;
+    expect(resultsWindowCallback).toBeDefined();
+
+    const broadcastsBefore = (wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls.length;
+    await resultsWindowCallback?.();
+    const broadcastsAfter = (wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls.length;
+
+    const roundTimeoutBroadcasts = (wsService.broadcastToGameAndClient as ReturnType<typeof mock>).mock.calls
+      .filter((call) => call[1] === "round_timeout");
+    expect(roundTimeoutBroadcasts).toHaveLength(0);
+    expect(broadcastsAfter).toBeGreaterThan(broadcastsBefore);
   });
 
   it("lets manual skip win over a stale queued auto-advance callback", async () => {

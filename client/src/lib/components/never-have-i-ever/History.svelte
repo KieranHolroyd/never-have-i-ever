@@ -1,6 +1,11 @@
 <script lang="ts">
-	import { colour_map } from '$lib/colour';
+	import { voteBadgeClass } from '$lib/colour';
+	import { avatarColorClass, initials } from '$lib/avatar';
 	import type { GameRound } from '$lib/types';
+	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Separator } from '$lib/components/ui/separator';
 
 	interface Props {
 		history: GameRound[];
@@ -10,30 +15,48 @@
 </script>
 
 {#if history.length > 0}
-	<section class="mt-8 text-left">
-		<h2 class="nhie-phase-label mb-4 text-center">Round history</h2>
+	<section class="space-y-3 text-left">
+		<div class="flex items-center gap-3 pt-2">
+			<Separator class="flex-1" />
+			<h2 class="text-muted-foreground text-xs font-medium tracking-widest uppercase">
+				Round history
+			</h2>
+			<Separator class="flex-1" />
+		</div>
+
 		{#each history as round, idx (idx)}
-			<div class="relative mx-auto my-4 max-w-lg rounded-2xl border border-white/8 bg-zinc-950 pt-8 pb-3 px-4">
-				<span class="absolute left-3 top-3 text-[10px] font-black uppercase tracking-wider text-white/35">
-					Round {idx + 1}
-				</span>
-				<span class="absolute right-3 top-3 text-[10px] font-black uppercase tracking-wider text-emerald-400/70">
-					{round.question.catagory}
-				</span>
-				<p class="mb-3 mt-2 text-base font-semibold leading-snug text-zinc-100">{round.question.content}</p>
-				{#each round.players.filter((p) => p.connected) as player (player.id)}
-					<div
-						class={`relative my-1 rounded-lg px-2 py-1.5 text-sm font-bold ${colour_map[player.this_round.vote ?? 'null']}`}
-					>
-						{player.name}: {player.this_round.vote ?? 'Not Voted'}
-						<div
-							class="absolute top-1 right-1 rounded-full border border-white/20 bg-rose-600 px-1.5 text-xs text-white"
+			<Card size="sm">
+				<CardHeader class="pb-2">
+					<div class="flex items-center justify-between gap-2">
+						<Badge variant="outline">Round {idx + 1}</Badge>
+						<Badge
+							variant="secondary"
+							class="border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
 						>
-							{player.score}
-						</div>
+							{round.question.catagory}
+						</Badge>
 					</div>
-				{/each}
-			</div>
+					<CardTitle class="text-sm leading-snug font-semibold">
+						{round.question.content}
+					</CardTitle>
+				</CardHeader>
+				<CardContent class="space-y-1">
+					{#each round.players.filter((p) => p.connected) as player (player.id)}
+						<div class="flex items-center gap-2 rounded-lg px-1.5 py-1">
+							<Avatar size="sm">
+								<AvatarFallback class="text-[9px] font-bold {avatarColorClass(player.id)}">
+									{initials(player.name)}
+								</AvatarFallback>
+							</Avatar>
+							<span class="min-w-0 flex-1 truncate text-sm">{player.name}</span>
+							<Badge variant="secondary" class={voteBadgeClass[player.this_round.vote ?? 'null']}>
+								{player.this_round.vote ?? 'Not voted'}
+							</Badge>
+							<Badge variant="outline" class="text-xs">{player.score}</Badge>
+						</div>
+					{/each}
+				</CardContent>
+			</Card>
 		{/each}
 	</section>
 {/if}

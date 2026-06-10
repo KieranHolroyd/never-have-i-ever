@@ -1,12 +1,8 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
-	import MdiAccountCircle from '~icons/mdi/account-circle';
-	import MdiTrophy from '~icons/mdi/trophy';
-	import MdiCards from '~icons/mdi/cards';
 	import MdiAccountGroup from '~icons/mdi/account-group';
-	import MdiCalendar from '~icons/mdi/calendar';
+	import MdiCardsPlayingOutline from '~icons/mdi/cards-playing-outline';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
 	import MdiPencil from '~icons/mdi/pencil';
 	import MdiCheck from '~icons/mdi/check';
@@ -14,13 +10,51 @@
 	import MdiAlertCircle from '~icons/mdi/alert-circle';
 	import MdiEmail from '~icons/mdi/email';
 	import MdiLogout from '~icons/mdi/logout';
-	import MdiLinkVariant from '~icons/mdi/link-variant';
-	import MdiLinkVariantOff from '~icons/mdi/link-variant-off';
+	import MdiTrophy from '~icons/mdi/trophy';
 	import LogosGoogle from '~icons/logos/google-icon';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
-	import { Input } from '$lib/components/ui/input';
+	import { Alert, AlertDescription, AlertTitle, AlertAction } from '$lib/components/ui/alert';
+	import {
+		Accordion,
+		AccordionContent,
+		AccordionItem,
+		AccordionTrigger
+	} from '$lib/components/ui/accordion';
+	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
+	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
+	import {
+		Empty,
+		EmptyContent,
+		EmptyDescription,
+		EmptyHeader,
+		EmptyMedia,
+		EmptyTitle
+	} from '$lib/components/ui/empty';
+	import { Field, FieldDescription, FieldGroup, FieldLabel } from '$lib/components/ui/field';
+	import { Input } from '$lib/components/ui/input';
+	import {
+		Item,
+		ItemActions,
+		ItemContent,
+		ItemDescription,
+		ItemGroup,
+		ItemMedia,
+		ItemTitle
+	} from '$lib/components/ui/item';
+	import {
+		Table,
+		TableBody,
+		TableCell,
+		TableRow
+	} from '$lib/components/ui/table';
 
 	interface Props {
 		data: PageData;
@@ -43,23 +77,27 @@
 			? Math.round((totalWins / (nhieStats.games_completed + cahStats.games_completed || 1)) * 100)
 			: 0
 	);
+	const userInitial = $derived(user.nickname.charAt(0).toUpperCase());
+	const hasRecentGames = $derived(recentNhieGames.length > 0 || recentCahGames.length > 0);
+
+	let accountPanel = $state<string>('');
+
+	$effect(() => {
+		if (form?.action === 'update_nickname' && (form.error || form.success)) accountPanel = 'nickname';
+		if (form?.action === 'update_email' && (form.error || form.success)) accountPanel = 'email';
+		if (form?.action === 'update_password' && (form.error || form.success)) accountPanel = 'password';
+	});
 
 	function formatDate(d: string | Date) {
 		return new Date(d).toLocaleDateString('en-GB', {
 			day: 'numeric',
 			month: 'short',
-			year: 'numeric',
+			year: 'numeric'
 		});
 	}
 
 	function isWinner(score: number, topScore: number) {
 		return score >= topScore && topScore > 0;
-	}
-
-	// Which settings panel is open
-	let openPanel: 'nickname' | 'email' | 'password' | null = $state(null);
-	function toggle(panel: typeof openPanel) {
-		openPanel = openPanel === panel ? null : panel;
 	}
 </script>
 
@@ -67,228 +105,233 @@
 	<title>Profile ~ {user.nickname}</title>
 </svelte:head>
 
-<div class="py-10 space-y-10">
-	<!-- Email verification banner -->
+<div class="space-y-8 py-10">
 	{#if !user.email_verified}
-		<div class="flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm">
-			<MdiAlertCircle class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-			<div class="flex-1">
-				<p class="text-yellow-300 font-medium">Verify your email</p>
-				<p class="text-yellow-400/80 text-xs mt-0.5">
-					We sent a link to <span class="font-medium">{user.email}</span>. Check your inbox.
-				</p>
-			</div>
-			<form method="POST" action="?/resend_verification" use:enhance>
-				<button
-					type="submit"
-					class="text-xs text-yellow-300 hover:text-yellow-100 underline underline-offset-2 transition-colors"
-				>
-					{form?.action === 'resend_verification' && form.success ? 'Sent!' : 'Resend'}
-				</button>
-			</form>
-		</div>
+		<Alert>
+			<MdiAlertCircle />
+			<AlertTitle>Verify your email</AlertTitle>
+			<AlertDescription>
+				We sent a link to {user.email}. Check your inbox.
+			</AlertDescription>
+			<AlertAction>
+				<form method="POST" action="?/resend_verification" use:enhance>
+					<Button type="submit" variant="link" size="sm">
+						{form?.action === 'resend_verification' && form.success ? 'Sent!' : 'Resend'}
+					</Button>
+				</form>
+			</AlertAction>
+		</Alert>
 	{/if}
 
-	<!-- Header -->
 	<div class="flex items-center justify-between gap-4">
 		<div class="flex items-center gap-4">
-			<div class="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-zinc-800 text-zinc-300">
-				<MdiAccountCircle class="w-10 h-10" />
-			</div>
+			<Avatar class="size-16">
+				<AvatarFallback class="text-lg">{userInitial}</AvatarFallback>
+			</Avatar>
 			<div>
-				<h1 class="text-2xl font-bold text-white">{user.nickname}</h1>
-				<p class="text-zinc-400 text-sm">{user.email}</p>
+				<h1 class="text-2xl font-bold tracking-tight">{user.nickname}</h1>
+				<p class="text-muted-foreground text-sm">{user.email}</p>
 			</div>
 		</div>
 		<form method="POST" action="/auth/logout" use:enhance>
-			<button
-				type="submit"
-				class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
-			>
-				<MdiLogout class="w-4 h-4" />
+			<Button type="submit" variant="outline" size="sm">
+				<MdiLogout />
 				<span class="hidden sm:inline">Sign out</span>
-			</button>
+			</Button>
 		</form>
 	</div>
 
-	<!-- Top-level stat pills -->
 	<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 		<Card>
 			<CardContent class="pt-6 text-center">
 				<p class="text-2xl font-bold">{totalGames}</p>
-				<p class="text-muted-foreground mt-1 text-xs font-medium uppercase tracking-widest">Games played</p>
+				<p class="text-muted-foreground mt-1 text-xs">Games played</p>
 			</CardContent>
 		</Card>
-		<Card class="border-amber-500/30">
+		<Card>
 			<CardContent class="pt-6 text-center">
-				<p class="text-2xl font-bold text-amber-500">{totalWins}</p>
-				<p class="text-muted-foreground mt-1 text-xs font-medium uppercase tracking-widest">Wins</p>
+				<p class="text-2xl font-bold">{totalWins}</p>
+				<p class="text-muted-foreground mt-1 text-xs">Wins</p>
 			</CardContent>
 		</Card>
 		<Card>
 			<CardContent class="pt-6 text-center">
 				<p class="text-2xl font-bold">{winRate}%</p>
-				<p class="text-muted-foreground mt-1 text-xs">Win Rate</p>
+				<p class="text-muted-foreground mt-1 text-xs">Win rate</p>
 			</CardContent>
 		</Card>
 		<Card>
 			<CardContent class="pt-6 text-center">
-				<p class="text-2xl font-bold">
-					{nhieStats.games_completed + cahStats.games_completed}
-				</p>
+				<p class="text-2xl font-bold">{nhieStats.games_completed + cahStats.games_completed}</p>
 				<p class="text-muted-foreground mt-1 text-xs">Completed</p>
 			</CardContent>
 		</Card>
 	</div>
 
-	<!-- Per-game stats -->
 	<div class="grid gap-4 md:grid-cols-2">
-		<!-- NHIE -->
-		<div class="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-			<div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
-			<div class="p-5">
-				<div class="flex items-center gap-2 mb-4">
-					<MdiAccountGroup class="w-5 h-5 text-emerald-400" />
-					<h2 class="font-semibold text-white">Never Have I Ever</h2>
+		<Card class="border-emerald-500/30">
+			<CardHeader>
+				<div class="flex items-center gap-3">
+					<span class="bg-emerald-500/15 text-emerald-500 inline-flex size-10 items-center justify-center rounded-xl">
+						<MdiAccountGroup class="size-5" />
+					</span>
+					<div>
+						<CardTitle>Never Have I Ever</CardTitle>
+						<CardDescription>Your NHIE stats</CardDescription>
+					</div>
 				</div>
-				<dl class="space-y-2 text-sm">
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Games played</dt>
-						<dd class="text-white font-medium">{nhieStats.total_games}</dd>
-					</div>
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Completed</dt>
-						<dd class="text-white font-medium">{nhieStats.games_completed}</dd>
-					</div>
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Wins</dt>
-						<dd class="text-emerald-400 font-medium">{nhieStats.wins}</dd>
-					</div>
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Total score</dt>
-						<dd class="text-white font-medium">{nhieStats.total_score.toFixed(1)}</dd>
-					</div>
-				</dl>
-			</div>
-		</div>
+			</CardHeader>
+			<CardContent>
+				<Table>
+					<TableBody>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Games played</TableCell>
+							<TableCell class="text-right font-medium">{nhieStats.total_games}</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Completed</TableCell>
+							<TableCell class="text-right font-medium">{nhieStats.games_completed}</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Wins</TableCell>
+							<TableCell class="text-right font-medium">{nhieStats.wins}</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Total score</TableCell>
+							<TableCell class="text-right font-medium">{nhieStats.total_score.toFixed(1)}</TableCell>
+						</TableRow>
+					</TableBody>
+				</Table>
+			</CardContent>
+		</Card>
 
-		<!-- CAH -->
-		<div class="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-			<div class="h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-			<div class="p-5">
-				<div class="flex items-center gap-2 mb-4">
-					<MdiCards class="w-5 h-5 text-violet-400" />
-					<h2 class="font-semibold text-white">Cards Against Humanity</h2>
+		<Card class="border-violet-500/30">
+			<CardHeader>
+				<div class="flex items-center gap-3">
+					<span class="bg-violet-500/15 text-violet-500 inline-flex size-10 items-center justify-center rounded-xl">
+						<MdiCardsPlayingOutline class="size-5" />
+					</span>
+					<div>
+						<CardTitle>Cards Against Humanity</CardTitle>
+						<CardDescription>Your CAH stats</CardDescription>
+					</div>
 				</div>
-				<dl class="space-y-2 text-sm">
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Games played</dt>
-						<dd class="text-white font-medium">{cahStats.total_games}</dd>
-					</div>
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Completed</dt>
-						<dd class="text-white font-medium">{cahStats.games_completed}</dd>
-					</div>
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Wins</dt>
-						<dd class="text-violet-400 font-medium">{cahStats.wins}</dd>
-					</div>
-					<div class="flex justify-between">
-						<dt class="text-zinc-400">Rounds won</dt>
-						<dd class="text-white font-medium">{cahStats.rounds_won}</dd>
-					</div>
-				</dl>
-			</div>
-		</div>
+			</CardHeader>
+			<CardContent>
+				<Table>
+					<TableBody>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Games played</TableCell>
+							<TableCell class="text-right font-medium">{cahStats.total_games}</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Completed</TableCell>
+							<TableCell class="text-right font-medium">{cahStats.games_completed}</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Wins</TableCell>
+							<TableCell class="text-right font-medium">{cahStats.wins}</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell class="text-muted-foreground">Rounds won</TableCell>
+							<TableCell class="text-right font-medium">{cahStats.rounds_won}</TableCell>
+						</TableRow>
+					</TableBody>
+				</Table>
+			</CardContent>
+		</Card>
 	</div>
 
-	<!-- Recent games -->
-	{#if recentNhieGames.length > 0 || recentCahGames.length > 0}
-		<div class="space-y-4">
-			<h2 class="text-lg font-semibold text-white">Recent Games</h2>
-
-			<div class="space-y-2">
-				{#each recentNhieGames as game (game.id)}
-					{@const won = isWinner(game.score, game.top_score)}
-					<div class="flex items-center gap-3 rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 text-sm">
-						<span class="flex-shrink-0 w-2 h-2 rounded-full {won ? 'bg-emerald-400' : 'bg-zinc-600'}"></span>
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2">
-								<span class="text-zinc-300 font-medium truncate">Never Have I Ever</span>
+	<Card>
+		<CardHeader>
+			<CardTitle>Recent games</CardTitle>
+			<CardDescription>Games you've played while signed in</CardDescription>
+		</CardHeader>
+		<CardContent>
+			{#if hasRecentGames}
+				<ItemGroup>
+					{#each recentNhieGames as game (game.id)}
+						{@const won = isWinner(game.score, game.top_score)}
+						<Item variant="outline">
+							<ItemMedia variant="icon">
 								{#if won}
-									<MdiTrophy class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+									<MdiTrophy />
+								{:else}
+									<MdiAccountGroup />
 								{/if}
-								{#if !game.game_completed}
-									<span class="text-xs text-zinc-500">(unfinished)</span>
-								{/if}
-							</div>
-							<div class="flex items-center gap-3 mt-0.5 text-zinc-500">
-								<span class="flex items-center gap-1">
-									<MdiAccountGroup class="w-3 h-3" />
-									{game.player_count} players
-								</span>
-								<span class="flex items-center gap-1">
-									<MdiCalendar class="w-3 h-3" />
-									{formatDate(game.created_at)}
-								</span>
-							</div>
-						</div>
-						<div class="text-right flex-shrink-0">
-							<span class="text-white font-semibold">{game.score.toFixed(1)}</span>
-							<span class="text-zinc-500"> pts</span>
-						</div>
-					</div>
-				{/each}
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle>
+									Never Have I Ever
+									{#if won}
+										<Badge variant="secondary">Won</Badge>
+									{/if}
+									{#if !game.game_completed}
+										<Badge variant="outline">Unfinished</Badge>
+									{/if}
+								</ItemTitle>
+								<ItemDescription>
+									{game.player_count} players · {formatDate(game.created_at)}
+								</ItemDescription>
+							</ItemContent>
+							<ItemActions>
+								<span class="text-sm font-semibold">{game.score.toFixed(1)} pts</span>
+							</ItemActions>
+						</Item>
+					{/each}
 
-				{#each recentCahGames as game (game.id)}
-					{@const won = isWinner(game.score, game.top_score)}
-					<div class="flex items-center gap-3 rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 text-sm">
-						<span class="flex-shrink-0 w-2 h-2 rounded-full {won ? 'bg-violet-400' : 'bg-zinc-600'}"></span>
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2">
-								<span class="text-zinc-300 font-medium truncate">Cards Against Humanity</span>
+					{#each recentCahGames as game (game.id)}
+						{@const won = isWinner(game.score, game.top_score)}
+						<Item variant="outline">
+							<ItemMedia variant="icon">
 								{#if won}
-									<MdiTrophy class="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+									<MdiTrophy />
+								{:else}
+									<MdiCardsPlayingOutline />
 								{/if}
-								{#if !game.game_completed}
-									<span class="text-xs text-zinc-500">(unfinished)</span>
-								{/if}
-							</div>
-							<div class="flex items-center gap-3 mt-0.5 text-zinc-500">
-								<span class="flex items-center gap-1">
-									<MdiAccountGroup class="w-3 h-3" />
-									{game.player_count} players
-								</span>
-								<span>Rd {game.rounds_played}</span>
-								<span class="flex items-center gap-1">
-									<MdiCalendar class="w-3 h-3" />
-									{formatDate(game.created_at)}
-								</span>
-							</div>
-						</div>
-						<div class="text-right flex-shrink-0">
-							<span class="text-white font-semibold">{game.score}</span>
-							<span class="text-zinc-500"> wins</span>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
-	{:else}
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 p-8 text-center">
-			<MdiAccountGroup class="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-			<p class="text-zinc-400">No games recorded yet.</p>
-			<p class="text-zinc-500 text-sm mt-1">Play a game while logged in to start tracking stats.</p>
-			<button
-				onclick={() => goto('/')}
-				class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
-			>
-				Play now <MdiArrowRight class="w-4 h-4" />
-			</button>
-		</div>
-	{/if}
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle>
+									Cards Against Humanity
+									{#if won}
+										<Badge variant="secondary">Won</Badge>
+									{/if}
+									{#if !game.game_completed}
+										<Badge variant="outline">Unfinished</Badge>
+									{/if}
+								</ItemTitle>
+								<ItemDescription>
+									{game.player_count} players · Round {game.rounds_played} · {formatDate(game.created_at)}
+								</ItemDescription>
+							</ItemContent>
+							<ItemActions>
+								<span class="text-sm font-semibold">{game.score} wins</span>
+							</ItemActions>
+						</Item>
+					{/each}
+				</ItemGroup>
+			{:else}
+				<Empty>
+					<EmptyHeader>
+						<EmptyMedia variant="icon">
+							<MdiAccountGroup />
+						</EmptyMedia>
+						<EmptyTitle>No games recorded yet</EmptyTitle>
+						<EmptyDescription>
+							Play a game while logged in to start tracking stats.
+						</EmptyDescription>
+					</EmptyHeader>
+					<EmptyContent>
+						<Button href="/" variant="emerald">
+							Play now
+							<MdiArrowRight />
+						</Button>
+					</EmptyContent>
+				</Empty>
+			{/if}
+		</CardContent>
+	</Card>
 
-	<!-- Gameplay preferences (synced to account) -->
 	<Card>
 		<CardHeader>
 			<CardTitle>Gameplay preferences</CardTitle>
@@ -301,213 +344,231 @@
 		</CardContent>
 	</Card>
 
-	<!-- Account settings -->
-	<div class="space-y-3">
-		<h2 class="text-lg font-semibold text-white">Account Settings</h2>
-
-		<!-- Nickname -->
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-			<button
-				type="button"
-				onclick={() => toggle('nickname')}
-				class="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-zinc-800/50 transition-colors"
-			>
-				<div class="flex items-center gap-3">
-					<MdiPencil class="w-4 h-4 text-zinc-400" />
-					<div class="text-left">
-						<p class="text-white font-medium">Username</p>
-						<p class="text-zinc-500 text-xs mt-0.5">{user.nickname}</p>
-					</div>
+	<Card>
+		<CardHeader>
+			<CardTitle>Account</CardTitle>
+			<CardDescription>Update how you sign in and manage linked providers</CardDescription>
+		</CardHeader>
+		<CardContent class="space-y-8">
+			<section class="space-y-3">
+				<div>
+					<h3 class="text-sm font-medium">Sign-in details</h3>
+					<p class="text-muted-foreground text-sm">Tap a row to update your credentials</p>
 				</div>
-				<span class="text-zinc-500 text-xs">{openPanel === 'nickname' ? 'Cancel' : 'Change'}</span>
-			</button>
-			{#if openPanel === 'nickname'}
-				<form
-					method="POST"
-					action="?/update_nickname"
-					use:enhance={() => {
-						return ({ update }) => update({ reset: false });
-					}}
-					class="border-t border-zinc-800 px-5 py-4 space-y-3"
-				>
-					{#if form?.action === 'update_nickname' && form.error}
-						<p class="text-red-400 text-sm">{form.error}</p>
-					{/if}
-					{#if form?.action === 'update_nickname' && form.success}
-						<p class="text-emerald-400 text-sm flex items-center gap-1.5"><MdiCheck class="w-4 h-4" /> Username updated.</p>
-					{/if}
-					<div>
-						<label for="nickname" class="block text-xs text-zinc-400 mb-1">New username</label>
-						<Input
-							id="nickname"
-							name="nickname"
-							type="text"
-							value={user.nickname}
-							maxlength={30}
-							required
-						/>
-					</div>
-					<button
-						type="submit"
-						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
-					>Save</button>
-				</form>
-			{/if}
-		</div>
 
-		<!-- Email -->
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-			<button
-				type="button"
-				onclick={() => toggle('email')}
-				class="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-zinc-800/50 transition-colors"
-			>
-				<div class="flex items-center gap-3">
-					<MdiEmail class="w-4 h-4 text-zinc-400" />
-					<div class="text-left">
-						<p class="text-white font-medium">Email</p>
-						<p class="text-zinc-500 text-xs mt-0.5">{user.email}</p>
-					</div>
-				</div>
-				<span class="text-zinc-500 text-xs">{openPanel === 'email' ? 'Cancel' : 'Change'}</span>
-			</button>
-			{#if openPanel === 'email'}
-				<form
-					method="POST"
-					action="?/update_email"
-					use:enhance={() => {
-						return ({ update }) => update({ reset: false });
-					}}
-					class="border-t border-zinc-800 px-5 py-4 space-y-3"
-				>
-					{#if form?.action === 'update_email' && form.error}
-						<p class="text-red-400 text-sm">{form.error}</p>
-					{/if}
-					{#if form?.action === 'update_email' && form.success}
-						<p class="text-emerald-400 text-sm flex items-center gap-1.5"><MdiCheck class="w-4 h-4" /> Email updated.</p>
-					{/if}
-					<div>
-						<label for="email" class="block text-xs text-zinc-400 mb-1">New email</label>
-						<Input
-							id="email"
-							name="email"
-							type="email"
-							value={user.email}
-							required
-						/>
-					</div>
-					<div>
-						<label for="email-password" class="block text-xs text-zinc-400 mb-1">Current password</label>
-						<Input
-							id="email-password"
-							name="password"
-							type="password"
-							placeholder="Confirm with your password"
-							required
-						/>
-					</div>
-					<button
-						type="submit"
-						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
-					>Save</button>
-				</form>
-			{/if}
-		</div>
+				<div class="ring-foreground/10 bg-card overflow-hidden rounded-xl ring-1">
+					<Accordion type="single" bind:value={accountPanel}>
+						<AccordionItem value="nickname" class="border-b px-4 last:border-b-0">
+							<AccordionTrigger class="py-4 hover:no-underline">
+								<div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+									<span class="bg-muted text-muted-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-lg">
+										<MdiPencil class="size-4" />
+									</span>
+									<div class="min-w-0 text-left">
+										<p class="text-sm font-medium">Username</p>
+										<p class="text-muted-foreground truncate text-xs">{user.nickname}</p>
+									</div>
+								</div>
+							</AccordionTrigger>
+							<AccordionContent class="pb-4">
+								<form
+									method="POST"
+									action="?/update_nickname"
+									use:enhance={() => ({ update }) => update({ reset: false })}
+									class="bg-muted/40 space-y-4 rounded-lg border p-4"
+								>
+									{#if form?.action === 'update_nickname' && form.error}
+										<Alert variant="destructive">
+											<AlertDescription>{form.error}</AlertDescription>
+										</Alert>
+									{/if}
+									{#if form?.action === 'update_nickname' && form.success}
+										<Alert>
+											<MdiCheck />
+											<AlertDescription>Username updated.</AlertDescription>
+										</Alert>
+									{/if}
+									<FieldGroup>
+										<Field>
+											<FieldLabel for="nickname">New username</FieldLabel>
+											<FieldDescription>Shown in games and on your profile.</FieldDescription>
+											<Input
+												id="nickname"
+												name="nickname"
+												type="text"
+												value={user.nickname}
+												maxlength={30}
+												required
+											/>
+										</Field>
+									</FieldGroup>
+									<div class="flex justify-end">
+										<Button type="submit" size="sm">Save changes</Button>
+									</div>
+								</form>
+							</AccordionContent>
+						</AccordionItem>
 
-		<!-- Password -->
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-			<button
-				type="button"
-				onclick={() => toggle('password')}
-				class="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-zinc-800/50 transition-colors"
-			>
-				<div class="flex items-center gap-3">
-					<MdiLock class="w-4 h-4 text-zinc-400" />
-					<div class="text-left">
-						<p class="text-white font-medium">Password</p>
-						<p class="text-zinc-500 text-xs mt-0.5">••••••••</p>
-					</div>
-				</div>
-				<span class="text-zinc-500 text-xs">{openPanel === 'password' ? 'Cancel' : 'Change'}</span>
-			</button>
-			{#if openPanel === 'password'}
-				<form
-					method="POST"
-					action="?/update_password"
-					use:enhance={() => {
-						return ({ update }) => update({ reset: false });
-					}}
-					class="border-t border-zinc-800 px-5 py-4 space-y-3"
-				>
-					{#if form?.action === 'update_password' && form.error}
-						<p class="text-red-400 text-sm">{form.error}</p>
-					{/if}
-					{#if form?.action === 'update_password' && form.success}
-						<p class="text-emerald-400 text-sm flex items-center gap-1.5"><MdiCheck class="w-4 h-4" /> Password updated.</p>
-					{/if}
-					<div>
-						<label for="current_password" class="block text-xs text-zinc-400 mb-1">Current password</label>
-						<Input id="current_password" name="current_password" type="password" required />
-					</div>
-					<div>
-						<label for="new_password" class="block text-xs text-zinc-400 mb-1">New password</label>
-						<Input id="new_password" name="new_password" type="password" minlength={8} required />
-					</div>
-					<div>
-						<label for="confirm_password" class="block text-xs text-zinc-400 mb-1">Confirm new password</label>
-						<Input
-							id="confirm_password"
-							name="confirm_password"
-							type="password"
-							minlength={8}
-							required
-						/>
-					</div>
-					<button
-						type="submit"
-						class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
-					>Save</button>
-				</form>
-			{/if}
-		</div>
+						<AccordionItem value="email" class="border-b px-4 last:border-b-0">
+							<AccordionTrigger class="py-4 hover:no-underline">
+								<div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+									<span class="bg-muted text-muted-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-lg">
+										<MdiEmail class="size-4" />
+									</span>
+									<div class="min-w-0 text-left">
+										<p class="text-sm font-medium">Email</p>
+										<p class="text-muted-foreground truncate text-xs">{user.email}</p>
+									</div>
+								</div>
+							</AccordionTrigger>
+							<AccordionContent class="pb-4">
+								<form
+									method="POST"
+									action="?/update_email"
+									use:enhance={() => ({ update }) => update({ reset: false })}
+									class="bg-muted/40 space-y-4 rounded-lg border p-4"
+								>
+									{#if form?.action === 'update_email' && form.error}
+										<Alert variant="destructive">
+											<AlertDescription>{form.error}</AlertDescription>
+										</Alert>
+									{/if}
+									{#if form?.action === 'update_email' && form.success}
+										<Alert>
+											<MdiCheck />
+											<AlertDescription>Email updated.</AlertDescription>
+										</Alert>
+									{/if}
+									<FieldGroup>
+										<Field>
+											<FieldLabel for="email">New email</FieldLabel>
+											<Input id="email" name="email" type="email" value={user.email} required />
+										</Field>
+										<Field>
+											<FieldLabel for="email-password">Current password</FieldLabel>
+											<FieldDescription>Required to confirm this change.</FieldDescription>
+											<Input
+												id="email-password"
+												name="password"
+												type="password"
+												placeholder="Enter your current password"
+												required
+											/>
+										</Field>
+									</FieldGroup>
+									<div class="flex justify-end">
+										<Button type="submit" size="sm">Save changes</Button>
+									</div>
+								</form>
+							</AccordionContent>
+						</AccordionItem>
 
-		<!-- Google account connection -->
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-			<div class="flex items-center justify-between px-5 py-4 text-sm">
-				<div class="flex items-center gap-3">
-					<LogosGoogle class="w-4 h-4 flex-shrink-0" />
-					<div>
-						<p class="text-white font-medium">Google</p>
-						{#if googleAccount}
-							<p class="text-zinc-500 text-xs mt-0.5">{googleAccount.email}</p>
-						{:else}
-							<p class="text-zinc-500 text-xs mt-0.5">Not connected</p>
-						{/if}
-					</div>
+						<AccordionItem value="password" class="px-4">
+							<AccordionTrigger class="py-4 hover:no-underline">
+								<div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+									<span class="bg-muted text-muted-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-lg">
+										<MdiLock class="size-4" />
+									</span>
+									<div class="min-w-0 text-left">
+										<p class="text-sm font-medium">Password</p>
+										<p class="text-muted-foreground text-xs">Last changed · hidden</p>
+									</div>
+								</div>
+							</AccordionTrigger>
+							<AccordionContent class="pb-4">
+								<form
+									method="POST"
+									action="?/update_password"
+									use:enhance={() => ({ update }) => update({ reset: false })}
+									class="bg-muted/40 space-y-4 rounded-lg border p-4"
+								>
+									{#if form?.action === 'update_password' && form.error}
+										<Alert variant="destructive">
+											<AlertDescription>{form.error}</AlertDescription>
+										</Alert>
+									{/if}
+									{#if form?.action === 'update_password' && form.success}
+										<Alert>
+											<MdiCheck />
+											<AlertDescription>Password updated.</AlertDescription>
+										</Alert>
+									{/if}
+									<FieldGroup>
+										<Field>
+											<FieldLabel for="current_password">Current password</FieldLabel>
+											<Input id="current_password" name="current_password" type="password" required />
+										</Field>
+										<Field>
+											<FieldLabel for="new_password">New password</FieldLabel>
+											<FieldDescription>At least 8 characters.</FieldDescription>
+											<Input id="new_password" name="new_password" type="password" minlength={8} required />
+										</Field>
+										<Field>
+											<FieldLabel for="confirm_password">Confirm new password</FieldLabel>
+											<Input
+												id="confirm_password"
+												name="confirm_password"
+												type="password"
+												minlength={8}
+												required
+											/>
+										</Field>
+									</FieldGroup>
+									<div class="flex justify-end">
+										<Button type="submit" size="sm">Save changes</Button>
+									</div>
+								</form>
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
 				</div>
-				{#if googleAccount}
-					<form method="POST" action="?/unlink_google" use:enhance={() => ({ update }) => update({ reset: false })}>
-						<button
-							type="submit"
-							class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-red-400 transition-colors"
-						>
-							<MdiLinkVariantOff class="w-3.5 h-3.5" />
-							Unlink
-						</button>
-					</form>
-				{:else}
-					<a
-						href="/auth/google?link=1"
-						class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
-					>
-						<MdiLinkVariant class="w-3.5 h-3.5" />
-						Connect
-					</a>
+			</section>
+
+			<section class="space-y-3">
+				<div>
+					<h3 class="text-sm font-medium">Connected accounts</h3>
+					<p class="text-muted-foreground text-sm">Sign in faster with a linked provider</p>
+				</div>
+
+				<ItemGroup class="ring-foreground/10 overflow-hidden rounded-xl ring-1">
+					<Item variant="outline" class="rounded-none border-0 px-4 py-4">
+						<ItemMedia variant="icon">
+							<span class="bg-muted inline-flex size-9 items-center justify-center rounded-lg">
+								<LogosGoogle class="size-4" />
+							</span>
+						</ItemMedia>
+						<ItemContent>
+							<ItemTitle>
+								Google
+								{#if googleAccount}
+									<Badge variant="secondary">Connected</Badge>
+								{:else}
+									<Badge variant="outline">Not connected</Badge>
+								{/if}
+							</ItemTitle>
+							<ItemDescription>
+								{googleAccount ? googleAccount.email : 'Link your Google account for one-click sign in'}
+							</ItemDescription>
+						</ItemContent>
+						<ItemActions>
+							{#if googleAccount}
+								<form method="POST" action="?/unlink_google" use:enhance={() => ({ update }) => update({ reset: false })}>
+									<Button type="submit" variant="outline" size="sm">Unlink</Button>
+								</form>
+							{:else}
+								<Button href="/auth/google?link=1" size="sm">Connect</Button>
+							{/if}
+						</ItemActions>
+					</Item>
+				</ItemGroup>
+
+				{#if form?.action === 'unlink_google' && form.success}
+					<Alert>
+						<MdiCheck />
+						<AlertDescription>Google account unlinked.</AlertDescription>
+					</Alert>
 				{/if}
-			</div>
-			{#if form?.action === 'unlink_google' && form.success}
-				<p class="px-5 pb-3 text-xs text-emerald-400">Google account unlinked.</p>
-			{/if}
-		</div>
-	</div>
+			</section>
+		</CardContent>
+	</Card>
 </div>

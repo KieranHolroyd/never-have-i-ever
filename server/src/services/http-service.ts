@@ -4,6 +4,7 @@ import logger from "../logger";
 import { db } from "../db";
 import { categories, cahCards } from "../db/schema";
 import { sql } from "drizzle-orm";
+import { seedCategories } from "../seed/categories";
 
 export interface IHttpService {
   getQuestionsList(): Promise<Catagories>;
@@ -15,27 +16,49 @@ export interface IHttpService {
 export class HttpService implements IHttpService {
   constructor() {}
 
+  static clearQuestionsCache(): void {
+    HttpService._questionsCache = null;
+  }
+
+  private async loadCategoriesFromDb(): Promise<Catagories> {
+    const rows = await db.select({
+      name: categories.name,
+      questions: categories.questions,
+      is_nsfw: categories.is_nsfw,
+    }).from(categories);
+
+    const categoriesData: Catagories = {};
+    for (const row of rows) {
+      categoriesData[row.name] = {
+        flags: { is_nsfw: row.is_nsfw },
+        questions: row.questions as string[],
+      };
+    }
+
+    return categoriesData;
+  }
+
   async getQuestionsList(): Promise<Catagories> {
-    // Simple in-memory cache to avoid repeated DB round-trips per game start
-    if (HttpService._questionsCache) return HttpService._questionsCache;
+    if (HttpService._questionsCache && Object.keys(HttpService._questionsCache).length > 0) {
+      return HttpService._questionsCache;
+    }
 
     try {
-      const rows = await db.select({
-        name: categories.name,
-        questions: categories.questions,
-        is_nsfw: categories.is_nsfw,
-      }).from(categories);
+      let categoriesData = await this.loadCategoriesFromDb();
 
-      const categoriesData: Catagories = {};
-      for (const row of rows) {
-        categoriesData[row.name] = {
-          flags: { is_nsfw: row.is_nsfw },
-          questions: row.questions as string[],
-        };
+      if (Object.keys(categoriesData).length === 0) {
+        logger.warn("Categories table is empty — seeding from assets/data.json");
+        const seeded = await seedCategories();
+        logger.info(`Seeded ${seeded} categories`);
+        HttpService.clearQuestionsCache();
+        categoriesData = await this.loadCategoriesFromDb();
       }
 
-      HttpService._questionsCache = categoriesData;
-      logger.info(`Loaded ${rows.length} categories from database`);
+      if (Object.keys(categoriesData).length > 0) {
+        HttpService._questionsCache = categoriesData;
+      }
+
+      logger.info(`Loaded ${Object.keys(categoriesData).length} categories from database`);
       return categoriesData;
     } catch (error) {
       logger.error("Failed to load categories from database:", error);
@@ -196,7 +219,7 @@ export class HttpService implements IHttpService {
         });
 
       } catch (deployError) {
-        logger.error("Error initiating deployment:", deployError);
+        logger.error("Error initiating deployment:", error);
       }
 
       // Notify users about the automatic deployment

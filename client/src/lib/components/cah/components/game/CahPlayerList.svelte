@@ -3,6 +3,18 @@
 	import { sortPlayersByScore, getPlayerInitials } from '../../utils/cah-utils';
 	import { fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
+	import {
+		Item,
+		ItemActions,
+		ItemContent,
+		ItemDescription,
+		ItemGroup,
+		ItemMedia,
+		ItemTitle
+	} from '$lib/components/ui/item';
 
 	interface Props {
 		gameState: CAHGameState;
@@ -17,80 +29,70 @@
 	const submittedPlayerIds = $derived(
 		new Set((gameState.submittedCards ?? []).map((s) => s.playerId))
 	);
+
+	function playerStatus(player: (typeof sortedPlayers)[number]) {
+		if (player.isJudge) return 'judging';
+		if (gameState.phase === 'selecting' && submittedPlayerIds.has(player.id)) return 'submitted';
+		if (gameState.phase === 'selecting') return 'choosing…';
+		return 'watching';
+	}
 </script>
 
-<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] overflow-hidden">
-	<!-- Header -->
-	<div class="border-b border-white/[0.07] px-4 py-3 flex items-center justify-between">
-		<span class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30">Leaderboard</span>
+<Card>
+	<CardHeader class="border-b [.border-b]:pb-3">
+		<CardTitle class="text-sm">Leaderboard</CardTitle>
 		{#if playersNeeded > 0}
-			<span class="text-[11px] font-bold text-amber-400/70">Need {playersNeeded} more</span>
+			<Badge variant="secondary" class="text-amber-500">Need {playersNeeded} more</Badge>
 		{:else}
-			<span class="text-[11px] font-bold text-white/20">{connectedPlayers.length} players</span>
+			<Badge variant="outline">{connectedPlayers.length} players</Badge>
 		{/if}
-	</div>
+	</CardHeader>
 
-	<!-- Player rows -->
-	<div class="divide-y divide-white/[0.05]">
-		{#each sortedPlayers as player, i (player.id)}
-			{@const isCurrentPlayer = player.id === currentPlayerId}
-			{@const hasSubmitted = submittedPlayerIds.has(player.id)}
-			<div
-				class="flex items-center gap-3 px-4 py-3 transition-colors
-				{player.isJudge
-					? 'bg-amber-500/[0.07]'
-					: isCurrentPlayer
-						? 'bg-white/[0.05]'
-						: 'hover:bg-white/[0.03]'}"
-				in:fly={{ y: 6, duration: 180 }}
-				animate:flip={{ duration: 200 }}
-			>
-				<!-- Rank -->
-				<span class="w-4 shrink-0 text-center text-xs font-black text-white/20">{i + 1}</span>
-
-				<!-- Avatar -->
-				<div
-					class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black
-					{player.isJudge
-						? 'bg-amber-500/20 text-amber-200'
-						: isCurrentPlayer
-							? 'bg-white/20 text-white'
-							: 'bg-white/10 text-white/60'}"
+	<CardContent class="p-0">
+		<ItemGroup>
+			{#each sortedPlayers as player, i (player.id)}
+				{@const isCurrentPlayer = player.id === currentPlayerId}
+				<div in:fly={{ y: 6, duration: 180 }} animate:flip={{ duration: 200 }}>
+				<Item
+					variant="outline"
+					class={player.isJudge ? 'bg-amber-500/5' : isCurrentPlayer ? 'bg-muted/50' : ''}
 				>
-					{getPlayerInitials(player.name)}
+					<ItemMedia>
+						<span class="text-muted-foreground w-4 text-center text-xs font-bold">{i + 1}</span>
+					</ItemMedia>
+					<ItemMedia>
+						<Avatar size="sm">
+							<AvatarFallback
+								class={player.isJudge
+									? 'bg-amber-500/20 text-amber-200'
+									: isCurrentPlayer
+										? 'bg-muted text-foreground'
+										: ''}
+							>
+								{getPlayerInitials(player.name)}
+							</AvatarFallback>
+						</Avatar>
+					</ItemMedia>
+					<ItemContent>
+						<ItemTitle>
+							{player.name}
+							{#if isCurrentPlayer}
+								<span class="text-muted-foreground font-normal">(you)</span>
+							{/if}
+							{#if player.isJudge}
+								<Badge variant="secondary" class="text-amber-500">Judge</Badge>
+							{/if}
+						</ItemTitle>
+						<ItemDescription>{playerStatus(player)}</ItemDescription>
+					</ItemContent>
+					<ItemActions>
+						<span class="text-xl font-bold {i === 0 ? 'text-foreground' : 'text-muted-foreground'}">
+							{player.score}
+						</span>
+					</ItemActions>
+				</Item>
 				</div>
-
-				<!-- Name + status -->
-				<div class="min-w-0 flex-1">
-					<p class="truncate text-sm font-bold {isCurrentPlayer ? 'text-white' : 'text-white/70'}">
-						{player.name}
-						{#if isCurrentPlayer}<span class="text-white/30 font-normal"> (you)</span>{/if}
-					</p>
-					<p class="text-[11px] text-white/30">
-						{#if player.isJudge}
-							judging
-						{:else if gameState.phase === 'selecting' && hasSubmitted}
-							submitted ✓
-						{:else if gameState.phase === 'selecting'}
-							choosing…
-						{:else}
-							watching
-						{/if}
-					</p>
-				</div>
-
-				<!-- Score -->
-				<div class="shrink-0 text-right">
-					<span class="text-xl font-black {i === 0 ? 'text-white' : 'text-white/50'}"
-						>{player.score}</span
-					>
-					{#if player.isJudge}
-						<div class="text-[10px] font-black uppercase tracking-widest text-amber-500/70">
-							judge
-						</div>
-					{/if}
-				</div>
-			</div>
-		{/each}
-	</div>
-</div>
+			{/each}
+		</ItemGroup>
+	</CardContent>
+</Card>

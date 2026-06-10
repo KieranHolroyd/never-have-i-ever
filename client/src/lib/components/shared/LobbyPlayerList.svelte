@@ -1,4 +1,29 @@
 <script lang="ts">
+	import { flip } from 'svelte/animate';
+	import { fly } from 'svelte/transition';
+	import { quintOut } from 'svelte/easing';
+	import { Status } from '$lib/types';
+	import { avatarColorClass, initials } from '$lib/avatar';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Avatar, AvatarBadge, AvatarFallback } from '$lib/components/ui/avatar';
+	import {
+		Empty,
+		EmptyDescription,
+		EmptyHeader,
+		EmptyMedia,
+		EmptyTitle
+	} from '$lib/components/ui/empty';
+	import {
+		Item,
+		ItemActions,
+		ItemContent,
+		ItemGroup,
+		ItemMedia,
+		ItemTitle
+	} from '$lib/components/ui/item';
+
 	interface LobbyPlayer {
 		id: string;
 		name: string;
@@ -12,6 +37,8 @@
 		canManagePlayers?: boolean;
 		removingPlayerId?: string | null;
 		onRemovePlayer?: (playerId: string) => void;
+		connection?: Status;
+		showConnection?: boolean;
 		title?: string;
 	}
 
@@ -22,6 +49,8 @@
 		canManagePlayers = false,
 		removingPlayerId = null,
 		onRemovePlayer,
+		connection = Status.DISCONNECTED,
+		showConnection = false,
 		title = 'Players'
 	}: Props = $props();
 
@@ -31,52 +60,114 @@
 		)
 	);
 
-	function removePlayer(playerId: string) {
-		onRemovePlayer?.(playerId);
-	}
+	const onlineCount = $derived(players.filter((p) => p.connected).length);
+
+	const connectionVariant = $derived(
+		connection === Status.CONNECTED
+			? 'default'
+			: connection === Status.DISCONNECTED
+				? 'destructive'
+				: 'secondary'
+	);
+
+	const connectionLabel = $derived(
+		connection === Status.CONNECTED
+			? 'Connected'
+			: connection === Status.DISCONNECTED
+				? 'Offline'
+				: 'Joining'
+	);
 </script>
 
-<div class="rounded-2xl border border-white/10 bg-black/20 p-4 text-white">
-	<div class="flex items-center justify-between gap-3">
+<Card>
+	<CardHeader class="flex-row items-center justify-between gap-3">
 		<div>
-			<p class="text-[11px] font-black uppercase tracking-[0.25em] text-white/35">{title}</p>
-			<p class="mt-1 text-sm text-white/55">{players.length} player{players.length === 1 ? '' : 's'} in room</p>
+			<CardTitle class="text-base">{title}</CardTitle>
+			<CardDescription>
+				{players.length === 0
+					? 'Friends will show up here once they join.'
+					: `${onlineCount} online · ${players.length} in room`}
+			</CardDescription>
 		</div>
-	</div>
-
-	<div class="mt-4 space-y-2">
-		{#each sortedPlayers as player (player.id)}
-			<div class="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2.5">
-				<div class="min-w-0">
-					<div class="flex flex-wrap items-center gap-2">
-						<p class="truncate text-sm font-bold text-white">
-							{player.name}
-							{#if player.id === currentPlayerId}
-								<span class="text-white/45">(You)</span>
-							{/if}
-						</p>
-						{#if player.id === creatorPlayerId}
-							<span class="rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">
-								Creator
-							</span>
-						{/if}
-					</div>
-					<p class="mt-1 text-xs text-white/40">
-						{player.connected ? 'Connected' : 'Disconnected'}
-					</p>
-				</div>
-
-				{#if canManagePlayers && player.id !== currentPlayerId}
-					<button
-						type="button"
-						class="shrink-0 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-red-200 transition hover:border-red-400/35 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-						disabled={removingPlayerId !== null}
-						onclick={() => removePlayer(player.id)}
+		{#if showConnection}
+			<Badge variant={connectionVariant} class="gap-1.5">
+				<span
+					class="size-1.5 rounded-full {connection === Status.CONNECTED
+						? 'bg-emerald-400'
+						: connection === Status.DISCONNECTED
+							? 'bg-white/80'
+							: 'animate-pulse bg-amber-400'}"
+				></span>
+				{connectionLabel}
+			</Badge>
+		{/if}
+	</CardHeader>
+	<CardContent>
+		{#if sortedPlayers.length === 0}
+			<Empty class="border py-8">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<span class="animate-pulse">👋</span>
+					</EmptyMedia>
+					<EmptyTitle class="text-sm">No one here yet</EmptyTitle>
+					<EmptyDescription class="text-xs">
+						Share the invite link above to fill the room.
+					</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
+		{:else}
+			<ItemGroup class="gap-1.5">
+				{#each sortedPlayers as player (player.id)}
+					<div
+						in:fly={{ y: 6, duration: 220, easing: quintOut }}
+						animate:flip={{ duration: 250 }}
 					>
-						{removingPlayerId === player.id ? 'Removing' : 'Remove'}
-					</button>
-				{/if}
-			</div>
-		{/each}
-	</div>
-</div>
+						<Item variant="outline" class={player.connected ? '' : 'opacity-55'}>
+							<ItemMedia>
+								<Avatar size="lg">
+									<AvatarFallback class="text-xs font-bold {avatarColorClass(player.id)}">
+										{initials(player.name)}
+									</AvatarFallback>
+									<AvatarBadge
+										class={player.connected ? 'bg-emerald-500' : 'bg-muted-foreground/40'}
+									/>
+								</Avatar>
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle>
+									<span class="truncate">{player.name}</span>
+									{#if player.id === currentPlayerId}
+										<span class="text-muted-foreground text-xs font-normal">(you)</span>
+									{/if}
+								</ItemTitle>
+								<p class="text-muted-foreground text-xs">
+									{player.connected ? 'Online' : 'Away'}
+								</p>
+							</ItemContent>
+							<ItemActions>
+								{#if player.id === creatorPlayerId}
+									<Badge
+										variant="secondary"
+										class="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+									>
+										Host
+									</Badge>
+								{/if}
+								{#if canManagePlayers && player.id !== currentPlayerId}
+									<Button
+										variant="destructive"
+										size="sm"
+										disabled={removingPlayerId !== null}
+										onclick={() => onRemovePlayer?.(player.id)}
+									>
+										{removingPlayerId === player.id ? 'Removing' : 'Remove'}
+									</Button>
+								{/if}
+							</ItemActions>
+						</Item>
+					</div>
+				{/each}
+			</ItemGroup>
+		{/if}
+	</CardContent>
+</Card>

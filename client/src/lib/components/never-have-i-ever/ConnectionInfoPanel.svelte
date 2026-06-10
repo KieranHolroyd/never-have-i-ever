@@ -1,5 +1,20 @@
 <script lang="ts">
 	import { Status, type Player } from '$lib/types';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Button } from '$lib/components/ui/button';
+	import {
+		Popover,
+		PopoverContent,
+		PopoverHeader,
+		PopoverTitle,
+		PopoverTrigger
+	} from '$lib/components/ui/popover';
+	import {
+		Collapsible,
+		CollapsibleContent,
+		CollapsibleTrigger
+	} from '$lib/components/ui/collapsible';
+	import MdiConnection from '~icons/mdi/connection';
 
 	interface Props {
 		connection?: Status;
@@ -10,13 +25,6 @@
 
 	let { connection = Status.DISCONNECTED, players = [], errors = [], ping = 0 }: Props = $props();
 
-	const statusColor = $derived(
-		connection === Status.CONNECTED
-			? 'bg-emerald-400'
-			: connection === Status.CONNECTING
-				? 'bg-yellow-400 animate-pulse'
-				: 'bg-red-400'
-	);
 	const statusLabel = $derived(
 		connection === Status.CONNECTED
 			? 'Connected'
@@ -24,61 +32,98 @@
 				? 'Connecting…'
 				: 'Disconnected'
 	);
-	const pingColor = $derived(
-		ping === 0 ? 'text-zinc-400' : ping < 80 ? 'text-emerald-400' : ping < 200 ? 'text-yellow-400' : 'text-red-400'
+
+	const statusDotClass = $derived(
+		connection === Status.CONNECTED
+			? 'bg-emerald-500'
+			: connection === Status.CONNECTING
+				? 'animate-pulse bg-amber-500'
+				: 'bg-destructive'
 	);
 </script>
 
-<!-- Anchored below the navbar, left side, above the share button -->
-<div class="fixed top-16 right-2 z-30">
-	<details class="group">
-		<summary
-			class="flex items-center gap-2 cursor-pointer select-none
-				rounded-lg bg-zinc-900/90 border border-zinc-700/60 backdrop-blur-sm
-				px-2.5 py-1.5 text-xs font-medium shadow list-none"
-		>
-			<span class="inline-block w-2 h-2 rounded-full shrink-0 {statusColor}"></span>
-			<span class="text-zinc-200">{statusLabel}</span>
-			{#if ping > 0}
-				<span class="{pingColor} font-mono tabular-nums">{ping.toFixed(0)}ms</span>
-			{/if}
-		</summary>
+<div class="fixed top-16 right-3 z-40">
+	<Popover>
+		<PopoverTrigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					variant="outline"
+					size="sm"
+					class="bg-background/95 h-8 gap-1.5 px-2.5 shadow-sm backdrop-blur-sm"
+					title="Connection details"
+				>
+					<span class="size-2 shrink-0 rounded-full {statusDotClass}"></span>
+					<span class="hidden text-xs sm:inline">{statusLabel}</span>
+					{#if ping > 0}
+						<Badge variant="outline" class="hidden px-1.5 font-mono text-[10px] tabular-nums sm:inline-flex">
+							{ping.toFixed(0)}ms
+						</Badge>
+					{/if}
+					<MdiConnection class="text-muted-foreground size-3.5 sm:hidden" />
+				</Button>
+			{/snippet}
+		</PopoverTrigger>
+		<PopoverContent align="end" class="w-56 p-0">
+			<PopoverHeader class="border-b px-3 py-2.5">
+				<PopoverTitle class="flex items-center gap-2 text-sm">
+					<span class="size-2 shrink-0 rounded-full {statusDotClass}"></span>
+					{statusLabel}
+				</PopoverTitle>
+				{#if ping > 0}
+					<p class="text-muted-foreground text-xs">
+						Ping: <span class="font-mono tabular-nums">{ping.toFixed(0)}ms</span>
+					</p>
+				{/if}
+			</PopoverHeader>
 
-		<div
-			class="absolute right-0 mt-1.5 w-52 rounded-xl bg-zinc-900/95 border border-zinc-700/60
-				backdrop-blur-sm shadow-xl text-xs text-zinc-300 overflow-hidden"
-		>
-			<!-- Players list -->
 			{#if players.length > 0}
-				<div class="px-3 py-2.5 border-b border-zinc-800">
-					<p class="uppercase text-[10px] font-bold text-zinc-500 mb-1.5 tracking-wide">Players</p>
+				<div class="px-3 py-2.5">
+					<p class="text-muted-foreground mb-1.5 text-[10px] font-medium tracking-wide uppercase">
+						Players
+					</p>
 					<ul class="space-y-1">
 						{#each players as player (player.id)}
-							<li class="flex items-center justify-between gap-2 {!player.connected ? 'opacity-40' : ''}">
-								<span class="flex items-center gap-1.5 min-w-0">
-									<span class="w-1.5 h-1.5 rounded-full shrink-0 {player.connected ? 'bg-emerald-400' : 'bg-zinc-600'}"></span>
+							<li
+								class="flex items-center justify-between gap-2 text-xs {!player.connected
+									? 'opacity-40'
+									: ''}"
+							>
+								<span class="flex min-w-0 items-center gap-1.5">
+									<span
+										class="size-1.5 shrink-0 rounded-full {player.connected
+											? 'bg-emerald-500'
+											: 'bg-muted-foreground'}"
+									></span>
 									<span class="truncate">{player.name}</span>
 								</span>
-								<span class="shrink-0 font-mono text-zinc-400">{player.score}</span>
+								<Badge variant="outline" class="shrink-0 font-mono">
+									{player.score}
+								</Badge>
 							</li>
 						{/each}
 					</ul>
 				</div>
 			{/if}
 
-			<!-- Errors (debug) -->
 			{#if errors.length > 0}
-				<details class="px-3 py-2">
-					<summary class="cursor-pointer font-semibold text-zinc-400 list-none text-[10px] uppercase tracking-wide">
+				<Collapsible class="border-t px-3 py-2">
+					<CollapsibleTrigger
+						class="text-muted-foreground w-full text-left text-[10px] font-medium tracking-wide uppercase"
+					>
 						Debug ({errors.length})
-					</summary>
-					<ul class="mt-1 space-y-0.5 text-[10px] text-zinc-500 max-h-32 overflow-auto">
-						{#each errors as error, index (index)}
-							<li class="break-all">{error.error?.message ?? error.message ?? JSON.stringify(error)}</li>
-						{/each}
-					</ul>
-				</details>
+					</CollapsibleTrigger>
+					<CollapsibleContent>
+						<ul class="text-muted-foreground mt-1 max-h-32 space-y-0.5 overflow-auto text-[10px]">
+							{#each errors as error, index (index)}
+								<li class="break-all">
+									{error.error?.message ?? error.message ?? JSON.stringify(error)}
+								</li>
+							{/each}
+						</ul>
+					</CollapsibleContent>
+				</Collapsible>
 			{/if}
-		</div>
-	</details>
+		</PopoverContent>
+	</Popover>
 </div>

@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { Status } from '$lib/types';
 	import SitePhaseStepper from '$lib/components/ui/SitePhaseStepper.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import MdiShareOutline from '~icons/mdi/share-outline';
 	import MdiDotsVertical from '~icons/mdi/dots-vertical';
 	import MdiUndoVariant from '~icons/mdi/undo-variant';
@@ -28,8 +31,6 @@
 		onChangePacks
 	}: Props = $props();
 
-	let menuOpen = $state(false);
-
 	const steps = [
 		{ id: 'packs', label: 'Packs' },
 		{ id: 'lobby', label: 'Lobby' },
@@ -37,78 +38,69 @@
 		{ id: 'results', label: 'Results' }
 	];
 
-	function connectionDot() {
-		if (connection === Status.CONNECTED) return 'bg-violet-400';
-		if (connection === Status.DISCONNECTED) return 'bg-rose-400';
-		return 'bg-amber-400 animate-pulse';
-	}
+	const connectionVariant = $derived(
+		connection === Status.CONNECTED
+			? 'default'
+			: connection === Status.DISCONNECTED
+				? 'destructive'
+				: 'secondary'
+	);
+
+	const connectionLabel = $derived(
+		connection === Status.CONNECTED
+			? 'Connected'
+			: connection === Status.DISCONNECTED
+				? 'Offline'
+				: 'Joining'
+	);
 </script>
 
-<div class="min-h-screen text-zinc-100">
-	<header
-		class="sticky top-14 z-20 border-b border-white/8 bg-zinc-950/95 backdrop-blur-md px-3 py-2 sm:px-4"
-	>
+<div class="bg-background text-foreground min-h-screen">
+	<header class="bg-background/95 sticky top-14 z-20 border-b px-3 py-2 backdrop-blur-md sm:px-4">
 		<div class="mx-auto flex max-w-3xl items-center justify-between gap-2">
 			<SitePhaseStepper {steps} currentStep={currentStep} accent="violet" />
 
 			<div class="flex shrink-0 items-center gap-1">
-				<span class={`h-2 w-2 rounded-full ${connectionDot()}`} title="Connection"></span>
+				<Badge variant={connectionVariant} class="hidden text-[10px] sm:inline-flex">
+					{connectionLabel}
+				</Badge>
+				<span
+					class="size-2 rounded-full sm:hidden {connection === Status.CONNECTING
+						? 'bg-muted-foreground animate-pulse'
+						: connection === Status.CONNECTED
+							? 'bg-violet-500'
+							: 'bg-destructive'}"
+					title={connectionLabel}
+				></span>
 				{#if onShare}
-					<button
-						type="button"
-						class="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
-						title="Share game"
-						onclick={onShare}
-					>
-						<MdiShareOutline class="h-5 w-5" />
-					</button>
+					<Button variant="ghost" size="icon-sm" title="Share game" onclick={onShare}>
+						<MdiShareOutline />
+					</Button>
 				{/if}
 				{#if showPlayMenu}
-					<div class="relative">
-						<button
-							type="button"
-							class="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
-							aria-expanded={menuOpen}
-							onclick={() => (menuOpen = !menuOpen)}
-						>
-							<MdiDotsVertical class="h-5 w-5" />
-						</button>
-						{#if menuOpen}
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div class="fixed inset-0 z-30" onclick={() => (menuOpen = false)}></div>
-							<div
-								class="absolute right-0 top-full z-40 mt-1 min-w-[11rem] rounded-xl border border-white/10 bg-zinc-900 py-1 shadow-xl"
-							>
-								{#if onChangePacks}
-									<button
-										type="button"
-										class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/5"
-										onclick={() => {
-											menuOpen = false;
-											onChangePacks();
-										}}
-									>
-										<MdiCardsPlayingOutline class="h-4 w-4" />
-										Change packs
-									</button>
-								{/if}
-								{#if onReset}
-									<button
-										type="button"
-										class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-rose-300 hover:bg-white/5"
-										onclick={() => {
-											menuOpen = false;
-											onReset();
-										}}
-									>
-										<MdiUndoVariant class="h-4 w-4" />
-										Reset game
-									</button>
-								{/if}
-							</div>
-						{/if}
-					</div>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>
+							{#snippet child({ props })}
+								<Button {...props} variant="ghost" size="icon-sm" title="More actions">
+									<MdiDotsVertical />
+								</Button>
+							{/snippet}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="end">
+							{#if onChangePacks}
+								<DropdownMenu.Item onclick={onChangePacks}>
+									<MdiCardsPlayingOutline />
+									Change packs
+								</DropdownMenu.Item>
+							{/if}
+							{#if onReset}
+								<DropdownMenu.Item variant="destructive" onclick={onReset}>
+									<MdiUndoVariant />
+									Reset game
+								</DropdownMenu.Item>
+							{/if}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 				{/if}
 			</div>
 		</div>

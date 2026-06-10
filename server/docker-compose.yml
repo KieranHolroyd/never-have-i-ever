@@ -1,5 +1,6 @@
 services:
   web:
+    profiles: ["full"]
     build:
       context: ..
       dockerfile: Dockerfile
@@ -11,17 +12,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file: .env
     environment:
       - GAME_DATA_DIR=/app/server/assets/games/
       - DATABASE_URL=postgresql://nhie:${DB_PASSWORD}@db:5432/nhie
       - AXIOM_TOKEN=${AXIOM_TOKEN}
       - AXIOM_ORG_ID=${AXIOM_ORG_ID}
     volumes:
-      - /var/gamedata:/app/server/assets/games/
+      - gamedata:/app/server/assets/games/
 
   db:
     image: postgres:18-alpine
-    restart: always
+    restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_USER: nhie
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -29,9 +32,13 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /var/pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nhie -d nhie"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+volumes:
+  pgdata:
+  gamedata:

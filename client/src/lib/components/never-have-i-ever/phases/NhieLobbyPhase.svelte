@@ -1,11 +1,33 @@
 <script lang="ts">
-	import { Status, type Player } from '$lib/types';
-	import PreGameConnection from '../PreGameConnection.svelte';
+	import type { Player } from '$lib/types';
+	import LobbyPlayerList from '../../shared/LobbyPlayerList.svelte';
 	import RoomCapacitySettings from '../../shared/RoomCapacitySettings.svelte';
 	import RoomPasswordSettings from '../../shared/RoomPasswordSettings.svelte';
+	import NhieStickyActionBar from '../NhieStickyActionBar.svelte';
+	import MdiContentCopy from '~icons/mdi/content-copy';
+	import MdiCheck from '~icons/mdi/check';
+	import MdiCogOutline from '~icons/mdi/cog-outline';
+	import MdiChevronDown from '~icons/mdi/chevron-down';
+	import MdiLockOutline from '~icons/mdi/lock-outline';
+	import MdiEarth from '~icons/mdi/earth';
+	import MdiAccountGroup from '~icons/mdi/account-group';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Separator } from '$lib/components/ui/separator';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
+	import {
+		Collapsible,
+		CollapsibleContent,
+		CollapsibleTrigger
+	} from '$lib/components/ui/collapsible';
 
 	interface Props {
-		connection: Status;
 		players: Player[];
 		connectedPlayerCount: number;
 		roomMaxPlayers: number;
@@ -27,7 +49,6 @@
 	}
 
 	let {
-		connection,
 		players,
 		connectedPlayerCount,
 		roomMaxPlayers,
@@ -51,7 +72,17 @@
 	let copied = $state(false);
 	let settingsOpen = $state(false);
 
-	const isReady = $derived(connectedPlayerCount >= 1);
+	const readyForCategories = $derived(connectedPlayerCount >= 1);
+
+	// Show up to 8 seat dots; overflow is summarised as "+n"
+	const visibleSeatCount = $derived(Math.min(roomMaxPlayers, 8));
+	const overflowSeats = $derived(Math.max(roomMaxPlayers - 8, 0));
+
+	let inviteUrl = $state('');
+
+	$effect(() => {
+		inviteUrl = window.location.host + window.location.pathname;
+	});
 
 	function copyInviteLink() {
 		navigator.clipboard.writeText(window.location.href).then(() => {
@@ -61,94 +92,162 @@
 	}
 </script>
 
-<div class="mx-auto mt-4 w-full max-w-lg space-y-4" data-testid="nhie-lobby">
-	<div class="rounded-2xl border border-white/8 bg-zinc-950 p-5 sm:p-6">
-		<p class="nhie-phase-label">Lobby</p>
-		<h2 class="mt-1 text-2xl font-black text-white">
-			{isReady ? 'Room is open' : 'Waiting for players'}
-		</h2>
-		<p class="mt-1 text-sm text-white/45">
-			{connectedPlayerCount >= 2
-				? 'Share the link, then pick your categories.'
-				: 'Invite friends with the link below — you can pick categories while you wait.'}
-		</p>
-		<div class="mt-4 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
-			<div class="rounded-full border border-white/10 px-3 py-1">
-				{connectedPlayerCount}/{roomMaxPlayers} seats
+<div class="grid gap-4 pb-32 pt-3 lg:grid-cols-5 lg:items-start" data-testid="nhie-lobby">
+	<div class="space-y-4 lg:col-span-3">
+	<Card>
+		<CardHeader>
+			<div class="flex items-center justify-between gap-2">
+				<Badge variant="outline" class="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+					<MdiAccountGroup class="size-3.5" />
+					Step 1 of 3
+				</Badge>
+				<Badge variant="secondary" class="gap-1">
+					{#if roomProtected}
+						<MdiLockOutline class="size-3" />
+					{:else}
+						<MdiEarth class="size-3" />
+					{/if}
+					{roomPrivacyLabel}
+				</Badge>
 			</div>
-			<div class="rounded-full border border-white/10 px-3 py-1">{roomPrivacyLabel}</div>
-		</div>
-		<div class="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
-			<div
-				class="h-full rounded-full transition-all duration-500 {isReady ? 'bg-emerald-400' : 'bg-white/40'}"
-				style="width: {Math.min(connectedPlayerCount >= 2 ? 100 : connectedPlayerCount * 50, 100)}%"
-			></div>
-		</div>
-	</div>
+			<CardTitle class="mt-2 text-3xl tracking-tight">
+				{connectedPlayerCount >= 2 ? "Everyone's here" : 'Waiting for players'}
+			</CardTitle>
+			<CardDescription class="text-sm leading-relaxed">
+				{#if connectedPlayerCount >= 2}
+					Copy the link for anyone still arriving, then pick your question categories.
+				{:else if connectedPlayerCount === 1}
+					Share the invite link below — you can pick categories while you wait.
+				{:else}
+					Share the invite link to get your friends in the room.
+				{/if}
+			</CardDescription>
+		</CardHeader>
+		<CardContent class="space-y-5">
+			<!-- Seat dots -->
+			<div class="flex items-center gap-3">
+				<div class="flex items-center gap-1.5">
+					{#each Array.from({ length: visibleSeatCount }) as _, i (i)}
+						<span
+							class="size-2.5 rounded-full transition-all duration-300 {i < connectedPlayerCount
+								? 'bg-emerald-500 scale-110'
+								: 'bg-muted-foreground/20'}"
+						></span>
+					{/each}
+					{#if overflowSeats > 0}
+						<span class="text-muted-foreground ml-0.5 text-[10px] font-medium">+{overflowSeats}</span>
+					{/if}
+				</div>
+				<span class="text-muted-foreground text-xs">
+					{connectedPlayerCount} of {roomMaxPlayers} seats filled
+				</span>
+			</div>
 
-	<div class="rounded-2xl border border-white/8 bg-zinc-950 p-5">
-		<p class="text-sm font-bold text-white/80">Invite friends</p>
-		<p class="mt-0.5 text-sm text-white/40">Anyone with this link can join your room.</p>
-		<button
-			type="button"
-			class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition-all
-			{copied
-				? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'
-				: 'border-white/10 bg-white/[0.05] text-white/60 hover:border-emerald-500/30 hover:text-white'}"
-			onclick={copyInviteLink}
-		>
-			{copied ? 'Link copied!' : 'Copy invite link'}
-		</button>
-	</div>
-
-	<PreGameConnection
-		{connection}
-		{players}
-		{creatorPlayerId}
-		{currentPlayerId}
-		canManagePlayers={canManageRoomPassword}
-		{removingPlayerId}
-		onRemovePlayer={onRemovePlayer}
-	/>
+			<!-- Invite link -->
+			<div class="space-y-1.5">
+				<p class="text-muted-foreground text-[10px] font-semibold uppercase tracking-widest">Invite link</p>
+				<div class="flex items-stretch gap-2">
+					<div
+						class="bg-muted text-muted-foreground flex min-w-0 flex-1 items-center rounded-lg px-3 py-2 font-mono text-xs"
+					>
+						<span class="truncate">{inviteUrl}</span>
+					</div>
+					<Button
+						variant={copied ? 'secondary' : 'default'}
+						size="sm"
+						class="h-auto shrink-0 px-3 {copied ? 'text-emerald-600 dark:text-emerald-400' : ''}"
+						onclick={copyInviteLink}
+					>
+						{#if copied}
+							<MdiCheck class="size-4" />
+							Copied
+						{:else}
+							<MdiContentCopy class="size-4" />
+							Copy
+						{/if}
+					</Button>
+				</div>
+			</div>
+		</CardContent>
+	</Card>
 
 	{#if canManageRoomPassword}
-		<div class="rounded-2xl border border-white/8 bg-zinc-950 overflow-hidden">
-			<button
-				type="button"
-				class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-white/70 hover:bg-white/[0.03]"
-				onclick={() => (settingsOpen = !settingsOpen)}
-			>
-				Room settings
-				<span class="text-white/30">{settingsOpen ? '−' : '+'}</span>
-			</button>
-			{#if settingsOpen}
-				<div class="grid gap-4 border-t border-white/8 p-4">
-					<RoomCapacitySettings
-						maxPlayers={roomMaxPlayers}
-						currentPlayers={players.length}
-						minPlayers={2}
-						error={roomSizeError}
-						busy={roomSizeSaving}
-						onSave={onSaveRoomSize}
-					/>
-					<RoomPasswordSettings
-						passwordProtected={roomProtected}
-						error={roomPasswordError}
-						busy={roomPasswordSaving}
-						onSave={onSaveRoomPassword}
-						onClear={onClearRoomPassword}
-					/>
-				</div>
-			{/if}
-		</div>
+		<Collapsible bind:open={settingsOpen}>
+			<Card class="overflow-hidden">
+				<CollapsibleTrigger class="hover:bg-muted/40 w-full transition-colors">
+					<CardHeader class="flex-row items-center justify-between gap-3 py-1">
+						<div class="flex items-center gap-3 text-left">
+							<span class="bg-muted inline-flex size-8 items-center justify-center rounded-lg">
+								<MdiCogOutline class="text-muted-foreground size-4" />
+							</span>
+							<div>
+								<CardTitle class="text-sm">Room settings</CardTitle>
+								<CardDescription class="mt-0.5 text-xs">Capacity & password</CardDescription>
+							</div>
+						</div>
+						<MdiChevronDown
+							class="text-muted-foreground size-5 transition-transform duration-200 {settingsOpen
+								? 'rotate-180'
+								: ''}"
+						/>
+					</CardHeader>
+				</CollapsibleTrigger>
+				<CollapsibleContent>
+					<CardContent class="space-y-6 border-t pt-5">
+						<RoomCapacitySettings
+							embedded
+							maxPlayers={roomMaxPlayers}
+							currentPlayers={players.length}
+							minPlayers={2}
+							error={roomSizeError}
+							busy={roomSizeSaving}
+							onSave={onSaveRoomSize}
+						/>
+						<Separator />
+						<RoomPasswordSettings
+							embedded
+							passwordProtected={roomProtected}
+							error={roomPasswordError}
+							busy={roomPasswordSaving}
+							onSave={onSaveRoomPassword}
+							onClear={onClearRoomPassword}
+						/>
+					</CardContent>
+				</CollapsibleContent>
+			</Card>
+		</Collapsible>
 	{/if}
+	</div>
 
-	<button
-		type="button"
-		class="w-full rounded-xl bg-emerald-500 py-3.5 text-base font-black text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
-		disabled={!isReady}
-		onclick={onContinueToCategories}
-	>
-		Choose categories
-	</button>
+	<div class="lg:col-span-2">
+		<LobbyPlayerList
+			{players}
+			{creatorPlayerId}
+			{currentPlayerId}
+			canManagePlayers={canManageRoomPassword}
+			{removingPlayerId}
+			onRemovePlayer={onRemovePlayer}
+		/>
+	</div>
 </div>
+
+<NhieStickyActionBar>
+	<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+		<p class="text-muted-foreground text-xs">
+			{#if !readyForCategories}
+				Join the room to continue
+			{:else}
+				{connectedPlayerCount} player{connectedPlayerCount === 1 ? '' : 's'} in the room
+			{/if}
+		</p>
+		<Button
+			variant="emerald"
+			size="lg"
+			class="h-12 w-full text-base font-semibold sm:w-auto sm:px-8"
+			disabled={!readyForCategories}
+			onclick={onContinueToCategories}
+		>
+			Choose categories
+		</Button>
+	</div>
+</NhieStickyActionBar>

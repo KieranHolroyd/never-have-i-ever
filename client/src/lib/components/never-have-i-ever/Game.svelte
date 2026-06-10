@@ -15,7 +15,6 @@
 	} from '$lib/types';
 	import { fetchCatagories, parseNHIEGameState } from '$lib/api';
 	import { clearStoredRoomPassword, getStoredRoomPassword, storeRoomPassword } from '$lib/room-password';
-	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import RoomPasswordGate from '../shared/RoomPasswordGate.svelte';
 	import { toast } from '$lib/toast';
 	import Tutorial from '../Tutorial.svelte';
@@ -25,6 +24,9 @@
 	import NhieCategoryPhase from './phases/NhieCategoryPhase.svelte';
 	import NhiePlayPhase from './phases/NhiePlayPhase.svelte';
 	import NhieGameOverPhase from './phases/NhieGameOverPhase.svelte';
+	import type { NhieRoundPhase } from './types';
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent } from '$lib/components/ui/card';
 	import posthog from 'posthog-js';
 
 	interface Props {
@@ -131,10 +133,22 @@
 
 	let connectedPlayers = $derived(players.filter((player) => player.connected));
 	let connectedPlayerCount = $derived(connectedPlayers.length);
-	let votedPlayerCount = $derived(connectedPlayers.filter((player) => player.this_round.voted).length);
+	let votedPlayerCount = $derived(
+		connectedPlayers.filter(
+			(player) =>
+				player.this_round.voted || (player.id === player_id && pendingVote !== null)
+		).length
+	);
 	let allConnectedPlayersVoted = $derived(connectedPlayerCount > 0 && votedPlayerCount === connectedPlayerCount);
 	let canAdvanceRound = $derived(!game_state.waiting_for_players || allConnectedPlayersVoted);
 	let acknowledgedVote = $derived(players.find((player) => player.id === player_id)?.this_round.vote ?? null);
+	let hasMyVote = $derived(pendingVote !== null || acknowledgedVote !== null);
+	let roundPhase = $derived.by((): NhieRoundPhase => {
+		if (!game_state.waiting_for_players) return 'answer';
+		if (allConnectedPlayersVoted) return 'results';
+		return 'waiting';
+	});
+	let revealVotes = $derived(roundPhase === 'results');
 	let canManageRoomPassword = $derived(Boolean(creatorPlayerId && player_id === creatorPlayerId));
 	let roomPrivacyLabel = $derived(roomProtected ? 'Protected' : 'Public');
 	let visibleCatagories = $derived.by(() => {
@@ -338,6 +352,37 @@
 		}
 	}
 
+	function syncRoundTimer(waiting: boolean, nextStart: number, nextDuration: number) {
+		if (timeout_interval) {
+			clearInterval(timeout_interval);
+			timeout_interval = null;
+		}
+
+		if (!waiting || nextStart <= 0 || nextDuration <= 0) {
+			round_timeout = 0;
+			timeout_start = 0;
+			timeout_duration = 0;
+			return;
+		}
+
+		timeout_start = nextStart;
+		timeout_duration = nextDuration;
+
+		const tick = () => {
+			const elapsed = Date.now() - timeout_start;
+			const remaining = Math.max(0, Math.ceil((timeout_duration - elapsed) / 1000));
+			round_timeout = remaining;
+
+			if (remaining <= 0 && timeout_interval) {
+				clearInterval(timeout_interval);
+				timeout_interval = null;
+			}
+		};
+
+		tick();
+		timeout_interval = setInterval(tick, 100);
+	}
+
 	function syncGameState(nextGame: NHIEGameState) {
 		const previousQuestion = current_question?.content;
 		const nextQuestion = nextGame.current_question?.content;
@@ -404,7 +449,10 @@
 				category_count: game_state.current_catagory.length,
 				categories: game_state.current_catagory
 			});
-			sendSocketAction({ op: 'confirm_selections' });
+			sendSocketAction({
+				op: 'confirm_selections',
+				categories: game_state.current_catagory
+			});
 		} else {
 			setTransientError('You must select at least one catagory');
 		}
@@ -434,13 +482,7 @@
 		conf_reset_display = false;
 		setupStep = 'lobby';
 
-		if (timeout_interval) {
-			clearInterval(timeout_interval);
-			timeout_interval = null;
-		}
-		round_timeout = 0;
-		timeout_start = 0;
-		timeout_duration = 0;
+		syncRoundTimer(false, 0, 0);
 	}
 
 	function emitSelectCatagory(catagory: string) {
@@ -540,38 +582,11 @@
 						passwordPromptVisible = false;
 						roomPasswordError = null;
 
-						if (
-							game_state.waiting_for_players &&
-							data.game.timeout_start !== undefined &&
-							data.game.timeout_start > 0 &&
-							data.game.timeout_duration
-						) {
-							console.log('[DEBUG] Setting timeout:', data.game.timeout_start, data.game.timeout_duration);
-							timeout_start = data.game.timeout_start;
-							timeout_duration = data.game.timeout_duration;
-
-							if (!timeout_interval) {
-								console.log('[DEBUG] Starting countdown interval');
-								timeout_interval = setInterval(() => {
-									const elapsed = Date.now() - timeout_start;
-									const remaining = Math.max(0, Math.ceil((timeout_duration - elapsed) / 1000));
-									round_timeout = remaining;
-
-									if (remaining <= 0) {
-										if (timeout_interval) {
-											clearInterval(timeout_interval);
-											timeout_interval = null;
-										}
-									}
-								}, 100);
-							}
-						} else if (!game_state.waiting_for_players && timeout_interval) {
-							clearInterval(timeout_interval);
-							timeout_interval = null;
-							round_timeout = 0;
-							timeout_start = 0;
-							timeout_duration = 0;
-						}
+						syncRoundTimer(
+							game_state.waiting_for_players,
+							Number(data.game.timeout_start ?? 0),
+							Number(data.game.timeout_duration ?? 0)
+						);
 						break;
 					case 'new_round':
 						current_round.votes = [];
@@ -641,16 +656,8 @@
 						should_reload_on_reconnect = true;
 						break;
 					case 'round_timeout':
-						console.log('[DEBUG] Round timeout received:', data.message);
-						toast.info(data.message, { duration: 3000 });
-
-						if (timeout_interval) {
-							clearInterval(timeout_interval);
-							timeout_interval = null;
-						}
-						round_timeout = 0;
-						timeout_start = 0;
-						timeout_duration = 0;
+						// Legacy op — timer sync is handled via game_state after advance.
+						syncRoundTimer(false, 0, 0);
 						break;
 					case 'pong': {
 						const multi_diff = performance.now() - prev_ping_ts;
@@ -901,16 +908,57 @@
 	<NhieGameShell
 		currentStep={nhieStep}
 		{connection}
+		{players}
+		{errors}
+		ping={client_ping}
 		onShare={share_game}
 		showPlayMenu={nhieStep === 'play'}
 		onReset={() => (conf_reset_display ? reset() : conf_reset())}
 		onOpenCategories={selectCatagories}
 		confirmResetVisible={conf_reset_display}
 	>
+		{#snippet headerInfo()}
+			{#if nhieStep === 'lobby'}
+				<span class="text-muted-foreground text-sm">
+					<span class="text-foreground font-medium">{connectedPlayerCount}</span>
+					{connectedPlayerCount === 1 ? 'player' : 'players'} in room
+				</span>
+			{:else if nhieStep === 'categories'}
+				<span class="text-muted-foreground text-sm">
+					<span class="text-foreground font-medium">{selectedCategoryCount}</span>
+					{selectedCategoryCount === 1 ? 'deck' : 'decks'} selected
+				</span>
+			{:else if nhieStep === 'play'}
+				<span class="text-muted-foreground flex min-w-0 items-center gap-2 text-sm">
+					<span class="text-foreground font-medium tabular-nums">
+						Round {game_state.history.length + 1}
+					</span>
+					{#if current_question?.catagory}
+						<span class="bg-border h-3.5 w-px shrink-0"></span>
+						<span class="min-w-0 truncate">{current_question.catagory}</span>
+					{/if}
+					{#if game_state.current_catagory.length > 0}
+						<span class="bg-border h-3.5 w-px shrink-0 hidden sm:block"></span>
+						<span class="text-muted-foreground/70 hidden truncate text-xs sm:block">
+							{game_state.current_catagory.length} {game_state.current_catagory.length === 1 ? 'pack' : 'packs'}
+						</span>
+					{/if}
+				</span>
+			{:else if nhieStep === 'results'}
+				<span class="text-muted-foreground text-sm">
+					<span class="text-foreground font-medium">{game_state.history.length}</span>
+					{game_state.history.length === 1 ? 'round' : 'rounds'} played
+					{#if game_state.current_catagory.length > 0}
+						<span class="hidden sm:inline">
+							· {game_state.current_catagory.join(', ')}
+						</span>
+					{/if}
+				</span>
+			{/if}
+		{/snippet}
 		{#if game_state.catagory_select}
 			{#if setupStep === 'lobby'}
 				<NhieLobbyPhase
-					{connection}
 					{players}
 					{connectedPlayerCount}
 					{roomMaxPlayers}
@@ -959,28 +1007,30 @@
 				timeoutStart={timeout_start}
 				{canAdvanceRound}
 				{allConnectedPlayersVoted}
+				{roundPhase}
+				{hasMyVote}
+				{revealVotes}
 				{error}
 				{isVoteActive}
 				onVote={vote}
 				onAdvance={selectQuestion}
+				roundNumber={game_state.history.length + 1}
+				myVote={acknowledgedVote ?? (pendingVote !== null ? voteLabels[pendingVote] : null)}
+				currentPlayerId={player_id}
 			/>
 
 			{#if $settings?.show_debug}
-				<div class="panel mx-auto mt-4 max-w-lg p-2 text-left text-xs">
-					<div>Timer: {round_timeout}s | Start: {timeout_start} | Duration: {timeout_duration}</div>
-					<div>
-						Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval
-							? 'active'
-							: 'inactive'}
-					</div>
-					<button
-						type="button"
-						class="mt-1 rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600"
-						onclick={debugGameState}
-					>
-						Debug State
-					</button>
-				</div>
+				<Card class="mt-4">
+					<CardContent class="space-y-2 p-3 text-left text-xs">
+						<div>Timer: {round_timeout}s | Start: {timeout_start} | Duration: {timeout_duration}</div>
+						<div>
+							Waiting: {game_state.waiting_for_players} | Interval: {timeout_interval
+								? 'active'
+								: 'inactive'}
+						</div>
+						<Button size="sm" onclick={debugGameState}>Debug State</Button>
+					</CardContent>
+				</Card>
 			{/if}
 
 			{#if !$settings.no_tutorials}
@@ -995,13 +1045,12 @@
 						{
 							title: 'Advance the round',
 							content:
-								'Use Next question or Skip round when everyone has voted. Reset and categories are in the ⋮ menu.'
+								'When everyone has voted, results appear for a few seconds — tap Next question or wait for the timer.'
 						},
 						{ title: 'Have fun', content: 'Keep it light. The scoreboard is for laughs.' }
 					]}
 				/>
 			{/if}
-			<ConnectionInfoPanel {connection} {players} {errors} ping={client_ping} />
 		{/if}
 	</NhieGameShell>
 {/if}

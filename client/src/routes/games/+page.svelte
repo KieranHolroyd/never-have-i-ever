@@ -2,6 +2,7 @@
 	import type { ActiveGameSummary } from '$lib/types';
 	import ActiveGameCard from '$lib/components/games/ActiveGameCard.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import { ToggleGroup, ToggleGroupItem } from '$lib/components/ui/toggle-group';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
@@ -16,8 +17,8 @@
 
 	const gameTypeOptions = [
 		{ value: 'all', label: 'All' },
-		{ value: 'never-have-i-ever', label: 'Never Have I Ever' },
-		{ value: 'cards-against-humanity', label: 'Cards Against Humanity' }
+		{ value: 'never-have-i-ever', label: 'NHIE' },
+		{ value: 'cards-against-humanity', label: 'CAH' }
 	] as const satisfies ReadonlyArray<{ value: GameTypeFilter; label: string }>;
 
 	let { data }: Props = $props();
@@ -29,6 +30,8 @@
 			? data.games
 			: data.games.filter((game) => game.gameType === selectedGameType)
 	);
+
+	const nhieCount = $derived(data.games.filter((g) => g.gameType === 'never-have-i-ever').length);
 </script>
 
 <svelte:head>
@@ -39,8 +42,18 @@
 	<section class="mx-auto max-w-2xl text-center">
 		<h1 class="text-4xl font-bold tracking-tight sm:text-5xl">Active games</h1>
 		<p class="text-muted-foreground mt-3 text-sm sm:text-base">
-			Join a room that's already open, or start your own from the home page.
+			Join an open room, or start your own from the home page.
 		</p>
+		{#if data.games.length > 0}
+			<div class="mt-4 flex flex-wrap justify-center gap-2">
+				<Badge variant="secondary">{data.games.length} open</Badge>
+				{#if nhieCount > 0}
+					<Badge variant="outline" class="border-emerald-500/30 text-emerald-600 dark:text-emerald-300">
+						{nhieCount} NHIE
+					</Badge>
+				{/if}
+			</div>
+		{/if}
 	</section>
 
 	<div class="mx-auto mt-8 flex max-w-3xl justify-center">
@@ -70,11 +83,13 @@
 		{:else}
 			<Card>
 				<CardContent class="py-10 text-center">
-					<p class="text-lg font-semibold">No games right now.</p>
+					<p class="text-lg font-semibold">No games right now</p>
 					<p class="text-muted-foreground mt-2 text-sm">
-						{selectedGameType === 'all'
-							? 'Start a room and share the link with your group.'
-							: 'Try a different filter, or start a new room.'}
+						{selectedGameType === 'never-have-i-ever'
+							? 'Start a Never Have I Ever room and share the link with your group.'
+							: selectedGameType === 'all'
+								? 'Start a room and share the link with your group.'
+								: 'Try a different filter, or start a new room.'}
 					</p>
 					<div class="mt-6 flex flex-wrap justify-center gap-3">
 						{#if selectedGameType !== 'all'}

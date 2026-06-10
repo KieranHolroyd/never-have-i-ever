@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
+	import { Badge } from '$lib/components/ui/badge';
 	import {
 		Card,
 		CardContent,
@@ -23,8 +24,8 @@
 	}
 
 	let {
-		title = 'Enter room password',
-		description = 'This game is protected. Enter the password to join.',
+		title = 'Private room',
+		description = 'This game is password-protected. Enter the password the host shared with you.',
 		error = null,
 		initialValue = '',
 		busy = false,
@@ -50,9 +51,13 @@
 	}
 </script>
 
-<div class="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4 py-10">
+<div class="mx-auto flex min-h-[60vh] max-w-sm items-center justify-center px-4 py-10">
 	<Card class="w-full border-emerald-500/30">
 		<CardHeader class="text-center">
+			<Badge variant="outline" class="mx-auto mb-2 w-fit">
+				<MdiLockOutline class="size-3.5" />
+				Password required
+			</Badge>
 			<div class="bg-muted mx-auto inline-flex size-14 items-center justify-center rounded-2xl">
 				<MdiLockOutline class="size-7" />
 			</div>
@@ -61,11 +66,12 @@
 		</CardHeader>
 		<CardContent class="space-y-4">
 			<div class="space-y-2">
-				<Label for="room-password">Password</Label>
+				<Label for="room-password">Room password</Label>
 				<Input
 					id="room-password"
 					type="password"
-					placeholder="Enter room password"
+					placeholder="Enter password"
+					autocomplete="current-password"
 					bind:value={password}
 					onkeydown={(event) => {
 						if (event.key === 'Enter') submit();
@@ -77,8 +83,8 @@
 				<p class="text-destructive text-sm">{localError ?? error}</p>
 			{/if}
 
-			<Button type="button" variant="emerald" class="w-full" onclick={submit} disabled={busy}>
-				{busy ? 'Joining…' : 'Join game'}
+			<Button type="button" variant="emerald" size="lg" class="h-11 w-full" onclick={submit} disabled={busy}>
+				{busy ? 'Joining…' : 'Join room'}
 				<MdiArrowRight />
 			</Button>
 		</CardContent>

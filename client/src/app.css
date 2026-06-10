@@ -31,41 +31,6 @@ button {
 	@apply prose dark:prose-invert;
 }
 
-/* NHIE aliases */
-.nhie-phase-label {
-	@apply text-[11px] font-black uppercase tracking-[0.28em] text-white/35;
-}
-.nhie-hero-card {
-	@apply relative mx-auto w-full max-w-lg rounded-3xl border border-emerald-500/25 bg-gradient-to-b from-zinc-900 to-zinc-950 p-6 sm:p-8 text-center shadow-[0_0_48px_-12px_rgba(16,185,129,0.35)] ring-1 ring-white/10;
-}
-.nhie-hero-question {
-	@apply text-2xl sm:text-3xl font-black leading-snug text-white;
-}
-.nhie-vote-have {
-	@apply bg-emerald-600/80 text-white shadow-[0_8px_24px_-12px_rgba(16,185,129,0.65)];
-}
-.nhie-vote-kinda {
-	@apply bg-sky-600/80 text-white shadow-[0_8px_24px_-12px_rgba(56,189,248,0.55)];
-}
-.nhie-vote-not {
-	@apply bg-rose-600/80 text-white shadow-[0_8px_24px_-12px_rgba(244,63,94,0.55)];
-}
-.nhie-chip-selected {
-	@apply border-emerald-400/50 bg-emerald-500/15 text-white ring-2 ring-emerald-400/30;
-}
-.nhie-chip-default {
-	@apply border-white/10 bg-zinc-900/80 text-white/75 hover:border-emerald-500/30 hover:bg-white/[0.04];
-}
-.nhie-podium-gold {
-	@apply border-amber-400/40 bg-gradient-to-b from-amber-500/20 to-zinc-950;
-}
-.nhie-podium-silver {
-	@apply border-zinc-400/30 bg-gradient-to-b from-zinc-400/15 to-zinc-950;
-}
-.nhie-podium-bronze {
-	@apply border-orange-700/40 bg-gradient-to-b from-orange-600/15 to-zinc-950;
-}
-
 :root {
 
 	--background: oklch(1 0 0);

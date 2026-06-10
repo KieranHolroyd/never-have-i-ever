@@ -5,14 +5,38 @@
 	import MdiClose from '~icons/mdi/close';
 	import MdiCrown from '~icons/mdi/crown';
 	import MdiMagnify from '~icons/mdi/magnify';
-	import { Input } from '$lib/components/ui/input';
-	import { Checkbox } from '$lib/components/ui/checkbox';
+	import MdiChevronDown from '~icons/mdi/chevron-down';
+	import { InputGroup, InputGroupAddon, InputGroupInput } from '$lib/components/ui/input-group';
 	import { Button } from '$lib/components/ui/button';
+	import { Toggle } from '$lib/components/ui/toggle';
+	import { Slider } from '$lib/components/ui/slider';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Spinner } from '$lib/components/ui/spinner';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import {
-		InputGroup,
-		InputGroupAddon,
-		InputGroupInput
-	} from '$lib/components/ui/input-group';
+		Card,
+		CardContent,
+		CardDescription,
+		CardFooter,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
+	import {
+		Empty,
+		EmptyDescription,
+		EmptyHeader,
+		EmptyMedia,
+		EmptyTitle
+	} from '$lib/components/ui/empty';
+	import {
+		Item,
+		ItemContent,
+		ItemDescription,
+		ItemGroup,
+		ItemTitle
+	} from '$lib/components/ui/item';
+	import { Field, FieldLabel } from '$lib/components/ui/field';
+	import { Separator } from '$lib/components/ui/separator';
 	import type { CardPack, SelectedPacks } from '$lib/types';
 	import { getCardPacks, calculateTotalCards } from '$lib/card-packs';
 	import posthog from 'posthog-js';
@@ -22,7 +46,10 @@
 	interface Props {
 		gameId: string;
 		embedded?: boolean;
-		onPacksSelected?: (packs: string[], settings: { maxRounds: number; handSize: number; maxPlayers: number }) => void;
+		onPacksSelected?: (
+			packs: string[],
+			settings: { maxRounds: number; handSize: number; maxPlayers: number }
+		) => void;
 	}
 
 	let { gameId, embedded = false, onPacksSelected }: Props = $props();
@@ -36,13 +63,10 @@
 	let searchQuery: string = $state('');
 	let showAllPacks: boolean = $state(false);
 
-	// Game settings
 	let maxRounds: number = $state(10);
 	let handSize: number = $state(7);
 	let maxPlayers: number = $state(20);
 
-	// When starting, show an inline waiting state so the UI reflects
-	// the server-driven flow immediately while the parent updates.
 	let isStarting: boolean = $state(false);
 
 	onMount(() => {
@@ -56,7 +80,6 @@
 			const packs = await getCardPacks();
 			cardPacks = packs;
 
-			// Initialize with CAH Base Set selected by default if available
 			const basePack = packs.find((pack) => pack.id === BASE_PACK_ID);
 			if (basePack) {
 				selectedPacks[basePack.id] = true;
@@ -71,7 +94,7 @@
 
 	function togglePack(packId: string) {
 		const basePack = cardPacks.find((pack) => pack.id === BASE_PACK_ID);
-		if (basePack && packId === basePack.id) return; // Base game cannot be deselected
+		if (basePack && packId === basePack.id) return;
 
 		selectedPacks[packId] = !selectedPacks[packId];
 	}
@@ -80,26 +103,17 @@
 		let filtered = cardPacks.filter((pack) => {
 			if (!showNSFW && pack.isNSFW) return false;
 			if (!showCommunity && !pack.isOfficial) return false;
-
-			// Apply search filter
 			if (searchQuery.trim()) {
 				return pack.name.toLowerCase().includes(searchQuery.toLowerCase());
 			}
-
 			return true;
 		});
 
-		// Sort: official first, then alphabetically within each group
 		filtered = filtered.sort((a, b) => {
-			// First sort by official status (official packs first)
-			if (a.isOfficial !== b.isOfficial) {
-				return a.isOfficial ? -1 : 1;
-			}
-			// Then sort alphabetically within each group
+			if (a.isOfficial !== b.isOfficial) return a.isOfficial ? -1 : 1;
 			return a.name.localeCompare(b.name);
 		});
 
-		// Limit to 6 packs initially unless searching or showAllPacks is true
 		if (!searchQuery.trim() && !showAllPacks) {
 			filtered = filtered.slice(0, 6);
 		}
@@ -115,12 +129,9 @@
 		return cardPacks.filter((pack) => {
 			if (!showNSFW && pack.isNSFW) return false;
 			if (!showCommunity && !pack.isOfficial) return false;
-
-			// Apply search filter
 			if (searchQuery.trim()) {
 				return pack.name.toLowerCase().includes(searchQuery.toLowerCase());
 			}
-
 			return true;
 		}).length;
 	}
@@ -145,7 +156,6 @@
 			onPacksSelected(selectedIds, { maxRounds, handSize, maxPlayers });
 			isStarting = true;
 		} else {
-			// Fallback if no callback provided
 			goto(`/play/${gameId}/cards-against-humanity`);
 			isStarting = true;
 		}
@@ -169,7 +179,9 @@
 	{#if !embedded}
 		<div class="mb-6 flex items-center justify-between gap-4">
 			<div>
-				<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">Cards Against Humanity</p>
+				<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">
+					Cards Against Humanity
+				</p>
 				<h1 class="text-2xl font-bold">Choose your card packs</h1>
 			</div>
 			<Button type="button" variant="secondary" onclick={goBack}>
@@ -180,8 +192,8 @@
 	{:else}
 		<div class="mb-4">
 			<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">Packs</p>
-			<h2 class="text-2xl font-black text-white">Pick your decks</h2>
-			<p class="mt-1 text-sm text-white/45">
+			<h2 class="text-2xl font-bold">Pick your decks</h2>
+			<p class="text-muted-foreground mt-1 text-sm">
 				{selectedIds.length > 0
 					? `${selectedIds.length} selected`
 					: 'Select at least one pack to continue'}
@@ -190,441 +202,338 @@
 	{/if}
 
 	{#if isStarting}
-		<!-- Full-page starting state -->
-		<div class="p-4 sm:p-6 lg:p-8">
-			<div
-				class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-8 text-center"
-				data-testid="cah-waiting"
-			>
-				<div
-					class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]"
-				>
-					<svg class="h-7 w-7 animate-pulse text-white/30" fill="currentColor" viewBox="0 0 20 20">
-						<path
-							fill-rule="evenodd"
-							d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-				</div>
-				<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/25">Starting</p>
-				<h2 class="mt-2 text-2xl font-black text-white">Waiting for players</h2>
-				<p class="mt-2 text-sm text-white/40">
+		<Empty class="border-solid" data-testid="cah-waiting">
+			<EmptyHeader>
+				<EmptyMedia>
+					<Spinner class="size-8" />
+				</EmptyMedia>
+				<EmptyTitle>Waiting for players</EmptyTitle>
+				<EmptyDescription>
 					Packs sent to server. Room opens when the table is ready.
-				</p>
-			</div>
-		</div>
+				</EmptyDescription>
+			</EmptyHeader>
+		</Empty>
 	{:else}
-		<!-- Two-column layout — matches CahGame.svelte -->
 		<div class="flex items-start gap-6 p-4 sm:p-6 lg:p-8">
-			<!-- Main content -->
 			<div class="min-w-0 flex-1 space-y-4 pb-28 lg:pb-4">
-				<!-- Search + filters -->
-				<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-4">
-					<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-						<InputGroup class="flex-1">
-							<InputGroupAddon>
-								<MdiMagnify />
-							</InputGroupAddon>
-							<InputGroupInput
-								type="search"
-								bind:value={searchQuery}
-								placeholder="Search card packs…"
-							/>
-						</InputGroup>
-						<div class="flex items-center gap-2">
-							<label
-								class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold transition-colors
-								{showNSFW
-									? 'border-white/20 bg-white/[0.08] text-white'
-									: 'border-white/[0.07] text-white/35 hover:border-white/15'}"
-							>
-								<Checkbox bind:checked={showNSFW} class="sr-only" />
-								NSFW
-							</label>
-							<label
-								class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold transition-colors
-								{showCommunity
-									? 'border-white/20 bg-white/[0.08] text-white'
-									: 'border-white/[0.07] text-white/35 hover:border-white/15'}"
-							>
-								<Checkbox bind:checked={showCommunity} class="sr-only" />
-								Community
-							</label>
-						</div>
-					</div>
-				</div>
-
-				<!-- Stats row -->
-				<div class="grid grid-cols-3 gap-3">
-					<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] px-4 py-3">
-						<p class="text-[10px] font-black uppercase tracking-[0.25em] text-white/25">Visible</p>
-						<p class="mt-1 text-2xl font-black text-white">{totalFilteredPacks}</p>
-					</div>
-					<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] px-4 py-3">
-						<p class="text-[10px] font-black uppercase tracking-[0.25em] text-white/25">Selected</p>
-						<p class="mt-1 text-2xl font-black text-white">{selectedIds.length}</p>
-					</div>
-					<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] px-4 py-3">
-						<p class="text-[10px] font-black uppercase tracking-[0.25em] text-white/25">Cards</p>
-						<p class="mt-1 text-2xl font-black text-white">{totals.totalWhite + totals.totalBlack}</p>
-					</div>
-				</div>
-
-				<!-- Loading / error / pack grid -->
-				{#if isLoadingPacks}
-					<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-8 text-center">
-						<svg
-							class="mx-auto mb-4 h-8 w-8 animate-spin text-white/30"
-							fill="none"
-							viewBox="0 0 24 24"
-						>
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							/>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							/>
-						</svg>
-						<p class="text-sm font-bold text-white/40">Loading card packs…</p>
-					</div>
-				{:else if loadError}
-					<div class="rounded-2xl border border-red-500/20 bg-red-500/[0.05] p-8 text-center">
-						<p class="text-[11px] font-black uppercase tracking-[0.3em] text-red-400/60">Error</p>
-						<h3 class="mt-2 text-xl font-black text-white">Failed to load packs</h3>
-						<p class="mt-1 text-sm text-white/40">{loadError}</p>
-						<button
-							class="mt-4 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-bold text-white/70 transition hover:bg-white/[0.08]"
-							onclick={loadCardPacks}
-						>
-							Try again
-						</button>
-					</div>
-				{:else}
-					<!-- Pack grid -->
-					<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-4 sm:p-5">
-						<div class="mb-4 flex items-center justify-between gap-3">
-							<div>
-								<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/25">Packs</p>
-								<h2 class="mt-0.5 text-lg font-black text-white">Available packs</h2>
+				<Card>
+					<CardContent>
+						<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+							<InputGroup class="flex-1">
+								<InputGroupAddon>
+									<MdiMagnify />
+								</InputGroupAddon>
+								<InputGroupInput
+									type="search"
+									bind:value={searchQuery}
+									placeholder="Search card packs…"
+								/>
+							</InputGroup>
+							<div class="flex items-center gap-2">
+								<Toggle bind:pressed={showNSFW} variant="outline" size="sm">NSFW</Toggle>
+								<Toggle bind:pressed={showCommunity} variant="outline" size="sm">Community</Toggle>
 							</div>
+						</div>
+					</CardContent>
+				</Card>
+
+				<div class="grid grid-cols-3 gap-3">
+					<Card size="sm">
+						<CardContent>
+							<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+								Visible
+							</p>
+							<p class="mt-1 text-2xl font-bold">{totalFilteredPacks}</p>
+						</CardContent>
+					</Card>
+					<Card size="sm">
+						<CardContent>
+							<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+								Selected
+							</p>
+							<p class="mt-1 text-2xl font-bold">{selectedIds.length}</p>
+						</CardContent>
+					</Card>
+					<Card size="sm">
+						<CardContent>
+							<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+								Cards
+							</p>
+							<p class="mt-1 text-2xl font-bold">{totals.totalWhite + totals.totalBlack}</p>
+						</CardContent>
+					</Card>
+				</div>
+
+				{#if isLoadingPacks}
+					<Empty class="border-solid">
+						<EmptyHeader>
+							<EmptyMedia>
+								<Spinner class="size-8" />
+							</EmptyMedia>
+							<EmptyTitle>Loading card packs…</EmptyTitle>
+						</EmptyHeader>
+					</Empty>
+				{:else if loadError}
+					<Alert variant="destructive">
+						<AlertTitle>Failed to load packs</AlertTitle>
+						<AlertDescription>{loadError}</AlertDescription>
+					</Alert>
+					<Button type="button" variant="outline" onclick={loadCardPacks}>Try again</Button>
+				{:else}
+					<Card>
+						<CardHeader>
+							<CardDescription>Packs</CardDescription>
+							<CardTitle>Available packs</CardTitle>
 							{#if searchQuery.trim()}
-								<div
-									class="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-bold text-white/50"
-								>
-									Searching
+								<Badge variant="outline">Searching</Badge>
+							{/if}
+						</CardHeader>
+						<CardContent>
+							<div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+								{#each filteredPacks as pack (pack.id)}
+									{@const isSelected = selectedPacks[pack.id]}
+									{@const isBaseGame = pack.id === BASE_PACK_ID}
+									<Card
+										class="min-h-[13rem] cursor-pointer transition-all {isSelected
+											? 'ring-2 ring-foreground'
+											: ''}"
+										onclick={() => togglePack(pack.id)}
+									>
+										<CardContent class="flex h-full flex-col">
+											<div class="mb-2 flex items-start justify-between gap-3">
+												<div class="flex-1">
+													<div class="mb-0.5 flex items-center gap-1.5">
+														<CardTitle class="text-sm leading-tight">{pack.name}</CardTitle>
+														{#if pack.isOfficial}
+															<MdiCrown class="size-3.5 shrink-0 text-amber-400" />
+														{/if}
+													</div>
+													<CardDescription>
+														{pack.isOfficial ? 'Official' : 'Community'}
+													</CardDescription>
+												</div>
+												{#if isSelected}
+													<Badge variant="default">
+														<MdiCheck />
+													</Badge>
+												{/if}
+											</div>
+
+											<div class="mt-auto grid grid-cols-2 gap-2">
+												<Card size="sm">
+													<CardContent>
+														<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+															Black
+														</p>
+														<p class="mt-0.5 font-bold">{pack.blackCards}</p>
+													</CardContent>
+												</Card>
+												<Card size="sm">
+													<CardContent>
+														<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+															White
+														</p>
+														<p class="mt-0.5 font-bold">{pack.whiteCards}</p>
+													</CardContent>
+												</Card>
+											</div>
+
+											<div class="mt-3 flex items-center justify-between">
+												{#if pack.isNSFW}
+													<Badge variant="destructive">NSFW</Badge>
+												{:else}
+													<Badge variant="secondary">Clean</Badge>
+												{/if}
+												{#if isBaseGame}
+													<span class="text-muted-foreground text-[11px] font-medium">Required</span>
+												{:else if isSelected}
+													<span class="text-muted-foreground text-[11px] font-medium">Selected</span>
+												{:else}
+													<span class="text-muted-foreground text-[11px]">Tap to add</span>
+												{/if}
+											</div>
+										</CardContent>
+									</Card>
+								{/each}
+							</div>
+
+							{#if shouldShowMoreButton}
+								<div class="mt-5 flex justify-center">
+									<Button type="button" variant="outline" onclick={() => (showAllPacks = true)}>
+										Show {totalFilteredPacks - 6} more
+										<MdiChevronDown />
+									</Button>
 								</div>
 							{/if}
-						</div>
-
-						<div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-							{#each filteredPacks as pack (pack.id)}
-								{@const isSelected = selectedPacks[pack.id]}
-								{@const isBaseGame = pack.id === BASE_PACK_ID}
-								<button
-									class="relative flex h-full min-h-[13rem] w-full cursor-pointer flex-col rounded-xl border text-left transition-all duration-150
-									{isSelected
-										? 'border-white/30 bg-white/[0.06] shadow-[0_4px_20px_rgba(255,255,255,0.07)]'
-										: 'border-white/[0.07] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]'}"
-									onclick={() => togglePack(pack.id)}
-								>
-									<div class="flex h-full flex-col p-4">
-										<div class="mb-2 flex items-start justify-between gap-3">
-											<div class="flex-1">
-												<div class="mb-0.5 flex items-center gap-1.5">
-													<h3 class="text-sm font-black leading-tight text-white">{pack.name}</h3>
-													{#if pack.isOfficial}
-														<MdiCrown class="h-3.5 w-3.5 shrink-0 text-amber-400/70" />
-													{/if}
-												</div>
-												<p class="text-[11px] text-white/30">
-													{pack.isOfficial ? 'Official' : 'Community'}
-												</p>
-											</div>
-											{#if isSelected}
-												<div class="shrink-0">
-													<div
-														class="flex h-5 w-5 items-center justify-center rounded-full bg-white"
-													>
-														<MdiCheck class="h-3 w-3 text-black" />
-													</div>
-												</div>
-											{/if}
-										</div>
-
-										<div class="mt-auto grid grid-cols-2 gap-2">
-											<div class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-												<div
-													class="text-[10px] font-black uppercase tracking-[0.2em] text-white/25"
-												>
-													Black
-												</div>
-												<div class="mt-0.5 font-black text-white">{pack.blackCards}</div>
-											</div>
-											<div class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-												<div
-													class="text-[10px] font-black uppercase tracking-[0.2em] text-white/25"
-												>
-													White
-												</div>
-												<div class="mt-0.5 font-black text-white">{pack.whiteCards}</div>
-											</div>
-										</div>
-
-										<div class="mt-3 flex items-center justify-between text-[11px]">
-											{#if pack.isNSFW}
-												<span
-													class="rounded-full border border-red-500/15 bg-red-500/[0.08] px-2 py-0.5 font-bold text-red-400/80"
-													>NSFW</span
-												>
-											{:else}
-												<span
-													class="rounded-full border border-green-500/15 bg-green-500/[0.08] px-2 py-0.5 font-bold text-green-400/80"
-													>Clean</span
-												>
-											{/if}
-											{#if isBaseGame}
-												<span class="font-bold text-white/25">Required</span>
-											{:else if isSelected}
-												<span class="font-bold text-white/60">Selected</span>
-											{:else}
-												<span class="text-white/20">Tap to add</span>
-											{/if}
-										</div>
-									</div>
-								</button>
-							{/each}
-						</div>
-
-						{#if shouldShowMoreButton}
-							<div class="mt-5 flex justify-center">
-								<button
-									class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-bold text-white/50 transition hover:bg-white/[0.08] hover:text-white/70"
-									onclick={() => (showAllPacks = true)}
-								>
-									Show {totalFilteredPacks - 6} more
-									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M19 9l-7 7-7-7"
-										/>
-									</svg>
-								</button>
-							</div>
-						{/if}
-					</div>
+						</CardContent>
+					</Card>
 				{/if}
 			</div>
 
-			<!-- Desktop sidebar — matches CahPlayerList style -->
-			<aside
-				class="hidden w-72 shrink-0 lg:sticky lg:top-[3.5rem] lg:block lg:self-start xl:w-80"
-			>
-				<div class="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#1a1a1a]">
-					<!-- Header -->
-					<div class="border-b border-white/[0.07] px-4 py-3">
-						<span class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30"
-							>Deck summary</span
-						>
+			<aside class="hidden w-72 shrink-0 lg:sticky lg:top-[3.5rem] lg:block lg:self-start xl:w-80">
+				<Card>
+					<CardHeader class="border-b [.border-b]:pb-3">
+						<CardTitle class="text-sm">Deck summary</CardTitle>
+					</CardHeader>
+
+					<div class="grid grid-cols-2 divide-x">
+						<CardContent>
+							<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+								Black
+							</p>
+							<p class="mt-1 text-2xl font-bold">{totals.totalBlack}</p>
+						</CardContent>
+						<CardContent>
+							<p class="text-muted-foreground text-[10px] font-medium uppercase tracking-widest">
+								White
+							</p>
+							<p class="mt-1 text-2xl font-bold">{totals.totalWhite}</p>
+						</CardContent>
 					</div>
 
-					<!-- Black / White counts -->
-					<div class="grid grid-cols-2 divide-x divide-white/[0.05] border-b border-white/[0.05]">
-						<div class="px-4 py-3">
-							<p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/25">Black</p>
-							<p class="mt-1 text-2xl font-black text-white">{totals.totalBlack}</p>
-						</div>
-						<div class="px-4 py-3">
-							<p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/25">White</p>
-							<p class="mt-1 text-2xl font-black text-white">{totals.totalWhite}</p>
-						</div>
-					</div>
+					<Separator />
 
-					<!-- Selected pack list -->
 					{#if selectedPackList.length > 0}
-						<div class="divide-y divide-white/[0.05]">
-							{#each selectedPackList.slice(0, 8) as pack (pack.id)}
-								<div class="flex items-center justify-between px-4 py-2.5">
-									<div class="min-w-0 pr-2">
-										<p class="truncate text-sm font-bold text-white/80">{pack.name}</p>
-										<p class="text-[11px] text-white/30">
-											{pack.blackCards + pack.whiteCards} cards
-										</p>
-									</div>
-									{#if pack.isOfficial}
-										<MdiCrown class="h-3.5 w-3.5 shrink-0 text-amber-400/40" />
-									{/if}
-								</div>
-							{/each}
-							{#if selectedPackList.length > 8}
-								<div class="px-4 py-2.5 text-sm text-white/25">
-									+{selectedPackList.length - 8} more
-								</div>
-							{/if}
-						</div>
+						<CardContent class="p-0">
+							<ItemGroup>
+								{#each selectedPackList.slice(0, 8) as pack (pack.id)}
+									<Item variant="outline">
+										<ItemContent>
+											<ItemTitle class="truncate">{pack.name}</ItemTitle>
+											<ItemDescription>
+												{pack.blackCards + pack.whiteCards} cards
+											</ItemDescription>
+										</ItemContent>
+										{#if pack.isOfficial}
+											<MdiCrown class="size-3.5 shrink-0 text-amber-400" />
+										{/if}
+									</Item>
+								{/each}
+								{#if selectedPackList.length > 8}
+									<Item variant="outline">
+										<ItemDescription>+{selectedPackList.length - 8} more</ItemDescription>
+									</Item>
+								{/if}
+							</ItemGroup>
+						</CardContent>
 					{:else}
-						<div class="px-4 py-5 text-center">
-							<p class="text-sm text-white/25">No packs selected</p>
-						</div>
+						<CardContent>
+							<p class="text-muted-foreground text-center text-sm">No packs selected</p>
+						</CardContent>
 					{/if}
 
-					<!-- Game settings -->
-					<div class="border-t border-white/[0.07] px-4 py-4">
-						<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 mb-3">Settings</p>
+					<Separator />
 
-						<div class="space-y-3">
-							<div>
-								<div class="flex items-center justify-between mb-1.5">
-									<label class="text-xs font-bold text-white/50" for="max-rounds-desktop">Max rounds</label>
-									<span class="text-xs font-black text-white">{maxRounds}</span>
-								</div>
-								<Input
-									id="max-rounds-desktop"
-									type="range"
-									min={3}
-									max={50}
-									step={1}
-									bind:value={maxRounds}
-									class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
-								/>
-								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
-									<span>3</span><span>50</span>
-								</div>
+					<CardContent class="space-y-3">
+						<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">Settings</p>
+
+						<Field>
+							<div class="mb-1.5 flex items-center justify-between">
+								<FieldLabel for="max-rounds-desktop">Max rounds</FieldLabel>
+								<span class="text-xs font-bold">{maxRounds}</span>
 							</div>
+							<Slider type="single" id="max-rounds-desktop" bind:value={maxRounds} min={3} max={50} step={1} />
+						</Field>
 
-							<div>
-								<div class="flex items-center justify-between mb-1.5">
-									<label class="text-xs font-bold text-white/50" for="hand-size-desktop">Hand size</label>
-									<span class="text-xs font-black text-white">{handSize} cards</span>
-								</div>
-								<Input
-									id="hand-size-desktop"
-									type="range"
-									min={3}
-									max={15}
-									step={1}
-									bind:value={handSize}
-									class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
-								/>
-								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
-									<span>3</span><span>15</span>
-								</div>
+						<Field>
+							<div class="mb-1.5 flex items-center justify-between">
+								<FieldLabel for="hand-size-desktop">Hand size</FieldLabel>
+								<span class="text-xs font-bold">{handSize} cards</span>
 							</div>
+							<Slider type="single" id="hand-size-desktop" bind:value={handSize} min={3} max={15} step={1} />
+						</Field>
 
-							<div>
-								<div class="flex items-center justify-between mb-1.5">
-									<label class="text-xs font-bold text-white/50" for="max-players-desktop">Room size</label>
-									<span class="text-xs font-black text-white">{maxPlayers} players</span>
-								</div>
-								<Input
-									id="max-players-desktop"
-									type="range"
-									min={3}
-									max={20}
-									step={1}
-									bind:value={maxPlayers}
-									class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
-								/>
-								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
-									<span>3</span><span>20</span>
-								</div>
+						<Field>
+							<div class="mb-1.5 flex items-center justify-between">
+								<FieldLabel for="max-players-desktop">Room size</FieldLabel>
+								<span class="text-xs font-bold">{maxPlayers} players</span>
 							</div>
-						</div>
-					</div>
+							<Slider
+								type="single"
+								id="max-players-desktop"
+								bind:value={maxPlayers}
+								min={3}
+								max={20}
+								step={1}
+							/>
+						</Field>
+					</CardContent>
 
-					<!-- Start button -->
-					<div class="border-t border-white/[0.07] p-4">
-						<button
-							class="w-full rounded-xl bg-white px-6 py-3 text-sm font-black text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-30"
+					<CardFooter class="border-t">
+						<Button
+							type="button"
+							class="w-full"
 							onclick={startGame}
 							disabled={selectedIds.length === 0}
 						>
 							Start game
-						</button>
-					</div>
-				</div>
+						</Button>
+					</CardFooter>
+				</Card>
 			</aside>
 		</div>
 
-		<!-- Mobile sticky bottom bar -->
 		<div class="sticky bottom-3 z-20 px-4 lg:hidden">
-			<div class="rounded-2xl border border-white/10 bg-[#111111]/95 p-4 shadow-2xl backdrop-blur-md">
-				<!-- Settings row -->
-				<div class="mb-3 grid grid-cols-3 gap-3">
-					<div>
-						<div class="flex items-center justify-between mb-1">
-							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-rounds-mobile">Rounds</label>
-							<span class="text-xs font-black text-white">{maxRounds}</span>
+			<Card>
+				<CardContent class="space-y-3">
+					<div class="grid grid-cols-3 gap-3">
+						<Field>
+							<div class="mb-1 flex items-center justify-between">
+								<FieldLabel for="max-rounds-mobile" class="text-[10px] uppercase">Rounds</FieldLabel>
+								<span class="text-xs font-bold">{maxRounds}</span>
+							</div>
+							<Slider
+								type="single"
+								id="max-rounds-mobile"
+								bind:value={maxRounds}
+								min={3}
+								max={50}
+								step={1}
+							/>
+						</Field>
+						<Field>
+							<div class="mb-1 flex items-center justify-between">
+								<FieldLabel for="hand-size-mobile" class="text-[10px] uppercase">Hand</FieldLabel>
+								<span class="text-xs font-bold">{handSize}</span>
+							</div>
+							<Slider type="single" id="hand-size-mobile" bind:value={handSize} min={3} max={15} step={1} />
+						</Field>
+						<Field>
+							<div class="mb-1 flex items-center justify-between">
+								<FieldLabel for="max-players-mobile" class="text-[10px] uppercase">Seats</FieldLabel>
+								<span class="text-xs font-bold">{maxPlayers}</span>
+							</div>
+							<Slider
+								type="single"
+								id="max-players-mobile"
+								bind:value={maxPlayers}
+								min={3}
+								max={20}
+								step={1}
+							/>
+						</Field>
+					</div>
+					<div class="flex items-center justify-between gap-4">
+						<div>
+							<p class="text-sm font-medium">
+								{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''}
+							</p>
+							<p class="text-muted-foreground text-xs">
+								{totals.totalBlack}B / {totals.totalWhite}W cards
+							</p>
 						</div>
-						<Input
-							id="max-rounds-mobile"
-							type="range"
-							min={3}
-							max={50}
-							step={1}
-							bind:value={maxRounds}
-							class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
-						/>
+						<Button
+							type="button"
+							variant="emerald"
+							class="shrink-0"
+							onclick={startGame}
+							disabled={selectedIds.length === 0}
+						>
+							Start game ({selectedIds.length})
+						</Button>
 					</div>
-					<div>
-						<div class="flex items-center justify-between mb-1">
-							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="hand-size-mobile">Hand</label>
-							<span class="text-xs font-black text-white">{handSize}</span>
-						</div>
-						<Input
-							id="hand-size-mobile"
-							type="range"
-							min={3}
-							max={15}
-							step={1}
-							bind:value={handSize}
-							class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
-						/>
-					</div>
-					<div>
-						<div class="flex items-center justify-between mb-1">
-							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-players-mobile">Seats</label>
-							<span class="text-xs font-black text-white">{maxPlayers}</span>
-						</div>
-						<Input
-							id="max-players-mobile"
-							type="range"
-							min={3}
-							max={20}
-							step={1}
-							bind:value={maxPlayers}
-							class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
-						/>
-					</div>
-				</div>
-				<!-- Pack count + start -->
-				<div class="flex items-center justify-between gap-4">
-					<div>
-						<p class="text-sm font-bold text-white">
-							{selectedIds.length} pack{selectedIds.length !== 1 ? 's' : ''}
-						</p>
-						<p class="text-xs text-white/35">{totals.totalBlack}B / {totals.totalWhite}W cards</p>
-					</div>
-					<Button
-						type="button"
-						variant="emerald"
-						class="shrink-0"
-						onclick={startGame}
-						disabled={selectedIds.length === 0}
-					>
-						Start game ({selectedIds.length})
-					</Button>
-				</div>
-			</div>
+				</CardContent>
+			</Card>
 		</div>
 	{/if}
 </div>

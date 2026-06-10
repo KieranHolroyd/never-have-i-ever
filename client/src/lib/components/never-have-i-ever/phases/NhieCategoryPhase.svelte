@@ -1,7 +1,13 @@
 <script lang="ts">
-	import { fly } from 'svelte/transition';
-	import { quintOut } from 'svelte/easing';
+	import { fly, scale } from 'svelte/transition';
+	import { quintOut, backOut } from 'svelte/easing';
 	import type { Catagories } from '$lib/types';
+	import NhieStickyActionBar from '../NhieStickyActionBar.svelte';
+	import MdiArrowLeft from '~icons/mdi/arrow-left';
+	import MdiCheck from '~icons/mdi/check';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 
 	interface Props {
 		visibleCatagories: [string, Catagories[string]][];
@@ -24,90 +30,103 @@
 		onConfirm,
 		onBackToLobby
 	}: Props = $props();
+
+	const totalSelectedQuestions = $derived(
+		visibleCatagories
+			.filter(([name]) => selectedCategories.includes(name))
+			.reduce((sum, [, cat]) => sum + cat.questions.length, 0)
+	);
 </script>
 
-<div class="mx-auto mt-4 w-full max-w-lg pb-24" data-testid="nhie-categories">
-	<div class="mb-4 text-center sm:text-left">
-		<p class="nhie-phase-label">Categories</p>
-		<h2 class="text-2xl font-black text-white">Pick your decks</h2>
-		<p class="mt-1 text-sm text-white/45">
-			{selectedCategoryCount > 0
-				? `${selectedCategoryCount} of ${visibleCategoryCount} selected`
-				: 'Choose at least one to start'}
+<div class="space-y-5 pb-32 pt-3" data-testid="nhie-categories">
+	<div class="space-y-1">
+		<div class="flex items-center justify-between gap-3">
+			<p class="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Step 2 of 3</p>
+			<Button variant="ghost" size="sm" class="text-muted-foreground -mr-2 shrink-0" onclick={onBackToLobby}>
+				<MdiArrowLeft class="size-4" />
+				Back
+			</Button>
+		</div>
+		<h2 class="text-3xl font-bold tracking-tight">Pick your decks</h2>
+		<p class="text-muted-foreground text-sm leading-relaxed">
+			Mix and match — questions are shuffled from every selected deck.
 		</p>
 	</div>
 
-	<button
-		type="button"
-		class="mb-4 text-sm font-semibold text-white/40 hover:text-emerald-300"
-		onclick={onBackToLobby}
-	>
-		← Back to lobby
-	</button>
-
 	{#if catagoriesLoaded}
-		<div class="grid grid-cols-2 gap-2 sm:grid-cols-2">
+		<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
 			{#each visibleCatagories as [catagory_name, catagory], index (catagory_name)}
 				{@const isSelected = selectedCategories.includes(catagory_name)}
-				<button
-					type="button"
-					data-testid="category-chip"
-					class={`relative rounded-2xl border p-4 text-left transition-all ${isSelected
-						? 'nhie-chip-selected'
-						: 'nhie-chip-default'}`}
+				<div
 					in:fly={{
-						y: 8,
-						duration: 200,
-						delay: Math.min(index * 15, 150),
+						y: 10,
+						duration: 250,
+						delay: Math.min(index * 20, 200),
 						easing: quintOut
 					}}
-					onclick={() => onToggleCategory(catagory_name)}
 				>
-					<span class="block text-sm font-black capitalize text-white">{catagory_name}</span>
-					<span class="mt-1 block text-xs text-white/40">
-						{catagory.questions.length} questions
-					</span>
-					<div class="mt-2 flex flex-wrap gap-1">
-						{#if catagory.flags.is_nsfw}
-							<span
-								class="rounded-full border border-red-400/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-red-200"
-								>NSFW</span
-							>
+					<button
+						type="button"
+						aria-pressed={isSelected}
+						data-state={isSelected ? 'on' : 'off'}
+						class="group border-input hover:bg-muted hover:text-foreground aria-pressed:border-emerald-500 aria-pressed:bg-emerald-500/10 relative inline-flex h-auto min-h-[6rem] w-full flex-col items-start justify-start gap-0.5 rounded-xl border bg-transparent p-4 text-left text-sm font-medium transition-colors duration-150 hover:border-emerald-500/40 hover:bg-emerald-500/5"
+						data-testid="category-chip"
+						onclick={() => onToggleCategory(catagory_name)}
+					>
+						<span class="block pr-7 text-sm font-semibold capitalize leading-tight">
+							{catagory_name}
+						</span>
+						<span class="text-muted-foreground block text-xs">
+							{catagory.questions.length} questions
+						</span>
+						{#if catagory.flags.is_nsfw || catagory.flags.is_hidden}
+							<div class="mt-1.5 flex flex-wrap gap-1">
+								{#if catagory.flags.is_nsfw}
+									<Badge variant="destructive" class="h-4 px-1.5 text-[10px]">NSFW</Badge>
+								{/if}
+								{#if catagory.flags.is_hidden}
+									<Badge variant="outline" class="h-4 px-1.5 text-[10px]">Hidden</Badge>
+								{/if}
+							</div>
 						{/if}
-						{#if catagory.flags.is_hidden}
+						{#if isSelected}
 							<span
-								class="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-black uppercase text-white/45"
-								>Hidden</span
+								class="absolute top-2.5 right-2.5 flex size-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm"
+								in:scale={{ duration: 200, start: 0.5, easing: backOut }}
 							>
+								<MdiCheck class="size-3.5" />
+							</span>
 						{/if}
-					</div>
-					{#if isSelected}
-						<span
-							class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-black text-zinc-950"
-							>✓</span
-						>
-					{/if}
-				</button>
+					</button>
+				</div>
 			{/each}
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-2">
-			{#each Array.from({ length: 6 }) as _, index (index)}
-				<div class="h-24 animate-pulse rounded-2xl border border-white/8 bg-zinc-900/50"></div>
+		<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+			{#each Array.from({ length: 8 }) as _, index (index)}
+				<Skeleton class="h-[5.75rem] rounded-xl" />
 			{/each}
 		</div>
 	{/if}
+</div>
 
-	<div
-		class="fixed bottom-0 left-0 z-20 w-full border-t border-white/10 bg-zinc-950/95 px-3 py-3 backdrop-blur-md pb-[max(env(safe-area-inset-bottom),0.75rem)]"
-	>
-		<button
-			type="button"
-			class="w-full rounded-xl bg-emerald-500 py-3.5 text-base font-black text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+<NhieStickyActionBar>
+	<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+		<span class="text-muted-foreground text-xs">
+			{#if selectedCategoryCount === 0}
+				Select at least one deck to start
+			{:else}
+				{selectedCategoryCount} of {visibleCategoryCount} decks · {totalSelectedQuestions} questions
+			{/if}
+		</span>
+		<Button
+			variant="emerald"
+			size="lg"
+			class="h-12 w-full text-base font-semibold sm:w-auto sm:px-8"
 			disabled={selectedCategoryCount === 0}
 			onclick={onConfirm}
 		>
-			Start game ({selectedCategoryCount} {selectedCategoryCount === 1 ? 'category' : 'categories'})
-		</button>
+			Start game
+		</Button>
 	</div>
-</div>
+</NhieStickyActionBar>

@@ -2,82 +2,205 @@
 	import { flip } from 'svelte/animate';
 	import { fly } from 'svelte/transition';
 	import { backOut } from 'svelte/easing';
-	import { colour_map } from '$lib/colour';
+	import type { NhieRoundPhase } from '../types';
+	import { voteBadgeClass } from '$lib/colour';
+	import { avatarColorClass, initials } from '$lib/avatar';
 	import type { Player } from '$lib/types';
+	import { Avatar, AvatarBadge, AvatarFallback } from '$lib/components/ui/avatar';
+	import { Badge } from '$lib/components/ui/badge';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
+	import {
+		Item,
+		ItemActions,
+		ItemContent,
+		ItemGroup,
+		ItemMedia,
+		ItemTitle
+	} from '$lib/components/ui/item';
+	import { Progress } from '$lib/components/ui/progress';
+	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { Separator } from '$lib/components/ui/separator';
 
 	interface Props {
 		players: Player[];
+		currentPlayerId?: string | null;
+		revealVotes?: boolean;
+		roundPhase?: NhieRoundPhase;
 	}
 
-	let { players }: Props = $props();
-
-	let expanded = $state(false);
+	let { players, currentPlayerId = null, revealVotes = false, roundPhase = 'answer' }: Props = $props();
 
 	const voteDotClass: Record<string, string> = {
-		Have: 'bg-emerald-400',
-		Kinda: 'bg-sky-400',
-		'Have Not': 'bg-rose-400'
+		Have: 'bg-emerald-500',
+		Kinda: 'bg-sky-500',
+		'Have Not': 'bg-rose-500'
 	};
+
+	const votedCount = $derived(players.filter((p) => p.this_round.voted).length);
+	const progressPct = $derived(players.length > 0 ? Math.round((votedCount / players.length) * 100) : 0);
+	const allVoted = $derived(players.length > 0 && votedCount >= players.length);
+
+	function sortPlayers(list: Player[]) {
+		return [...list].sort((a, b) => {
+			if (a.id === currentPlayerId) return -1;
+			if (b.id === currentPlayerId) return 1;
+			return Number(b.this_round.voted) - Number(a.this_round.voted) || b.score - a.score || a.name.localeCompare(b.name);
+		});
+	}
+
+	const votedPlayers = $derived(sortPlayers(players.filter((p) => p.this_round.voted)));
+	const waitingPlayers = $derived(sortPlayers(players.filter((p) => !p.this_round.voted)));
 </script>
 
-<div class="mx-auto mt-4 w-full max-w-lg">
-	<button
-		type="button"
-		class="mb-2 flex w-full items-center justify-between rounded-xl border border-white/8 bg-zinc-900/60 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-white/50"
-		onclick={() => (expanded = !expanded)}
-	>
-		<span>Players ({players.length})</span>
-		<span class="text-white/30">{expanded ? 'Hide' : 'Show'}</span>
-	</button>
+<Card>
+	<CardHeader class="gap-3">
+		<div class="flex items-start justify-between gap-2">
+			<div>
+				<CardTitle class="text-base">Players</CardTitle>
+				<CardDescription>
+					{#if roundPhase === 'results'}
+						Final votes this round
+					{:else if roundPhase === 'waiting'}
+						{votedCount} of {players.length} locked in
+					{:else}
+						{votedCount} of {players.length} voted this round
+					{/if}
+				</CardDescription>
+			</div>
+			<Badge variant="outline" class="shrink-0 tabular-nums">
+				{players.length} in game
+			</Badge>
+		</div>
+		<Progress
+			value={progressPct}
+			class="h-1 {allVoted
+				? '[&_[data-slot=progress-indicator]]:bg-emerald-500'
+				: '[&_[data-slot=progress-indicator]]:bg-amber-500'}"
+		/>
+	</CardHeader>
 
-	{#if expanded}
-		<div class="space-y-2 rounded-2xl border border-white/8 bg-zinc-950/80 p-3">
-			{#each players as player, index (player.id)}
-				<div
-					class={`relative flex items-center gap-3 rounded-xl px-3 py-2 font-semibold ${colour_map[player.this_round.vote ?? 'null']}`}
-					in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: backOut }}
-					animate:flip
-					data-testid={`player-${player.name}`}
-				>
-					<span
-						class={`h-2.5 w-2.5 shrink-0 rounded-full ${voteDotClass[player.this_round.vote ?? ''] ?? 'bg-zinc-500'}`}
-					></span>
-					<span class="min-w-0 flex-1 truncate text-sm">
-						{player.name}
-						<span class="text-white/50 font-normal">
-							· {player.this_round.vote ?? 'Not voted'}
-						</span>
-					</span>
-					<span
-						class="shrink-0 rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white"
-						data-testid={`player-score-${player.name}`}
-					>
-						{player.score}
-					</span>
-				</div>
-			{/each}
-		</div>
-	{:else}
-		<div class="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-			{#each players as player, index (player.id)}
-				<div
-					class="relative flex shrink-0 flex-col items-center gap-1 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 min-w-[4.5rem]"
-					in:fly={{ y: 4, duration: 180, delay: Math.min(index * 20, 200), easing: backOut }}
-					animate:flip
-					data-testid={`player-${player.name}`}
-				>
-					<span
-						class={`absolute -top-0.5 -right-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white`}
-						data-testid={`player-score-${player.name}`}
-					>
-						{player.score}
-					</span>
-					<span
-						class={`h-2 w-2 rounded-full ${voteDotClass[player.this_round.vote ?? ''] ?? 'bg-zinc-600'}`}
-					></span>
-					<span class="max-w-[5rem] truncate text-xs font-bold text-white/90">{player.name}</span>
-				</div>
-			{/each}
-		</div>
-	{/if}
-</div>
+	<CardContent class="p-0">
+		<ScrollArea class="max-h-80">
+			<div class="px-4 pb-4">
+				{#if votedPlayers.length > 0}
+					<div class="mb-2 flex items-center gap-2">
+						<span class="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">Voted</span>
+						<span class="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">{votedPlayers.length}</span>
+					</div>
+					<ItemGroup class="gap-1">
+						{#each votedPlayers as player, index (player.id)}
+							<div
+								in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: backOut }}
+								animate:flip={{ duration: 250 }}
+								data-testid={`player-${player.name}`}
+							>
+								<Item
+									variant="outline"
+									size="sm"
+									class="px-2.5 py-2 {player.id === currentPlayerId ? 'border-emerald-500/30' : ''}"
+								>
+									<ItemMedia>
+										<Avatar size="lg">
+											<AvatarFallback class="text-xs font-bold {avatarColorClass(player.id)}">
+												{initials(player.name)}
+											</AvatarFallback>
+											<AvatarBadge
+												class={revealVotes
+													? voteDotClass[player.this_round.vote ?? ''] ?? 'bg-muted-foreground/40'
+													: 'bg-emerald-500'}
+											/>
+										</Avatar>
+									</ItemMedia>
+									<ItemContent>
+										<ItemTitle class="text-sm">
+											{player.name}
+											{#if player.id === currentPlayerId}
+												<span class="text-muted-foreground text-xs font-normal">(you)</span>
+											{/if}
+										</ItemTitle>
+									</ItemContent>
+									<ItemActions class="flex-col items-end gap-1 sm:flex-row sm:items-center">
+										{#if revealVotes}
+											<Badge
+												variant="secondary"
+												class={voteBadgeClass[player.this_round.vote ?? 'null']}
+											>
+												{player.this_round.vote}
+											</Badge>
+										{:else}
+											<Badge variant="secondary" class="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+												Voted
+											</Badge>
+										{/if}
+										<Badge variant="outline" data-testid={`player-score-${player.name}`}>
+											{player.score} pts
+										</Badge>
+									</ItemActions>
+								</Item>
+							</div>
+						{/each}
+					</ItemGroup>
+				{/if}
+
+				{#if votedPlayers.length > 0 && waitingPlayers.length > 0}
+					<Separator class="my-3" />
+				{/if}
+
+				{#if waitingPlayers.length > 0}
+					<div class="mb-2 flex items-center gap-2">
+						<span class="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">Waiting</span>
+						<span class="bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">{waitingPlayers.length}</span>
+					</div>
+					<ItemGroup class="gap-1">
+						{#each waitingPlayers as player, index (player.id)}
+							<div
+								in:fly={{ y: 6, duration: 220, delay: Math.min(index * 25, 300), easing: backOut }}
+								animate:flip={{ duration: 250 }}
+								data-testid={`player-${player.name}`}
+							>
+								<Item
+									variant="outline"
+									size="sm"
+									class="px-2.5 py-2 opacity-80 {player.id === currentPlayerId
+										? 'border-emerald-500/30'
+										: ''}"
+								>
+									<ItemMedia>
+										<Avatar size="lg">
+											<AvatarFallback class="text-xs font-bold {avatarColorClass(player.id)}">
+												{initials(player.name)}
+											</AvatarFallback>
+											<AvatarBadge class="bg-muted-foreground/40" />
+										</Avatar>
+									</ItemMedia>
+									<ItemContent>
+										<ItemTitle class="text-sm">
+											{player.name}
+											{#if player.id === currentPlayerId}
+												<span class="text-muted-foreground text-xs font-normal">(you)</span>
+											{/if}
+										</ItemTitle>
+									</ItemContent>
+									<ItemActions class="flex-col items-end gap-1 sm:flex-row sm:items-center">
+										<Badge variant="secondary" class={voteBadgeClass['null']}>
+											Not voted
+										</Badge>
+										<Badge variant="outline" data-testid={`player-score-${player.name}`}>
+											{player.score} pts
+										</Badge>
+									</ItemActions>
+								</Item>
+							</div>
+						{/each}
+					</ItemGroup>
+				{/if}
+			</div>
+		</ScrollArea>
+	</CardContent>
+</Card>

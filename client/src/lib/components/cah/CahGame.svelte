@@ -41,6 +41,18 @@
 	import CahCardPackSelection from './CahCardPackSelection.svelte';
 	import CahGameShell, { type CahStep } from './CahGameShell.svelte';
 	import CahPlayerStrip from './game/CahPlayerStrip.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent } from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import {
+		Empty,
+		EmptyDescription,
+		EmptyHeader,
+		EmptyMedia,
+		EmptyTitle
+	} from '$lib/components/ui/empty';
+	import { Spinner } from '$lib/components/ui/spinner';
+	import { Separator } from '$lib/components/ui/separator';
 
 	interface Props {
 		id: string;
@@ -560,30 +572,17 @@
 					{#key gameState.phase}
 						{#if gameState.phase === 'waiting'}
 							{#if optimisticPhase === 'waiting'}
-								<div
-									class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-8 text-center"
-									data-testid="cah-waiting"
-								>
-									<div
-										class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]"
-									>
-										<svg
-											class="h-7 w-7 animate-pulse text-white/30"
-											fill="currentColor"
-											viewBox="0 0 20 20"
-										>
-											<path
-												fill-rule="evenodd"
-												d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-												clip-rule="evenodd"
-											/>
-										</svg>
-									</div>
-									<h2 class="text-xl font-black text-white">Waiting for players</h2>
-									<p class="mt-2 text-sm text-white/40">
-										The room is being prepared. New players can still join.
-									</p>
-								</div>
+								<Empty class="border-solid" data-testid="cah-waiting">
+									<EmptyHeader>
+										<EmptyMedia>
+											<Spinner class="size-8" />
+										</EmptyMedia>
+										<EmptyTitle>Waiting for players</EmptyTitle>
+										<EmptyDescription>
+											The room is being prepared. New players can still join.
+										</EmptyDescription>
+									</EmptyHeader>
+								</Empty>
 							{:else}
 								<CahWaitingPhase
 									gameState={gameState as CAHGameState}
@@ -644,88 +643,69 @@
 						{/if}
 					{/key}
 				{:else if optimisticPhase === 'waiting'}
-					<div class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-8 text-center">
-						<div
-							class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]"
-						>
-							<svg
-								class="h-7 w-7 animate-pulse text-white/30"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0 1 1 0 002 0zm-1 4a1 1 0 00-1 1v4a1 1 0 102 0V9a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-						</div>
-						<h2 class="text-xl font-black text-white">Waiting for players</h2>
-						<p class="mt-2 text-sm text-white/40">
-							The table is initializing. The room will open once the server confirms the pack setup.
-						</p>
-					</div>
+					<Empty class="border-solid">
+						<EmptyHeader>
+							<EmptyMedia>
+								<Spinner class="size-8" />
+							</EmptyMedia>
+							<EmptyTitle>Waiting for players</EmptyTitle>
+							<EmptyDescription>
+								The table is initializing. The room will open once the server confirms the pack
+								setup.
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				{:else}
-					<div class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-8 text-center">
-						<p class="text-white/40">Connecting to game…</p>
-					</div>
+					<Empty class="border-solid">
+						<EmptyHeader>
+							<EmptyMedia>
+								<Spinner class="size-8" />
+							</EmptyMedia>
+							<EmptyTitle>Connecting to game…</EmptyTitle>
+						</EmptyHeader>
+					</Empty>
 				{/if}
 
 				{#if $settings?.show_debug}
-					<div class="mt-8 border-t border-white/10 pt-6">
-						<h4 class="mb-3 text-sm font-semibold text-white/40">Debug Controls</h4>
-						<div class="mb-4 flex flex-wrap items-center gap-2">
-							<button
-								class="rounded bg-blue-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-blue-500"
-								onclick={() => wsManager?.ping()}
-							>
-								Ping
-							</button>
-							<button
-								class="rounded bg-red-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-red-500"
-								onclick={resetGame}
-							>
-								Reset Game
-							</button>
-							<span class="mx-2 text-white/20">|</span>
-							<button
-								class="rounded bg-emerald-600 px-3 py-2 text-sm font-medium transition-colors hover:bg-emerald-500"
-								onclick={addBot}
-							>
-								Add Bot
-							</button>
-							<button
-								class="rounded bg-emerald-700 px-3 py-2 text-sm font-medium transition-colors hover:bg-emerald-600"
-								onclick={() => addBots(2)}
-							>
-								Add 2 Bots
-							</button>
-							<button
-								class="rounded bg-white/10 px-3 py-2 text-sm font-medium transition-colors hover:bg-white/20"
-								onclick={killAllBots}
-							>
-								Kill All Bots
-							</button>
-						</div>
-
-						{#if bots.length > 0}
-							<div class="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-								{#each bots as b (b.id)}
-									<div
-										class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2"
-									>
-										<div>
-											<div class="text-sm font-medium text-white">{b.name}</div>
-											<div class="text-xs text-white/30">{b.id.slice(0, 8)}…</div>
-										</div>
-										<div class="text-xs {b.connected ? 'text-green-400' : 'text-red-400'}">
-											{b.connected ? 'connected' : 'off'}
-										</div>
-									</div>
-								{/each}
+					<Card class="mt-8">
+						<CardContent class="space-y-4">
+							<h4 class="text-muted-foreground text-sm font-medium">Debug Controls</h4>
+							<div class="flex flex-wrap items-center gap-2">
+								<Button type="button" variant="secondary" onclick={() => wsManager?.ping()}>
+									Ping
+								</Button>
+								<Button type="button" variant="destructive" onclick={resetGame}>
+									Reset Game
+								</Button>
+								<Separator orientation="vertical" class="mx-1 h-6" />
+								<Button type="button" variant="emerald" onclick={addBot}>Add Bot</Button>
+								<Button type="button" variant="emerald" onclick={() => addBots(2)}>
+									Add 2 Bots
+								</Button>
+								<Button type="button" variant="outline" onclick={killAllBots}>
+									Kill All Bots
+								</Button>
 							</div>
-						{/if}
-					</div>
+
+							{#if bots.length > 0}
+								<div class="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+									{#each bots as b (b.id)}
+										<Card size="sm">
+											<CardContent class="flex items-center justify-between">
+												<div>
+													<p class="text-sm font-medium">{b.name}</p>
+													<p class="text-muted-foreground text-xs">{b.id.slice(0, 8)}…</p>
+												</div>
+												<Badge variant={b.connected ? 'default' : 'destructive'}>
+													{b.connected ? 'connected' : 'off'}
+												</Badge>
+											</CardContent>
+										</Card>
+									{/each}
+								</div>
+							{/if}
+						</CardContent>
+					</Card>
 				{/if}
 			</div>
 

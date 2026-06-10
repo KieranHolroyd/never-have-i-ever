@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { CAHSubmission } from '$lib/types';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 
 	interface Props {
 		submissions: CAHSubmission[];
@@ -10,59 +13,40 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Header -->
 	<div class="flex items-start justify-between gap-4">
 		<div>
-			<p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/30">Judge panel</p>
-			<h3 class="mt-1 text-xl font-black text-white">Pick the winner</h3>
-			<p class="mt-1 text-sm text-white/40">
+			<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">Judge panel</p>
+			<h3 class="text-xl font-bold">Pick the winner</h3>
+			<p class="text-muted-foreground mt-1 text-sm">
 				Tap the funniest anonymous submission to award the point.
 			</p>
 		</div>
-		<div
-			class="shrink-0 rounded-full border border-amber-400/20 bg-amber-500/[0.08] px-3 py-1.5 text-sm font-bold text-amber-300/80"
-		>
-			{submissions.length} submitted
-		</div>
+		<Badge variant="secondary" class="text-amber-500">{submissions.length} submitted</Badge>
 	</div>
 
-	<!-- Submission cards -->
 	<div class="grid gap-4 sm:grid-cols-2">
 		{#each submissions as submission, index (submission.playerId)}
-			<button
-				class="group rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-amber-400/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+			<Card
+				class="cursor-pointer transition-all hover:-translate-y-0.5 hover:border-amber-500/30"
 				onclick={() => onSelectWinner(submission.playerId)}
 			>
-				<!-- Submission header -->
-				<div class="mb-4 flex items-center justify-between">
-					<div class="flex items-center gap-3">
-						<div
-							class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/15 text-sm font-black text-amber-300"
-						>
-							{index + 1}
-						</div>
-						<span class="text-xs font-black uppercase tracking-[0.25em] text-white/30"
-							>Anonymous</span
-						>
-					</div>
-					<span
-						class="rounded-full border border-amber-400/20 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-bold text-amber-300/60 transition-colors group-hover:text-amber-300"
-					>
-						Award point →
-					</span>
-				</div>
-
-				<!-- White card(s) -->
-				<div class="space-y-2">
+				<CardHeader>
+					<Avatar size="sm">
+						<AvatarFallback class="bg-amber-500/15 text-amber-300">{index + 1}</AvatarFallback>
+					</Avatar>
+					<Badge variant="outline">Anonymous</Badge>
+					<Badge variant="secondary" class="text-amber-500">Award point →</Badge>
+				</CardHeader>
+				<CardContent class="space-y-2">
 					{#each submission.cards as card (card.id)}
-						<div
-							class="rounded-xl bg-white p-4 shadow-sm transition-transform duration-150 group-hover:-translate-y-0.5"
-						>
-							<p class="text-sm font-bold leading-relaxed text-black">{card.text}</p>
-						</div>
+						<Card class="bg-white text-black">
+							<CardContent>
+								<p class="text-sm font-medium leading-relaxed">{card.text}</p>
+							</CardContent>
+						</Card>
 					{/each}
-				</div>
-			</button>
+				</CardContent>
+			</Card>
 		{/each}
 	</div>
 </div>

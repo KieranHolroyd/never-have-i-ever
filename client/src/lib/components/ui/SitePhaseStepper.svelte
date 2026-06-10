@@ -1,4 +1,6 @@
 <script lang="ts">
+	import MdiCheck from '~icons/mdi/check';
+
 	export type StepperAccent = 'emerald' | 'violet';
 
 	interface Step {
@@ -21,45 +23,54 @@
 
 	const activeIdx = $derived(stepIndex(currentStep));
 
-	const activeDot =
+	const tone = $derived(
 		accent === 'violet'
-			? 'bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.6)]'
-			: 'bg-fuchsia-400 shadow-[0_0_8px_rgba(232,121,249,0.6)]';
-	const activeLabel = accent === 'violet' ? 'text-violet-300' : 'text-fuchsia-300';
-	const pastDot = accent === 'violet' ? 'bg-violet-500' : 'bg-emerald-500';
-	const pastLine = accent === 'violet' ? 'bg-violet-500/50' : 'bg-emerald-500/50';
+			? {
+					dot: 'bg-violet-500',
+					text: 'text-violet-600 dark:text-violet-300',
+					line: 'bg-violet-500/60'
+				}
+			: {
+					dot: 'bg-emerald-500',
+					text: 'text-emerald-600 dark:text-emerald-300',
+					line: 'bg-emerald-500/60'
+				}
+	);
 </script>
 
-<nav class="flex flex-1 items-center gap-1 sm:gap-2" aria-label={ariaLabel}>
+<nav class="flex min-w-0 flex-1 items-center" aria-label={ariaLabel}>
 	{#each steps as step, i (step.id)}
 		{@const isActive = step.id === currentStep}
 		{@const isPast = i < activeIdx}
-		<div class="flex min-w-0 flex-1 items-center gap-1">
+		<div class="flex min-w-0 items-center {i < steps.length - 1 ? 'flex-1' : ''}">
 			<div
-				class="flex min-w-0 flex-1 flex-col items-center gap-0.5"
+				class="flex min-w-0 items-center gap-1.5"
 				aria-current={isActive ? 'step' : undefined}
+				title={step.label}
 			>
+				{#if isPast}
+					<span class="flex size-4 shrink-0 items-center justify-center rounded-full {tone.dot}">
+						<MdiCheck class="size-2.5 text-white" />
+					</span>
+				{:else}
+					<span
+						class="size-2 shrink-0 rounded-full transition-colors duration-300 {isActive
+							? tone.dot
+							: 'bg-muted-foreground/25'}"
+					></span>
+				{/if}
 				<span
-					class={`h-2 w-2 shrink-0 rounded-full transition-colors ${isActive
-						? activeDot
+					class="truncate text-[11px] font-medium transition-colors {isActive
+						? tone.text
 						: isPast
-							? pastDot
-							: 'bg-white/15'}`}
-				></span>
-				<span
-					class={`hidden truncate text-[9px] font-black uppercase tracking-wider sm:block ${isActive
-						? activeLabel
-						: isPast
-							? accent === 'violet'
-								? 'text-violet-400/80'
-								: 'text-emerald-400/80'
-							: 'text-white/25'}`}
+							? 'text-muted-foreground hidden md:block'
+							: 'text-muted-foreground/50 hidden md:block'}"
 				>
 					{step.label}
 				</span>
 			</div>
 			{#if i < steps.length - 1}
-				<div class={`h-px max-w-6 flex-1 ${i < activeIdx ? pastLine : 'bg-white/10'}`}></div>
+				<div class="mx-1.5 h-px min-w-2 flex-1 sm:mx-2 {isPast ? tone.line : 'bg-border'}"></div>
 			{/if}
 		</div>
 	{/each}

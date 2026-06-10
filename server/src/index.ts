@@ -8,6 +8,7 @@ import { createNeverHaveIEverEngine } from "./lib/engines/never-have-i-ever";
 import { createCardsAgainstHumanityEngine } from "./lib/engines/cards-against-humanity";
 import { migrate } from "./migrate";
 import { closeDatabasePool } from "./db";
+import { ensureCategoriesSeeded } from "./seed/run";
 import { WebSocketService, IWebSocketService } from "./services/websocket-service";
 import { HttpService, IHttpService } from "./services/http-service";
 import { GameStateService, IGameStateService } from "./services/game-state-service";
@@ -28,10 +29,16 @@ if (missingOptional.length > 0) {
   logger.warn(`Missing optional environment variables: ${missingOptional.join(", ")}`);
 }
 
-// Run database migrations on startup
+// Run database migrations and seed static content on startup
 try {
   await migrate();
   logger.info("Database migrations applied");
+
+  const seeded = await ensureCategoriesSeeded();
+  if (seeded > 0) {
+    HttpService.clearQuestionsCache();
+    logger.info(`Seeded ${seeded} NHIE categories on startup`);
+  }
 } catch (error) {
   logger.error(`Database migration failed — cannot start: ${(error as Error).message}`);
   process.exit(1);

@@ -1,4 +1,4 @@
-import { db } from "../db";
+import { db, withAdvisoryLock } from "../db";
 import { games, gamePlayers, gameSelectedCategories, gameQuestions, gameHistory } from "../db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import logger from "../logger";
@@ -59,9 +59,11 @@ export interface IGameStateService {
   listActiveGames(): Promise<ActiveGameSummary[]>;
 
   // ── Distributed locks ──────────────────────────────────────────────────
-  /** Try to acquire a session-level PG advisory lock. Returns false if already held. */
+  /** Run fn while holding a session-level PG advisory lock on one connection. */
+  withAdvanceLock(gameId: string, fn: () => Promise<void>): Promise<boolean>;
+  /** @deprecated Use withAdvanceLock — separate acquire/release leaks locks across the pool. */
   tryAcquireAdvanceLock(gameId: string): Promise<boolean>;
-  /** Release the session-level advisory lock acquired by tryAcquireAdvanceLock. */
+  /** @deprecated Use withAdvanceLock */
   releaseAdvanceLock(gameId: string): Promise<void>;
 }
 
@@ -396,6 +398,9 @@ export class GameStateService implements IGameStateService {
    * pg_try_advisory_lock(classid, objid) — session-level, non-blocking.
    * classid=42 is our app-specific namespace to avoid collisions.
    * objid = abs(hashtext(gameId)) maps the game ID to a stable int4.
+   *
+   * @deprecated Prefer withAdvanceLock — acquire/release on separate pool
+   * connections leaks the lock until the holding session is recycled.
    */
   async tryAcquireAdvanceLock(gameId: string): Promise<boolean> {
     const rows = await db.execute<{ pg_try_advisory_lock: boolean }>(sql`
@@ -404,10 +409,15 @@ export class GameStateService implements IGameStateService {
     return rows[0]?.pg_try_advisory_lock === true;
   }
 
+  /** @deprecated Prefer withAdvanceLock */
   async releaseAdvanceLock(gameId: string): Promise<void> {
     await db.execute(sql`
       SELECT pg_advisory_unlock(42, abs(hashtext(${gameId})))
     `);
+  }
+
+  async withAdvanceLock(gameId: string, fn: () => Promise<void>): Promise<boolean> {
+    return withAdvisoryLock(gameId, fn);
   }
 
   // ── Private helpers ────────────────────────────────────────────────────

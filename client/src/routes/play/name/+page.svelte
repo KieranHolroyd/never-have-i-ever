@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IcRoundAccountCircle from '~icons/ic/round-account-circle';
+	import MdiArrowRight from '~icons/mdi/arrow-right';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { ActionData, PageData } from './$types';
@@ -9,6 +10,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
+	import { Badge } from '$lib/components/ui/badge';
 	import {
 		Card,
 		CardContent,
@@ -47,6 +49,13 @@
 
 	const redirect_url = $derived(page.url.searchParams.get('redirect'));
 
+	const destinationLabel = $derived.by(() => {
+		if (!redirect_url) return null;
+		if (redirect_url.includes('never-have-i-ever')) return 'Never Have I Ever';
+		if (redirect_url.includes('cards-against-humanity')) return 'Cards Against Humanity';
+		return 'game room';
+	});
+
 	function choose_nickname() {
 		if (nickname === '') {
 			return (error = 'You need to choose a nickname!');
@@ -66,12 +75,14 @@
 </script>
 
 <div class="flex min-h-[60vh] items-center justify-center px-4 py-12">
-	<div class="w-full max-w-sm space-y-8">
+	<div class="w-full max-w-sm space-y-6">
 		<div class="text-center">
 			<div class="bg-muted mb-4 inline-flex size-14 items-center justify-center rounded-2xl">
 				<IcRoundAccountCircle class="text-primary size-8" />
 			</div>
-			<p class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-widest">Before you play</p>
+			{#if destinationLabel}
+				<Badge variant="outline" class="mb-3">Joining {destinationLabel}</Badge>
+			{/if}
 			<h1 class="text-2xl font-bold">
 				{user ? `Hey, ${user.nickname}` : (LocalPlayer.name !== null ? `Hey, ${LocalPlayer.name}` : 'Choose a nickname')}
 			</h1>
@@ -79,8 +90,8 @@
 				{user
 					? 'Your nickname is saved to your account.'
 					: LocalPlayer.name === null
-						? 'Pick a name before you jump in.'
-						: 'You can update your nickname at any time.'}
+						? 'This is how other players will see you in the room.'
+						: 'Update your nickname before you continue.'}
 			</p>
 		</div>
 
@@ -111,7 +122,12 @@
 						{#if form?.error}
 							<p class="text-destructive text-xs">{form.error}</p>
 						{/if}
-						<Button type="submit" variant="emerald" class="w-full">Update nickname</Button>
+						<Button type="submit" variant="emerald" class="w-full">
+							{redirect_url ? 'Continue to room' : 'Update nickname'}
+							{#if redirect_url}
+								<MdiArrowRight />
+							{/if}
+						</Button>
 					</form>
 				</CardContent>
 				<CardFooter class="justify-between border-t">
@@ -123,7 +139,11 @@
 			</Card>
 		{:else}
 			<Card>
-				<CardContent class="space-y-4 pt-6">
+				<CardHeader class="pb-2">
+					<CardTitle class="text-base">Your display name</CardTitle>
+					<CardDescription>Visible to everyone in the room.</CardDescription>
+				</CardHeader>
+				<CardContent class="space-y-4">
 					<div class="space-y-2">
 						<Label for="name">Nickname</Label>
 						<Input
@@ -139,7 +159,10 @@
 						<p class="text-destructive text-xs">{error}</p>
 					{/if}
 					<Button type="button" variant="emerald" class="w-full" onclick={choose_nickname}>
-						{LocalPlayer.name === null ? 'Set nickname' : 'Update nickname'}
+						{redirect_url ? 'Continue to room' : LocalPlayer.name === null ? 'Set nickname' : 'Update nickname'}
+						{#if redirect_url}
+							<MdiArrowRight />
+						{/if}
 					</Button>
 				</CardContent>
 			</Card>

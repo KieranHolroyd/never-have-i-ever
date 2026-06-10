@@ -15,7 +15,5 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-ALTER TABLE "cah_game_players" ADD CONSTRAINT "cah_game_players_game_id_cah_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."cah_games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "cah_submissions" ADD CONSTRAINT "cah_submissions_game_id_cah_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."cah_games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_user_sessions_user_id" ON "user_sessions" USING btree ("user_id");

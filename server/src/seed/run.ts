@@ -7,6 +7,18 @@ import { countCahCards, seedCahCards } from "./cah-cards";
 
 export type SeedMode = "local" | "production";
 
+/** Upsert NHIE categories when the table is empty (e.g. fresh deploy). */
+export async function ensureCategoriesSeeded(): Promise<number> {
+	const [row] = await db.select({ count: count() }).from(categories);
+	if ((row?.count ?? 0) > 0) {
+		return 0;
+	}
+
+	const seeded = await seedCategories();
+	console.log(`[seed] Auto-seeded ${seeded} categories (table was empty)`);
+	return seeded;
+}
+
 export async function runSeed(options: {
 	mode: SeedMode;
 	force?: boolean;

@@ -16,23 +16,33 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 	const [nhieRows, cahRows, recentNhie, recentCah, googleRows] = await Promise.all([
 		db.execute(sql`
 			SELECT
-				total_games::int,
-				games_completed::int,
-				total_score::float,
-				wins::int
-			FROM nhie_user_stats
-			WHERE user_id = ${userId}
-			LIMIT 1
+				COUNT(DISTINCT gp.game_id)::int AS total_games,
+				COUNT(DISTINCT gp.game_id) FILTER (WHERE g.game_completed)::int AS games_completed,
+				COALESCE(SUM(gp.score), 0)::float AS total_score,
+				COUNT(DISTINCT gp.game_id) FILTER (
+					WHERE g.game_completed
+						AND gp.score = (
+							SELECT MAX(gp2.score) FROM game_players gp2 WHERE gp2.game_id = gp.game_id
+						)
+				)::int AS wins
+			FROM game_players gp
+			JOIN games g ON g.id = gp.game_id
+			WHERE gp.user_id = ${userId}
 		`),
 		db.execute(sql`
 			SELECT
-				total_games::int,
-				games_completed::int,
-				rounds_won::int,
-				wins::int
-			FROM cah_user_stats
-			WHERE user_id = ${userId}
-			LIMIT 1
+				COUNT(DISTINCT gp.game_id)::int AS total_games,
+				COUNT(DISTINCT gp.game_id) FILTER (WHERE g.game_completed)::int AS games_completed,
+				COALESCE(SUM(gp.score), 0)::int AS rounds_won,
+				COUNT(DISTINCT gp.game_id) FILTER (
+					WHERE g.game_completed
+						AND gp.score = (
+							SELECT MAX(gp2.score) FROM cah_game_players gp2 WHERE gp2.game_id = gp.game_id
+						)
+				)::int AS wins
+			FROM cah_game_players gp
+			JOIN cah_games g ON g.id = gp.game_id
+			WHERE gp.user_id = ${userId}
 		`),
 		db.execute(sql`
 			SELECT

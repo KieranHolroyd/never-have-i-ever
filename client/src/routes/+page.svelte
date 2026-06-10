@@ -3,6 +3,9 @@
 	import MdiAccountGroup from '~icons/mdi/account-group';
 	import MdiCardsPlayingOutline from '~icons/mdi/cards-playing-outline';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
+	import MdiLinkVariant from '~icons/mdi/link-variant';
+	import MdiFormatListBulleted from '~icons/mdi/format-list-bulleted';
+	import MdiPlay from '~icons/mdi/play';
 	import { LocalPlayer } from '$lib/player';
 	import { safeCapture } from '$lib/analytics';
 	import { Button } from '$lib/components/ui/button';
@@ -15,6 +18,13 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
+	import {
+		Item,
+		ItemContent,
+		ItemGroup,
+		ItemMedia,
+		ItemTitle
+	} from '$lib/components/ui/item';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -39,6 +49,12 @@
 	function trackCahStart() {
 		safeCapture('game_started', { game_type: 'cards-against-humanity' });
 	}
+
+	const nhieSteps = [
+		{ icon: MdiPlay, label: 'Start a room', detail: 'Get a unique link instantly' },
+		{ icon: MdiLinkVariant, label: 'Share the link', detail: 'Friends join from any device' },
+		{ icon: MdiFormatListBulleted, label: 'Pick categories & play', detail: 'Vote on prompts together' }
+	];
 </script>
 
 <svelte:head>
@@ -60,7 +76,7 @@
 	</section>
 
 	<section class="mx-auto mt-10 grid max-w-3xl gap-4 sm:mt-12 lg:grid-cols-2">
-		<Card class="border-emerald-500/30">
+		<Card class="border-emerald-500/30 lg:col-span-1">
 			<CardHeader>
 				<div class="flex items-center gap-3">
 					<span class="bg-emerald-500/15 text-emerald-500 inline-flex size-10 items-center justify-center rounded-xl">
@@ -68,14 +84,31 @@
 					</span>
 					<div>
 						<CardTitle>Never Have I Ever</CardTitle>
-						<CardDescription>2+ players</CardDescription>
+						<CardDescription>2+ players · vote & score</CardDescription>
 					</div>
 				</div>
 			</CardHeader>
-			<CardContent>
+			<CardContent class="space-y-4">
 				<p class="text-muted-foreground text-sm">
 					Vote on prompts, track scores, and find out who has done what.
 				</p>
+				<ItemGroup class="gap-1">
+					{#each nhieSteps as step, index (step.label)}
+						<Item variant="muted" size="sm">
+							<ItemMedia variant="icon">
+								<span
+									class="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 inline-flex size-7 items-center justify-center rounded-md text-xs font-bold"
+								>
+									{index + 1}
+								</span>
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle class="text-sm">{step.label}</ItemTitle>
+								<p class="text-muted-foreground text-xs">{step.detail}</p>
+							</ItemContent>
+						</Item>
+					{/each}
+				</ItemGroup>
 			</CardContent>
 			<CardFooter>
 				<Button href={nhieHref} variant="emerald" class="w-full" onclick={trackNhieStart}>

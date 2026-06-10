@@ -42,15 +42,30 @@ export class WebSocketService implements IWebSocketService {
   }
 
   broadcastToGameAndClient(ws: GameSocket, op: string, data_raw: object = {}): void {
-    const payload = JSON.stringify({ ...data_raw, op });
-    const gameSockets = this.gameWebSockets.get(ws.data.game);
+    const gameId = ws.data.game;
+    const gameSockets = this.gameWebSockets.get(gameId);
     if (!gameSockets || gameSockets.size === 0) {
-      // No tracked sockets yet — at minimum send to the initiating client
-      try { ws.send(payload); } catch (_) {}
+      this.sendToClient(ws, op, data_raw);
       return;
     }
-    for (const sock of gameSockets) {
-      try { sock.send(payload); } catch (_) {}
+
+    // Publish once so each subscribed client receives a single copy.
+    const wsAny = gameSockets.values().next().value;
+    if (!wsAny) {
+      this.sendToClient(ws, op, data_raw);
+      return;
+    }
+
+    try {
+      this.publishToGame(wsAny, op, data_raw);
+    } catch (_) {
+      for (const sock of gameSockets) {
+        try {
+          this.sendToClient(sock, op, data_raw);
+        } catch (_) {
+          // ignore per-socket send failures
+        }
+      }
     }
   }
 
@@ -63,15 +78,26 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  broadcastToGame(gameId: string, op: string, data: any): void {
+  broadcastToGame(gameId: string, op: string, data: object = {}): void {
     const gameSockets = this.gameWebSockets.get(gameId);
     if (!gameSockets || gameSockets.size === 0) {
       console.log('[DEBUG] No WebSocket instances found for game:', gameId);
       return;
     }
-    const payload = JSON.stringify({ ...data, op });
-    for (const sock of gameSockets) {
-      try { sock.send(payload); } catch (_) {}
+
+    const wsAny = gameSockets.values().next().value;
+    if (!wsAny) return;
+
+    try {
+      this.publishToGame(wsAny, op, data);
+    } catch (_) {
+      for (const sock of gameSockets) {
+        try {
+          this.sendToClient(sock, op, data);
+        } catch (_) {
+          // ignore per-socket send failures
+        }
+      }
     }
   }
 

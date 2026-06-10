@@ -5,7 +5,7 @@
 	import Settings from '$lib/components/Settings.svelte';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import Toaster from '$lib/components/Toaster.svelte';
+	import { Toaster } from '$lib/components/ui/sonner';
 	import { LocalPlayer } from '$lib/player';
 	import { browser } from '$app/environment';
 	import { initSettings, clearAccountSettingsSync } from '$lib/settings';
@@ -73,6 +73,6 @@
 		</div>
 	{/if}
 
-	<Toaster />
+	<Toaster position="top-right" closeButton richColors />
 	<Settings bind:show={settingsOpen} embedded />
 </div>

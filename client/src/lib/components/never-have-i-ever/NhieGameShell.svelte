@@ -1,6 +1,14 @@
 <script lang="ts">
-	import { Status } from '$lib/types';
-	import SitePhaseStepper from '$lib/components/ui/SitePhaseStepper.svelte';
+	import { Status, type Player } from '$lib/types';
+	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import {
+		DropdownMenu,
+		DropdownMenuContent,
+		DropdownMenuItem,
+		DropdownMenuSeparator,
+		DropdownMenuTrigger
+	} from '$lib/components/ui/dropdown-menu';
 	import MdiShareOutline from '~icons/mdi/share-outline';
 	import MdiDotsVertical from '~icons/mdi/dots-vertical';
 	import MdiUndoVariant from '~icons/mdi/undo-variant';
@@ -11,7 +19,11 @@
 	interface Props {
 		currentStep: NhieStep;
 		connection?: Status;
+		players?: Player[];
+		errors?: any[];
+		ping?: number;
 		children?: import('svelte').Snippet;
+		headerInfo?: import('svelte').Snippet;
 		onShare?: () => void;
 		showPlayMenu?: boolean;
 		onReset?: () => void;
@@ -22,102 +34,77 @@
 	let {
 		currentStep,
 		connection = Status.DISCONNECTED,
+		players = [],
+		errors = [],
+		ping = 0,
 		children,
+		headerInfo,
 		onShare,
 		showPlayMenu = false,
 		onReset,
 		onOpenCategories,
 		confirmResetVisible = false
 	}: Props = $props();
-
-	let menuOpen = $state(false);
-
-	const steps = [
-		{ id: 'lobby', label: 'Lobby' },
-		{ id: 'categories', label: 'Categories' },
-		{ id: 'play', label: 'Play' },
-		{ id: 'results', label: 'Results' }
-	];
-
-	function connectionDot() {
-		if (connection === Status.CONNECTED) return 'bg-emerald-400';
-		if (connection === Status.DISCONNECTED) return 'bg-rose-400';
-		return 'bg-amber-400 animate-pulse';
-	}
 </script>
 
-<div class="min-h-screen text-zinc-100">
+<div class="bg-background text-foreground relative min-h-screen">
 	<header
-		class="sticky top-14 z-20 border-b border-white/8 bg-zinc-950/95 backdrop-blur-md px-3 py-2 sm:px-4"
+		class="bg-background/80 sticky top-14 z-20 border-b px-3 py-2.5 backdrop-blur-xl sm:px-4"
 	>
-		<div class="mx-auto flex max-w-2xl items-center justify-between gap-2">
-			<SitePhaseStepper {steps} currentStep={currentStep} accent="emerald" />
+		<div class="mx-auto flex max-w-4xl items-center justify-between gap-3">
+			<!-- Left: contextual info slot -->
+			<div class="flex min-w-0 flex-1 items-center gap-2">
+				<span class="text-foreground hidden shrink-0 text-sm font-bold sm:block">NHIE</span>
+				<div class="bg-border hidden h-4 w-px shrink-0 sm:block"></div>
+				{#if headerInfo}
+					{@render headerInfo()}
+				{/if}
+			</div>
 
-			<div class="flex shrink-0 items-center gap-1">
-				<span class={`h-2 w-2 rounded-full ${connectionDot()}`} title="Connection"></span>
+			<!-- Right: actions -->
+			<div class="flex shrink-0 items-center gap-0.5">
 				{#if onShare}
-					<button
-						type="button"
-						class="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
-						title="Share game"
-						onclick={onShare}
-					>
-						<MdiShareOutline class="h-5 w-5" />
-					</button>
+					<Button variant="ghost" size="icon-sm" title="Share game" onclick={onShare}>
+						<MdiShareOutline />
+					</Button>
 				{/if}
 				{#if showPlayMenu}
-					<div class="relative">
-						<button
-							type="button"
-							class="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
-							title="More actions"
-							aria-expanded={menuOpen}
-							onclick={() => (menuOpen = !menuOpen)}
-						>
-							<MdiDotsVertical class="h-5 w-5" />
-						</button>
-						{#if menuOpen}
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div class="fixed inset-0 z-30" onclick={() => (menuOpen = false)}></div>
-							<div
-								class="absolute right-0 top-full z-40 mt-1 min-w-[11rem] rounded-xl border border-white/10 bg-zinc-900 py-1 shadow-xl"
-							>
-								{#if onOpenCategories}
-									<button
-										type="button"
-										class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/5"
-										onclick={() => {
-											menuOpen = false;
-											onOpenCategories();
-										}}
-									>
-										<MdiListBox class="h-4 w-4" />
-										Change categories
-									</button>
-								{/if}
-								{#if onReset}
-									<button
-										type="button"
-										class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-rose-300 hover:bg-white/5"
-										onclick={() => {
-											menuOpen = false;
-											onReset();
-										}}
-									>
-										<MdiUndoVariant class="h-4 w-4" />
-										{confirmResetVisible ? 'Confirm reset' : 'Reset game'}
-									</button>
-								{/if}
-							</div>
-						{/if}
-					</div>
+					<DropdownMenu>
+						<DropdownMenuTrigger>
+							{#snippet child({ props })}
+								<Button {...props} variant="ghost" size="icon-sm" title="More actions">
+									<MdiDotsVertical />
+								</Button>
+							{/snippet}
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							{#if onOpenCategories}
+								<DropdownMenuItem onclick={onOpenCategories}>
+									<MdiListBox />
+									Change categories
+								</DropdownMenuItem>
+							{/if}
+							{#if onReset}
+								<DropdownMenuSeparator />
+								<DropdownMenuItem variant="destructive" onclick={onReset}>
+									<MdiUndoVariant />
+									{confirmResetVisible ? 'Confirm reset' : 'Reset game'}
+								</DropdownMenuItem>
+							{/if}
+						</DropdownMenuContent>
+					</DropdownMenu>
 				{/if}
 			</div>
 		</div>
 	</header>
 
-	<main class="px-3 pb-[calc(env(safe-area-inset-bottom)+10rem)] sm:px-4">
+	<main
+		class="mx-auto w-full max-w-4xl px-3 sm:px-4 {currentStep === 'play'
+			? 'pb-[calc(env(safe-area-inset-bottom)+13rem)] lg:pb-[calc(env(safe-area-inset-bottom)+9rem)]'
+			: ''}"
+	>
 		{@render children?.()}
 	</main>
+
+	<ConnectionInfoPanel {connection} {players} {errors} {ping} />
 </div>

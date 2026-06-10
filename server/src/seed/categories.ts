@@ -1,4 +1,5 @@
 import type { Catagories } from "@nhie/shared";
+import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { categories } from "../db/schema";
 
@@ -18,8 +19,8 @@ export async function seedCategories(): Promise<number> {
 		.onConflictDoUpdate({
 			target: categories.name,
 			set: {
-				questions: categories.questions,
-				is_nsfw: categories.is_nsfw,
+				questions: sql`excluded.questions`,
+				is_nsfw: sql`excluded.is_nsfw`,
 				updated_at: new Date(),
 			},
 		});

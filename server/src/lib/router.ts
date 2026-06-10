@@ -12,6 +12,8 @@ export type GameSocketMetadata = {
   player: string;
   playing: string;
   userId?: string;
+  /** Set after the first successful subscribe on this connection. */
+  subscribedToGame?: boolean;
 };
 
 export type GameSocket = ServerWebSocket<GameSocketMetadata>;

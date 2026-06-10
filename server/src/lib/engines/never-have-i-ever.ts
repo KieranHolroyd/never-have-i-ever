@@ -10,6 +10,10 @@ import { hashRoomPassword, normalizeRoomPassword, validateRoomPassword, verifyRo
 import { refreshUserStats } from "../../utils/refresh-user-stats";
 import logger from "../../logger";
 
+const RESULTS_WINDOW_MS = 10_000;
+const ADVANCE_LOCK_RETRIES = 5;
+const ADVANCE_LOCK_RETRY_MS = 50;
+
 const VOTE_SCORES: Record<string, number> = {
   Have: 1,
   "Have Not": 0,
@@ -50,15 +54,9 @@ export function createNeverHaveIEverEngine(
 
   // ── Round advancement ───────────────────────────────────────────────────
 
-  async function advanceToNextQuestion(ws: GameSocket): Promise<void> {
+  async function advanceToNextQuestionBody(ws: GameSocket): Promise<void> {
     const gameId = ws.data.game;
 
-    // Prevent double-advance race using a PG session-level advisory lock.
-    // Works across multiple server processes, unlike an in-memory Set.
-    const acquired = await gameStateService.tryAcquireAdvanceLock(gameId);
-    if (!acquired) return;
-
-    try {
     // Clear any running timeout
     clearRoundTimeout(gameId);
 
@@ -126,9 +124,22 @@ export function createNeverHaveIEverEngine(
 
     wsService.broadcastToGameAndClient(ws, "new_round", {});
     await broadcast(ws);
-    } finally {
-      await gameStateService.releaseAdvanceLock(gameId);
+  }
+
+  async function advanceToNextQuestion(ws: GameSocket): Promise<boolean> {
+    const gameId = ws.data.game;
+
+    for (let attempt = 0; attempt < ADVANCE_LOCK_RETRIES; attempt++) {
+      const acquired = await gameStateService.withAdvanceLock(gameId, () => advanceToNextQuestionBody(ws));
+      if (acquired) return true;
+
+      if (attempt < ADVANCE_LOCK_RETRIES - 1) {
+        await new Promise((resolve) => setTimeout(resolve, ADVANCE_LOCK_RETRY_MS * (attempt + 1)));
+      }
     }
+
+    logger.warn(`Failed to acquire advance lock for game ${gameId} after ${ADVANCE_LOCK_RETRIES} attempts`);
+    return false;
   }
 
   // ── Timeout helpers ─────────────────────────────────────────────────────
@@ -144,7 +155,9 @@ export function createNeverHaveIEverEngine(
     wsService.deleteTimeoutStart(gameId);
   }
 
-  function scheduleTimeout(ws: GameSocket, delayMs: number): void {
+  type RoundTimerKind = "vote_deadline" | "results_window";
+
+  function scheduleTimeout(ws: GameSocket, delayMs: number, kind: RoundTimerKind): void {
     const gameId = ws.data.game;
     const token = Symbol(gameId);
     roundTimeoutTokens.set(gameId, token);
@@ -156,17 +169,19 @@ export function createNeverHaveIEverEngine(
 
       roundTimeouts.delete(gameId);
       roundTimeoutTokens.delete(gameId);
-      logger.info(`Round timeout fired for game ${gameId}`);
+      logger.info(`Round timer fired for game ${gameId} (${kind})`);
 
       const meta = await gameStateService.getGameMeta(gameId);
       if (!meta || meta.waitingForPlayers !== true) return;
 
-      ingestEvent({ gameID: gameId, event: "round_timeout" });
-      wsService.broadcastToGame(gameId, "round_timeout", {
-        message: "Round timed out — moving to next question",
-      });
+      if (kind === "vote_deadline") {
+        ingestEvent({ gameID: gameId, event: "round_timeout" });
+      }
 
-      await advanceToNextQuestion(ws);
+      const advanced = await advanceToNextQuestion(ws);
+      if (!advanced) {
+        logger.error(`Round timer fired for game ${gameId} (${kind}) but advance did not complete`);
+      }
     }, delayMs);
     roundTimeouts.set(gameId, handle);
   }
@@ -181,7 +196,7 @@ export function createNeverHaveIEverEngine(
     roundTimeoutDurations.set(gameId, duration);
     await gameStateService.setGameMeta(gameId, { timeout_start: timeoutStart });
 
-    scheduleTimeout(ws, duration);
+    scheduleTimeout(ws, duration, "vote_deadline");
 
     // Re-broadcast so clients get the timeout_start timestamp
     await broadcast(ws);
@@ -203,9 +218,10 @@ export function createNeverHaveIEverEngine(
     const storedStart = meta.timeout_start ?? 0;
     if (storedStart === 0) return false; // timer never started this round
 
-    const remaining = wsService.getRoundTimeoutMs() - (Date.now() - storedStart);
+    const duration = roundTimeoutDurations.get(gameId) ?? wsService.getRoundTimeoutMs();
+    const remaining = duration - (Date.now() - storedStart);
     wsService.setTimeoutStart(gameId, storedStart); // restore in-memory state
-    roundTimeoutDurations.set(gameId, wsService.getRoundTimeoutMs());
+    roundTimeoutDurations.set(gameId, duration);
 
     if (remaining <= 0) {
       // Timer expired while server was down — advance now
@@ -215,7 +231,7 @@ export function createNeverHaveIEverEngine(
     }
 
     logger.info(`Restoring round timeout for game ${gameId}; ${remaining}ms remaining`);
-    scheduleTimeout(ws, remaining);
+    scheduleTimeout(ws, remaining, "vote_deadline");
     return false;
   }
 
@@ -322,10 +338,13 @@ export function createNeverHaveIEverEngine(
 
       await ensureConnectedCreator(gameId, ws.data.player);
 
-      try {
-        ws.subscribe(gameId);
-        ws.subscribe("notifications");
-      } catch (_) { /* no-op in test env */ }
+      if (!ws.data.subscribedToGame) {
+        try {
+          ws.subscribe(gameId);
+          ws.subscribe("notifications");
+          ws.data.subscribedToGame = true;
+        } catch (_) { /* no-op in test env */ }
+      }
 
       wsService.addWebSocket(gameId, ws);
 
@@ -467,8 +486,21 @@ export function createNeverHaveIEverEngine(
     },
 
     // -----------------------------------------------------------------------
-    confirm_selections: async (ws, _data) => {
+    confirm_selections: async (ws, data) => {
       const gameId = ws.data.game;
+
+      if (Array.isArray(data.categories) && data.categories.length > 0) {
+        const current = await gameStateService.getSelectedCategories(gameId);
+        for (const cat of current) {
+          if (!data.categories.includes(cat)) {
+            await gameStateService.removeCategory(gameId, cat);
+          }
+        }
+        for (const cat of data.categories) {
+          await gameStateService.addCategory(gameId, cat);
+        }
+      }
+
       const selected = await gameStateService.getSelectedCategories(gameId);
       if (selected.length === 0) throw new ValidationError("At least one category must be selected");
 
@@ -545,7 +577,6 @@ export function createNeverHaveIEverEngine(
         // Cancel any running timeout (e.g. the 30s skip timer), then give
         // everyone a 10-second results window before advancing.
         clearRoundTimeout(gameId);
-        const RESULTS_WINDOW_MS = 10_000;
         const resultsStart = Date.now();
         wsService.setTimeoutStart(gameId, resultsStart);
         roundTimeoutDurations.set(gameId, RESULTS_WINDOW_MS);
@@ -554,7 +585,7 @@ export function createNeverHaveIEverEngine(
           timeout_start: resultsStart,
         });
         await broadcast(ws); // clients see final votes + 10s countdown
-        scheduleTimeout(ws, RESULTS_WINDOW_MS);
+        scheduleTimeout(ws, RESULTS_WINDOW_MS, "results_window");
         return;
       }
 

@@ -21,7 +21,11 @@ export default defineConfig({
 				target: 'http://localhost:8080',
 				changeOrigin: true,
 				bypass(req) {
-					if (req.url?.startsWith('/api/auth')) return req.url;
+					const path = req.url?.split('?')[0] ?? '';
+					// SvelteKit API routes — handled by the client app, not the game server
+					if (path === '/api/settings' || path.startsWith('/api/auth')) {
+						return req.url;
+					}
 				}
 			},
 			'/ws': {

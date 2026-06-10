@@ -38,6 +38,7 @@ const OperationSchemas: Record<string, z.ZodSchema> = {
   }),
   confirm_selections: z.object({
     op: z.literal("confirm_selections"),
+    categories: z.array(z.string()).optional(),
   }),
   next_question: z.object({
     op: z.literal("next_question"),
