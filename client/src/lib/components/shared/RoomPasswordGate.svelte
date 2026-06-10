@@ -2,6 +2,16 @@
 	import { validateRoomPassword } from '$lib/validation';
 	import MdiArrowRight from '~icons/mdi/arrow-right';
 	import MdiLockOutline from '~icons/mdi/lock-outline';
+	import { Input } from '$lib/components/ui/input';
+	import { Button } from '$lib/components/ui/button';
+	import { Label } from '$lib/components/ui/label';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
 
 	interface Props {
 		title?: string;
@@ -41,42 +51,36 @@
 </script>
 
 <div class="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4 py-10">
-	<div class="site-surface site-accent-nhie w-full p-6 shadow-2xl sm:p-8">
-		<div class="text-center">
-			<div class="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-800 text-zinc-200">
-				<MdiLockOutline class="h-7 w-7" />
+	<Card class="w-full border-emerald-500/30">
+		<CardHeader class="text-center">
+			<div class="bg-muted mx-auto inline-flex size-14 items-center justify-center rounded-2xl">
+				<MdiLockOutline class="size-7" />
 			</div>
-			<h1 class="mt-4 text-2xl font-black tracking-tight text-white">{title}</h1>
-			<p class="mt-2 text-sm leading-6 text-zinc-400">{description}</p>
-		</div>
-
-		<div class="mt-6 space-y-4">
-			<div>
-				<label class="site-phase-label mb-2 block" for="room-password">
-					Password
-				</label>
-				<input
+			<CardTitle class="mt-4">{title}</CardTitle>
+			<CardDescription>{description}</CardDescription>
+		</CardHeader>
+		<CardContent class="space-y-4">
+			<div class="space-y-2">
+				<Label for="room-password">Password</Label>
+				<Input
 					id="room-password"
 					type="password"
-					class="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
 					placeholder="Enter room password"
 					bind:value={password}
 					onkeydown={(event) => {
-						if (event.key === 'Enter') {
-							submit();
-						}
+						if (event.key === 'Enter') submit();
 					}}
 				/>
 			</div>
 
 			{#if localError || error}
-				<p class="text-sm text-red-400">{localError ?? error}</p>
+				<p class="text-destructive text-sm">{localError ?? error}</p>
 			{/if}
 
-			<button type="button" class="site-btn-primary w-full gap-2" onclick={submit} disabled={busy}>
-				<span>{busy ? 'Joining…' : 'Join game'}</span>
-				<MdiArrowRight class="h-4 w-4" />
-			</button>
-		</div>
-	</div>
+			<Button type="button" variant="emerald" class="w-full" onclick={submit} disabled={busy}>
+				{busy ? 'Joining…' : 'Join game'}
+				<MdiArrowRight />
+			</Button>
+		</CardContent>
+	</Card>
 </div>

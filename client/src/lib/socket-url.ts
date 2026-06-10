@@ -1,4 +1,4 @@
-const DEFAULT_SOCKET_URL = 'ws://localhost:3000/ws';
+const DEFAULT_SOCKET_URL = 'ws://localhost:8080/ws';
 
 function normalizeSocketBaseUrl(rawUrl?: string): string {
 	const candidate = rawUrl?.trim();

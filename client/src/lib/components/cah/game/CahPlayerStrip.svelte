@@ -28,7 +28,7 @@
 	</button>
 
 	{#if expanded}
-		<div class="site-surface space-y-2 p-3">
+		<div class="bg-card space-y-2 rounded-xl border p-3">
 			{#each connected as player, index (player.id)}
 				<div
 					class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-white/80"

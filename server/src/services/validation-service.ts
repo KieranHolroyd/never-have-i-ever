@@ -202,10 +202,10 @@ export class ValidationService {
    * Validates CAH judging
    */
   static validateCAHJudge(gameState: any, judgeId: string, winnerId: string): void {
-    this.validateGameState(gameState, "judge_cards");
+    this.validateGameState(gameState, "select_winner");
 
     const judge = gameState.players.find(p => p.id === judgeId) as any;
-    this.validatePlayerState(judge, "judge_cards");
+    this.validatePlayerState(judge, "select_winner");
 
     if (!judge.isJudge) {
       throw new BusinessRuleError("Only the judge can select a winner");
@@ -303,8 +303,9 @@ export class ValidationService {
         break;
 
       case 'judge_cards':
+      case 'select_winner':
         if ((gameState as any).gameType === 'cards-against-humanity') {
-          this.validateCAHJudge(gameState, playerId, data?.winnerId);
+          this.validateCAHJudge(gameState, playerId, data?.winnerPlayerId ?? data?.winnerId);
         }
         break;
     }

@@ -13,7 +13,7 @@
 	<div in:fade={{ duration: 150 }} class="flex gap-5 items-start">
 		<!-- Physical black card -->
 		<div
-			class="site-accent-cah relative mx-auto flex min-h-[13rem] w-full max-w-lg shrink-0 flex-col justify-between rounded-3xl border bg-black p-6 shadow-[0_8px_40px_rgba(0,0,0,0.7)] sm:min-h-[15rem] sm:p-8"
+			class="relative mx-auto flex min-h-52 w-full max-w-lg shrink-0 flex-col justify-between rounded-3xl border border-violet-500/30 bg-black p-6 shadow-lg sm:min-h-60 sm:p-8"
 		>
 			{#if gameState.currentBlackCard.pick > 1}
 				<div

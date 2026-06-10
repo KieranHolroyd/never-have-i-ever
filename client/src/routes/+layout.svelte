@@ -57,19 +57,18 @@
 	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 
-<div class="site-page-bg relative">
-	<div
-		class="pointer-events-none fixed inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_55%),radial-gradient(ellipse_at_80%_0%,_rgba(232,121,249,0.06),_transparent_50%)]"
-		aria-hidden="true"
-	></div>
-
+<div class="bg-background text-foreground relative flex min-h-screen flex-col">
 	<Navbar compact={isGameRoute} bind:settingsOpen />
 
 	{#if isGameRoute}
-		{@render children()}
-	{:else}
-		<div class="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+		<div class="flex flex-1 flex-col">
 			{@render children()}
+		</div>
+	{:else}
+		<div class="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6 lg:px-8">
+			<main class="flex-1">
+				{@render children()}
+			</main>
 			<Footer />
 		</div>
 	{/if}

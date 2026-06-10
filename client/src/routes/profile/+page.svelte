@@ -18,6 +18,9 @@
 	import MdiLinkVariantOff from '~icons/mdi/link-variant-off';
 	import LogosGoogle from '~icons/logos/google-icon';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+	import { Input } from '$lib/components/ui/input';
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
 
 	interface Props {
 		data: PageData;
@@ -110,24 +113,32 @@
 
 	<!-- Top-level stat pills -->
 	<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-		<div class="site-surface p-4 text-center">
-			<p class="text-2xl font-black text-white">{totalGames}</p>
-			<p class="site-phase-label mt-1">Games played</p>
-		</div>
-		<div class="site-podium-gold rounded-2xl border p-4 text-center">
-			<p class="text-2xl font-black text-amber-200">{totalWins}</p>
-			<p class="site-phase-label mt-1 text-amber-200/60">Wins</p>
-		</div>
-		<div class="site-surface p-4 text-center">
-			<p class="text-2xl font-black text-fuchsia-300">{winRate}%</p>
-			<p class="text-xs text-zinc-400 mt-1">Win Rate</p>
-		</div>
-		<div class="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">
-			<p class="text-2xl font-bold text-white">
-				{nhieStats.games_completed + cahStats.games_completed}
-			</p>
-			<p class="text-xs text-zinc-400 mt-1">Completed</p>
-		</div>
+		<Card>
+			<CardContent class="pt-6 text-center">
+				<p class="text-2xl font-bold">{totalGames}</p>
+				<p class="text-muted-foreground mt-1 text-xs font-medium uppercase tracking-widest">Games played</p>
+			</CardContent>
+		</Card>
+		<Card class="border-amber-500/30">
+			<CardContent class="pt-6 text-center">
+				<p class="text-2xl font-bold text-amber-500">{totalWins}</p>
+				<p class="text-muted-foreground mt-1 text-xs font-medium uppercase tracking-widest">Wins</p>
+			</CardContent>
+		</Card>
+		<Card>
+			<CardContent class="pt-6 text-center">
+				<p class="text-2xl font-bold">{winRate}%</p>
+				<p class="text-muted-foreground mt-1 text-xs">Win Rate</p>
+			</CardContent>
+		</Card>
+		<Card>
+			<CardContent class="pt-6 text-center">
+				<p class="text-2xl font-bold">
+					{nhieStats.games_completed + cahStats.games_completed}
+				</p>
+				<p class="text-muted-foreground mt-1 text-xs">Completed</p>
+			</CardContent>
+		</Card>
 	</div>
 
 	<!-- Per-game stats -->
@@ -278,15 +289,17 @@
 	{/if}
 
 	<!-- Gameplay preferences (synced to account) -->
-	<div class="site-surface p-5 sm:p-6">
-		<h2 class="text-lg font-semibold text-white">Gameplay preferences</h2>
-		<p class="mt-1 text-sm text-white/45">
-			These settings apply in games and sync to your account on every device.
-		</p>
-		<div class="mt-5">
+	<Card>
+		<CardHeader>
+			<CardTitle>Gameplay preferences</CardTitle>
+			<CardDescription>
+				These settings apply in games and sync to your account on every device.
+			</CardDescription>
+		</CardHeader>
+		<CardContent>
 			<SettingsPanel showAccountBanner={false} />
-		</div>
-	</div>
+		</CardContent>
+	</Card>
 
 	<!-- Account settings -->
 	<div class="space-y-3">
@@ -325,14 +338,13 @@
 					{/if}
 					<div>
 						<label for="nickname" class="block text-xs text-zinc-400 mb-1">New username</label>
-						<input
+						<Input
 							id="nickname"
 							name="nickname"
 							type="text"
 							value={user.nickname}
 							maxlength={30}
 							required
-							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
 						/>
 					</div>
 					<button
@@ -376,24 +388,22 @@
 					{/if}
 					<div>
 						<label for="email" class="block text-xs text-zinc-400 mb-1">New email</label>
-						<input
+						<Input
 							id="email"
 							name="email"
 							type="email"
 							value={user.email}
 							required
-							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
 						/>
 					</div>
 					<div>
 						<label for="email-password" class="block text-xs text-zinc-400 mb-1">Current password</label>
-						<input
+						<Input
 							id="email-password"
 							name="password"
 							type="password"
 							placeholder="Confirm with your password"
 							required
-							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
 						/>
 					</div>
 					<button
@@ -437,34 +447,20 @@
 					{/if}
 					<div>
 						<label for="current_password" class="block text-xs text-zinc-400 mb-1">Current password</label>
-						<input
-							id="current_password"
-							name="current_password"
-							type="password"
-							required
-							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-						/>
+						<Input id="current_password" name="current_password" type="password" required />
 					</div>
 					<div>
 						<label for="new_password" class="block text-xs text-zinc-400 mb-1">New password</label>
-						<input
-							id="new_password"
-							name="new_password"
-							type="password"
-							minlength={8}
-							required
-							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-						/>
+						<Input id="new_password" name="new_password" type="password" minlength={8} required />
 					</div>
 					<div>
 						<label for="confirm_password" class="block text-xs text-zinc-400 mb-1">Confirm new password</label>
-						<input
+						<Input
 							id="confirm_password"
 							name="confirm_password"
 							type="password"
 							minlength={8}
 							required
-							class="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
 						/>
 					</div>
 					<button

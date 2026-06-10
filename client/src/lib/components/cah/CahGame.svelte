@@ -60,7 +60,7 @@
 		return (page.data as { game?: { creatorPlayerId?: string | null } }).game?.creatorPlayerId ?? null;
 	}
 
-	let wsManager: WebSocketManager | null = null;
+	let wsManager: WebSocketManager<CAHGameState> | null = null;
 	let gameState = $derived($gameStore);
 	let currentPlayer = $derived($currentPlayerStore);
 	let lastRound: number = $state(0);
@@ -318,7 +318,7 @@
 			wsManager = null;
 		}
 
-		wsManager = new WebSocketManager({
+		wsManager = new WebSocketManager<CAHGameState>({
 			gameId: id,
 			playerId: LocalPlayer.id,
 			playerName: LocalPlayer.name || 'Anonymous Player',

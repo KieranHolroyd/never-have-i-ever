@@ -105,18 +105,33 @@ export function validateWebSocketMessage(data: any): ValidationResult {
 	// Validate specific operations
 	switch (data.op) {
 		case 'join_game':
-			if (!data.playername || typeof data.playername !== 'string') {
-				errors.push('join_game requires a playername');
+			if (data.playername !== undefined && typeof data.playername !== 'string') {
+				errors.push('join_game playername must be a string');
 			}
-				if (data.password !== undefined && typeof data.password !== 'string') {
-					errors.push('join_game password must be a string');
-				}
+			if (data.password !== undefined && typeof data.password !== 'string') {
+				errors.push('join_game password must be a string');
+			}
 			break;
-			case 'set_room_password':
-				if (data.password !== undefined && typeof data.password !== 'string') {
-					errors.push('set_room_password password must be a string');
-				}
-				break;
+		case 'set_room_password':
+			if (data.password !== undefined && typeof data.password !== 'string') {
+				errors.push('set_room_password password must be a string');
+			}
+			break;
+		case 'set_max_players':
+			if (typeof data.maxPlayers !== 'number' || data.maxPlayers < 2 || data.maxPlayers > 20) {
+				errors.push('set_max_players requires maxPlayers between 2 and 20');
+			}
+			break;
+		case 'remove_player':
+			if (!data.playerId || typeof data.playerId !== 'string') {
+				errors.push('remove_player requires playerId');
+			}
+			break;
+		case 'select_packs':
+			if (!Array.isArray(data.packIds) || data.packIds.length === 0) {
+				errors.push('select_packs requires a non-empty packIds array');
+			}
+			break;
 		case 'submit_cards':
 			if (!Array.isArray(data.cardIds)) {
 				errors.push('submit_cards requires cardIds array');
@@ -132,9 +147,10 @@ export function validateWebSocketMessage(data: any): ValidationResult {
 				errors.push('vote requires option between 1 and 3');
 			}
 			break;
+		case 'select_category':
 		case 'select_catagory':
 			if (!data.catagory || typeof data.catagory !== 'string') {
-				errors.push('select_catagory requires catagory');
+				errors.push('select_category requires catagory');
 			}
 			break;
 	}

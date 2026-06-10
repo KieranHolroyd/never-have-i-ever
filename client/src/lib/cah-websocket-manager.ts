@@ -17,10 +17,10 @@ export interface CAHWebSocketManagerConfig {
 }
 
 export class CAHWebSocketManager {
-	private wsManager: WebSocketManager;
+	private wsManager: WebSocketManager<CAHGameState>;
 
 	constructor(config: CAHWebSocketManagerConfig) {
-		this.wsManager = new WebSocketManager({
+		this.wsManager = new WebSocketManager<CAHGameState>({
 			gameId: config.gameId,
 			playerId: config.playerId,
 			playerName: config.playerName,

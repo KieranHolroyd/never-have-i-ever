@@ -18,7 +18,15 @@ export default defineConfig({
 		},
 		proxy: {
 			'/api': {
-				target: 'http://localhost:3000',
+				target: 'http://localhost:8080',
+				changeOrigin: true,
+				bypass(req) {
+					if (req.url?.startsWith('/api/auth')) return req.url;
+				}
+			},
+			'/ws': {
+				target: 'ws://localhost:8080',
+				ws: true,
 				changeOrigin: true
 			}
 		}

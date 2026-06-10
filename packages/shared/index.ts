@@ -77,6 +77,97 @@ export type NHIEGameState = {
 };
 
 // ----------------------------------------------------------------
+// Cards Against Humanity domain types
+// ----------------------------------------------------------------
+
+export type CAHBlackCard = {
+  id: string;
+  text: string;
+  pick: number;
+};
+
+export type CAHWhiteCard = {
+  id: string;
+  text: string;
+};
+
+export type CAHSubmission = {
+  playerId: string;
+  cards: CAHWhiteCard[];
+  playerName: string;
+};
+
+export type CAHPlayer = {
+  id: string;
+  name: string;
+  score: number;
+  connected: boolean;
+  hand: CAHWhiteCard[];
+  isJudge: boolean;
+};
+
+export type CAHGameState = {
+  id: string;
+  players: CAHPlayer[];
+  selectedPacks: string[];
+  maxPlayers: number;
+  creatorPlayerId?: string | null;
+  passwordProtected?: boolean;
+  phase: "waiting" | "selecting" | "judging" | "scoring" | "game_over";
+  currentJudge: string | null;
+  currentBlackCard: CAHBlackCard | null;
+  submittedCards: CAHSubmission[];
+  roundWinner: string | null;
+  deck: { blackCards: CAHBlackCard[]; whiteCards: CAHWhiteCard[] };
+  handSize: number;
+  maxRounds: number;
+  currentRound: number;
+  waitingForPlayers: boolean;
+  gameCompleted: boolean;
+};
+
+export type CardPack = {
+  id: string;
+  name: string;
+  blackCards: number;
+  whiteCards: number;
+  isOfficial: boolean;
+  isNSFW: boolean;
+};
+
+// ----------------------------------------------------------------
+// Lobby / REST API types
+// ----------------------------------------------------------------
+
+export type ActiveGamePlayerSummary = {
+  id: string;
+  name: string;
+  connected: boolean;
+};
+
+export type ActiveGameStatus = "waiting" | "in-progress" | "completed";
+
+export type ActiveGameSummary = {
+  id: string;
+  gameType: "never-have-i-ever" | "cards-against-humanity";
+  title: string;
+  primaryPlayerName: string;
+  passwordProtected: boolean;
+  phase: string;
+  status: ActiveGameStatus;
+  maxPlayers: number;
+  playerCount: number;
+  connectedPlayerCount: number;
+  players: ActiveGamePlayerSummary[];
+  createdAt: string;
+  href: string;
+};
+
+export type ActiveGamesResponse = {
+  games: ActiveGameSummary[];
+};
+
+// ----------------------------------------------------------------
 // WebSocket message protocol
 // ----------------------------------------------------------------
 
@@ -84,8 +175,8 @@ export type NHIEGameState = {
 
 export type JoinGameMessage = {
   op: "join_game";
-  create: boolean;
-  playername: string;
+  create?: boolean;
+  playername?: string;
   password?: string;
 };
 
@@ -138,8 +229,22 @@ export type ReconnectStatusMessage = {
   op: "reconnect_status";
 };
 
-export type DisconnectMessage = {
-  op: "disconnect";
+export type SelectPacksMessage = {
+  op: "select_packs";
+  packIds: string[];
+  maxRounds?: number;
+  handSize?: number;
+  maxPlayers?: number;
+};
+
+export type SubmitCardsMessage = {
+  op: "submit_cards";
+  cardIds: string[];
+};
+
+export type SelectWinnerMessage = {
+  op: "select_winner";
+  winnerPlayerId: string;
 };
 
 /** Discriminated union of all messages the client can send to the server. */
@@ -156,13 +261,21 @@ export type ClientMessage =
   | ResetGameMessage
   | PingMessage
   | ReconnectStatusMessage
-  | DisconnectMessage;
+  | SelectPacksMessage
+  | SubmitCardsMessage
+  | SelectWinnerMessage;
 
 // --- Messages sent FROM server TO client ---
 
+export type OpenMessage = {
+  op: "open";
+  message: string;
+  postDeploymentReconnect?: boolean;
+};
+
 export type GameStateMessage = {
   op: "game_state";
-  game: NHIEGameState;
+  game: NHIEGameState | CAHGameState;
 };
 
 export type NewRoundMessage = {
@@ -191,17 +304,43 @@ export type ReconnectStatusResponseMessage = {
   nextAttemptIn: number;
 };
 
+export type StructuredErrorBody = {
+  code: string;
+  message: string;
+  details?: unknown;
+  timestamp: string;
+  operation?: string;
+};
+
 export type ErrorMessage = {
   op: "error";
+  /** Legacy flat error shape used by some engine handlers */
+  message?: string;
+  /** Standard middleware error shape */
+  error?: StructuredErrorBody;
+};
+
+export type RemovedFromGameMessage = {
+  op: "removed_from_game";
   message: string;
+};
+
+export type GithubPushMessage = {
+  op: "github_push";
+  delay: number;
+  notification: string;
+  showReloadButton?: boolean;
 };
 
 /** Discriminated union of all messages the server can send to the client. */
 export type ServerMessage =
+  | OpenMessage
   | GameStateMessage
   | NewRoundMessage
   | VoteCastMessage
   | RoundTimeoutMessage
   | PongMessage
   | ReconnectStatusResponseMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | RemovedFromGameMessage
+  | GithubPushMessage;

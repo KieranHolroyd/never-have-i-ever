@@ -1,6 +1,6 @@
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
-const API_BASE_URL = process.env.PUBLIC_API_URL || 'http://localhost:3000/';
+const API_BASE_URL = process.env.PUBLIC_API_URL || 'http://localhost:8080/';
 
 async function createPlayerContext(browser: Browser, name: string, playerId: string): Promise<BrowserContext> {
 	const context = await browser.newContext();

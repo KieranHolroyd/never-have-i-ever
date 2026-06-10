@@ -56,17 +56,20 @@ const OperationSchemas: Record<string, z.ZodSchema> = {
     op: z.literal("reset_game"),
   }),
   // CAH specific operations
-  select_card_packs: z.object({
-    op: z.literal("select_card_packs"),
-    packs: z.array(z.string()).min(1, "At least one card pack must be selected"),
+  select_packs: z.object({
+    op: z.literal("select_packs"),
+    packIds: z.array(z.string()).min(1, "At least one card pack must be selected"),
+    maxRounds: z.number().int().min(1).max(50).optional(),
+    handSize: z.number().int().min(1).max(20).optional(),
+    maxPlayers: z.number().int().min(2).max(20).optional(),
   }),
   submit_cards: z.object({
     op: z.literal("submit_cards"),
     cardIds: z.array(z.string()).min(1, "At least one card must be submitted"),
   }),
-  judge_cards: z.object({
-    op: z.literal("judge_cards"),
-    winnerId: z.string().min(1, "Winner ID is required"),
+  select_winner: z.object({
+    op: z.literal("select_winner"),
+    winnerPlayerId: z.string().min(1, "Winner player ID is required"),
   }),
 };
 

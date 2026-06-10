@@ -11,6 +11,16 @@ export type {
   GameHistoryEntry,
   ClientMessage,
   ServerMessage,
+  CAHBlackCard,
+  CAHWhiteCard,
+  CAHSubmission,
+  CAHPlayer,
+  CAHGameState,
+  CardPack,
+  ActiveGamePlayerSummary,
+  ActiveGameStatus,
+  ActiveGameSummary,
+  ActiveGamesResponse,
 } from "@nhie/shared";
 
 // ---- Zod schemas (server-only validation) ---------------------------------
@@ -36,34 +46,6 @@ export type GameEngine = {
   /** Unique identifier, e.g. "never-have-i-ever" */
   type: string;
   handlers: Record<string, GameOperationHandler>;
-};
-
-export type ActiveGamePlayerSummary = {
-  id: string;
-  name: string;
-  connected: boolean;
-};
-
-export type ActiveGameStatus = "waiting" | "in-progress" | "completed";
-
-export type ActiveGameSummary = {
-  id: string;
-  gameType: "never-have-i-ever" | "cards-against-humanity";
-  title: string;
-  primaryPlayerName: string;
-  passwordProtected: boolean;
-  phase: string;
-  status: ActiveGameStatus;
-  maxPlayers: number;
-  playerCount: number;
-  connectedPlayerCount: number;
-  players: ActiveGamePlayerSummary[];
-  createdAt: string;
-  href: string;
-};
-
-export type ActiveGamesResponse = {
-  games: ActiveGameSummary[];
 };
 
 export interface GameEngineRegistry {

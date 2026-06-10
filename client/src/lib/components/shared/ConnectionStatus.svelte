@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { connectionStore } from '../../stores/game-store';
 	import { Status } from '../../types';
+	import { Card } from '$lib/components/ui/card';
 
 	interface Props {
 		showPing?: boolean;
@@ -36,9 +37,7 @@
 		{/if}
 	</div>
 {:else}
-	<div
-		class="site-surface mb-4 flex items-center justify-between p-3"
-	>
+	<Card class="mb-4 flex-row items-center justify-between p-3">
 		<div class="flex items-center gap-3">
 			<div
 				class="w-3 h-3 rounded-full {connection.status === 'connected'
@@ -63,5 +62,5 @@
 				{/if}
 			</div>
 		</div>
-	</div>
+	</Card>
 {/if}

@@ -1,16 +1,25 @@
 import type { Settings } from './types';
 
 export const DEFAULT_SETTINGS: Required<Settings> = {
+	theme: 'dark',
 	no_nsfw: false,
 	no_tutorials: false,
 	show_hidden: false,
 	show_debug: false
 };
 
+function normalizeTheme(value: unknown): 'dark' | 'light' {
+	return value === 'light' ? 'light' : 'dark';
+}
+
 export const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[];
 
 export function normalizeSettings(raw: Partial<Settings> | null | undefined): Required<Settings> {
-	return { ...DEFAULT_SETTINGS, ...raw };
+	return {
+		...DEFAULT_SETTINGS,
+		...raw,
+		theme: normalizeTheme(raw?.theme)
+	};
 }
 
 export function parsePreferencesJson(value: unknown): Required<Settings> {

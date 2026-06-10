@@ -1,7 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 	<head>
 		<meta charset="utf-8" />
+		<script>
+			(function () {
+				try {
+					var raw = localStorage.getItem('settings');
+					if (!raw) return;
+					var settings = JSON.parse(raw);
+					if (settings.theme === 'light') {
+						document.documentElement.classList.remove('dark');
+						document.documentElement.style.colorScheme = 'light';
+					}
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="manifest" href="https://progressier.app/G2dNB7PrdkXp5i7AgcSR/progressier.json"/>

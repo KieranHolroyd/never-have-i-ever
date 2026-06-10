@@ -3,9 +3,16 @@ import { cahGames, cahGamePlayers, cahSubmissions } from "../db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import logger from "../logger";
 import type { ActiveGamePlayerSummary, ActiveGameSummary } from "../types";
+import type {
+  CAHBlackCard,
+  CAHWhiteCard,
+  CAHSubmission,
+  CAHPlayer,
+  CAHGameState,
+} from "@nhie/shared";
 
-// Deterministic Fisher-Yates shuffle seeded by a number.
-// Same seed → same order on every call (stable within a round).
+export type { CAHBlackCard, CAHWhiteCard, CAHSubmission, CAHPlayer, CAHGameState };
+
 function seededShuffle<T>(arr: T[], seed: number): T[] {
   const a = [...arr];
   let s = seed | 0;
@@ -18,54 +25,6 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   }
   return a;
 }
-
-// ── Shared card types (mirror what the client expects) ────────────────────────
-
-export type CAHBlackCard = {
-  id: string;
-  text: string;
-  pick: number;
-};
-
-export type CAHWhiteCard = {
-  id: string;
-  text: string;
-};
-
-export type CAHSubmission = {
-  playerId: string;
-  cards: CAHWhiteCard[];
-  playerName: string;
-};
-
-export type CAHPlayer = {
-  id: string;
-  name: string;
-  score: number;
-  connected: boolean;
-  hand: CAHWhiteCard[];
-  isJudge: boolean;
-};
-
-export type CAHGameState = {
-  id: string;
-  players: CAHPlayer[];
-  selectedPacks: string[];
-  maxPlayers: number;
-  creatorPlayerId?: string | null;
-  passwordProtected?: boolean;
-  phase: "waiting" | "selecting" | "judging" | "scoring" | "game_over";
-  currentJudge: string | null;
-  currentBlackCard: CAHBlackCard | null;
-  submittedCards: CAHSubmission[];
-  roundWinner: string | null;
-  deck: { blackCards: CAHBlackCard[]; whiteCards: CAHWhiteCard[] };
-  handSize: number;
-  maxRounds: number;
-  currentRound: number;
-  waitingForPlayers: boolean;
-  gameCompleted: boolean;
-};
 
 export type CAHGameMeta = {
   phase: string;

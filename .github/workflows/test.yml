@@ -131,8 +131,8 @@ jobs:
           cd client
           npm run test
         env:
-          PUBLIC_API_URL: http://localhost:3000/
-          PUBLIC_SOCKET_URL: ws://localhost:3000/ws
+          PUBLIC_API_URL: http://localhost:8080/
+          PUBLIC_SOCKET_URL: ws://localhost:8080/ws
           BASE_URL: http://localhost:5173
 
       - name: Upload test results

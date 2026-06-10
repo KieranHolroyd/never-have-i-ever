@@ -1,22 +1,32 @@
 // Re-export shared protocol types
+import type { NHIEGameState, NHIEPlayer as _Player, Question as _Question, Catagories as _Catagories } from '@nhie/shared';
+
 export {
 	VoteOptions,
 	type Catagory,
 	type Catagories,
 	type Question,
 	type NHIEPlayer,
-	type NHIEGameState,
-	type GameHistoryEntry
+	type GameHistoryEntry,
+	type CAHBlackCard,
+	type CAHWhiteCard,
+	type CAHSubmission,
+	type CAHPlayer,
+	type CAHGameState,
+	type CardPack,
+	type ActiveGamePlayerSummary,
+	type ActiveGameStatus,
+	type ActiveGameSummary,
+	type ActiveGamesResponse
 } from '@nhie/shared';
+export type { NHIEGameState } from '@nhie/shared';
+export type ClientNHIEGameState = NHIEGameState & { active?: boolean };
+export type ClientCAHGameState = import('@nhie/shared').CAHGameState & {
+	active?: boolean;
+};
+
 // Backwards-compat alias used by existing client components
 export type { NHIEPlayer as Player } from '@nhie/shared';
-
-// Local aliases for use within this file
-import type {
-	NHIEPlayer as _Player,
-	Question as _Question,
-	Catagories as _Catagories
-} from '@nhie/shared';
 
 export enum Status {
 	CONNECTING,
@@ -33,6 +43,7 @@ export type GameRound = {
 };
 
 export type Settings = {
+	theme?: 'dark' | 'light';
 	no_nsfw?: boolean;
 	no_tutorials?: boolean;
 	show_hidden?: boolean;
@@ -64,115 +75,10 @@ export type GameData = {
 	data: _Catagories;
 };
 
-// Cards Against Humanity Types
-export type CardPack = {
-	id: string;
-	name: string;
-	blackCards: number;
-	whiteCards: number;
-	isOfficial: boolean;
-	isNSFW: boolean;
-};
-
-export type BlackCard = {
-	id: string;
-	text: string;
-	pick: number; // Number of white cards to pick (usually 1, sometimes 2 or 3)
-};
-
-export type WhiteCard = {
-	id: string;
-	text: string;
-};
-
 export type SelectedPacks = {
 	[key: string]: boolean; // packId -> selected
 };
 
-// Cards Against Humanity Types
-export type CAHGameState = {
-	id: string;
-	players: CAHPlayer[];
-	selectedPacks: string[];
-	maxPlayers: number;
-	creatorPlayerId?: string | null;
-	passwordProtected?: boolean;
-
-	// Game phases
-	phase: 'waiting' | 'selecting' | 'judging' | 'scoring' | 'game_over';
-
-	// Current round state
-	currentJudge: string | null;
-	currentBlackCard: CAHBlackCard | null;
-	submittedCards: CAHSubmission[];
-	roundWinner: string | null;
-
-	// Deck state
-	deck: {
-		blackCards: CAHBlackCard[];
-		whiteCards: CAHWhiteCard[];
-	};
-
-	// Game settings
-	handSize: number;
-	maxRounds: number;
-	currentRound: number;
-
-	// Control states
-	waitingForPlayers: boolean;
-	gameCompleted: boolean;
-};
-
-export type CAHPlayer = {
-	id: string;
-	name: string;
-	score: number;
-	connected: boolean;
-	hand: CAHWhiteCard[];
-	isJudge: boolean;
-};
-
-export type CAHBlackCard = {
-	id: string;
-	text: string;
-	pick: number; // Number of white cards to pick (usually 1, sometimes 2 or 3)
-};
-
-export type CAHWhiteCard = {
-	id: string;
-	text: string;
-};
-
-export type CAHSubmission = {
-	playerId: string;
-	cards: CAHWhiteCard[];
-	playerName: string;
-};
-
-export type ActiveGamePlayerSummary = {
-	id: string;
-	name: string;
-	connected: boolean;
-};
-
-export type ActiveGameStatus = 'waiting' | 'in-progress' | 'completed';
-
-export type ActiveGameSummary = {
-	id: string;
-	gameType: 'never-have-i-ever' | 'cards-against-humanity';
-	title: string;
-	primaryPlayerName: string;
-	passwordProtected: boolean;
-	phase: string;
-	status: ActiveGameStatus;
-	maxPlayers: number;
-	playerCount: number;
-	connectedPlayerCount: number;
-	players: ActiveGamePlayerSummary[];
-	createdAt: string;
-	href: string;
-};
-
-export type ActiveGamesResponse = {
-	games: ActiveGameSummary[];
-};
+// Backwards-compat aliases
+export type BlackCard = import('@nhie/shared').CAHBlackCard;
+export type WhiteCard = import('@nhie/shared').CAHWhiteCard;

@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { settingsStore } from '$lib/settings';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Button } from '$lib/components/ui/button';
+	import { Label } from '$lib/components/ui/label';
 	import { Tutorial } from '$lib/tutorial';
 	import { fade, scale } from 'svelte/transition';
 
@@ -127,31 +130,19 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="border-t border-white/8 bg-zinc-900/80 px-6 py-4">
+			<div class="border-t px-6 py-4">
 				<div class="flex items-center justify-between gap-4">
 					<div class="flex items-center gap-2">
-						<input
-							id={`dontshow-${id}`}
-							type="checkbox"
-							class="rounded border-white/20 accent-emerald-500"
-							bind:checked={dontShowAgain}
-						/>
-						<label for={`dontshow-${id}`} class="text-sm text-white/60">Don't show again</label>
+						<Checkbox id={`dontshow-${id}`} bind:checked={dontShowAgain} />
+						<Label for={`dontshow-${id}`} class="font-normal">Don't show again</Label>
 					</div>
 					<div class="flex items-center gap-2">
-						<button
-							class="site-btn-secondary px-3 py-2 text-sm disabled:opacity-50"
-							onclick={prev}
-							disabled={currentStep === 0}
-						>
+						<Button variant="secondary" size="sm" onclick={prev} disabled={currentStep === 0}>
 							Back
-						</button>
-						<button
-							class="site-btn-primary px-4 py-2 text-sm"
-							onclick={next}
-						>
+						</Button>
+						<Button variant="emerald" size="sm" onclick={next}>
 							{isLastStep ? 'Finish' : 'Next'}
-						</button>
+						</Button>
 					</div>
 				</div>
 

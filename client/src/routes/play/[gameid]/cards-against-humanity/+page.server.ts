@@ -1,26 +1,16 @@
-import { env } from '$env/dynamic/public';
-import type { CAHGameState } from '$lib/types.js';
+import { fetchCAHGame } from '$lib/api.js';
+import type { ClientCAHGameState } from '$lib/types.js';
 import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
-type ClientCAHGameData = CAHGameState & {
-	active: boolean;
-	creatorPlayerId?: string | null;
-	passwordProtected?: boolean;
-};
-
-export async function load({ params, fetch }) {
+export const load: PageServerLoad = async ({ params, fetch }) => {
 	if (!params.gameid) {
 		return redirect(307, '/');
 	}
 
-	try {
-		const res = await fetch(`${env.PUBLIC_API_URL}api/cah-game?id=${params.gameid}`);
-		if (res.ok) {
-			const game = (await res.json()) as ClientCAHGameData;
-			return { game };
-		}
-	} catch {
-		// fall through to default
+	const game = await fetchCAHGame(params.gameid, fetch);
+	if (game) {
+		return { game };
 	}
 
 	return {
@@ -43,6 +33,6 @@ export async function load({ params, fetch }) {
 			active: false,
 			creatorPlayerId: null,
 			passwordProtected: false
-		} as ClientCAHGameData
+		} satisfies ClientCAHGameState
 	};
-}
+};

@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { get, writable } from 'svelte/store';
 import type { Settings } from './types';
 import { normalizeSettings, settingsDifferFromDefaults } from './settings-defaults';
+import { applyTheme } from './theme';
 
 const STORAGE_KEY = 'settings';
 
@@ -95,6 +96,8 @@ export function initSettings(
 		settingsStore.set(local);
 		settingsSyncStatus.set('local');
 	}
+
+	applyTheme(get(settingsStore).theme);
 }
 
 /** Update one or more preference keys; persists locally and syncs when signed in. */
@@ -107,6 +110,7 @@ export function patchSettings(patch: Partial<Settings>) {
 		} else {
 			settingsSyncStatus.set('local');
 		}
+		applyTheme(next.theme);
 		return next;
 	});
 }

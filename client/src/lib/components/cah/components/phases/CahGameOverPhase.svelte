@@ -3,6 +3,9 @@
 	import { backOut } from 'svelte/easing';
 	import type { CAHGameState } from '$lib/types';
 	import { sortPlayersByScore } from '../../utils/cah-utils';
+	import { Card, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 
 	interface Props {
 		gameState: CAHGameState;
@@ -15,13 +18,6 @@
 	const connectedPlayers = $derived(gameState.players.filter((p) => p.connected));
 	const sortedPlayers = $derived(sortPlayersByScore(connectedPlayers));
 
-	function podiumClass(rank: number) {
-		if (rank === 0) return 'site-podium-gold';
-		if (rank === 1) return 'site-podium-silver';
-		if (rank === 2) return 'site-podium-bronze';
-		return 'site-surface';
-	}
-
 	function rankLabel(rank: number) {
 		if (rank === 0) return '🥇';
 		if (rank === 1) return '🥈';
@@ -31,35 +27,34 @@
 </script>
 
 <div class="mx-auto max-w-lg space-y-4" data-testid="cah-game-over" in:fade={{ duration: 300 }}>
-	<div class="site-surface site-accent-cah relative overflow-hidden px-4 py-8 text-center">
-		<p class="site-phase-label text-violet-300/80">Game over</p>
-		<h2 class="mt-2 text-3xl font-black text-white">Final scores</h2>
-		<p class="mt-1 text-sm text-white/45">
-			{gameState.currentRound} round{gameState.currentRound === 1 ? '' : 's'} played
-		</p>
-	</div>
+	<Card class="border-violet-500/30 text-center">
+		<CardHeader>
+			<CardDescription>Game over</CardDescription>
+			<CardTitle class="text-3xl">Final scores</CardTitle>
+			<CardDescription>
+				{gameState.currentRound} round{gameState.currentRound === 1 ? '' : 's'} played
+			</CardDescription>
+		</CardHeader>
+	</Card>
 
 	<ul class="space-y-3">
 		{#each sortedPlayers as player, i (player.id)}
-			<li
-				class={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${podiumClass(i)}`}
-				in:fly={{ y: 10, duration: 280, delay: i * 60, easing: backOut }}
-			>
-				<span class="text-2xl">{rankLabel(i)}</span>
-				<span class="min-w-0 flex-1 truncate text-lg font-black text-white">
-					{player.name}
-					{#if player.id === currentPlayerId}
-						<span class="text-sm font-normal text-white/40"> (you)</span>
-					{/if}
-				</span>
-				<span class="rounded-full bg-violet-600 px-3 py-1 text-sm font-black text-white">
-					{player.score}
-				</span>
+			<li in:fly={{ y: 10, duration: 280, delay: i * 60, easing: backOut }}>
+				<Card class="flex-row items-center gap-3 p-4">
+					<span class="text-2xl">{rankLabel(i)}</span>
+					<span class="min-w-0 flex-1 truncate text-lg font-semibold">
+						{player.name}
+						{#if player.id === currentPlayerId}
+							<span class="text-muted-foreground text-sm font-normal"> (you)</span>
+						{/if}
+					</span>
+					<Badge variant="secondary">{player.score}</Badge>
+				</Card>
 			</li>
 		{/each}
 	</ul>
 
-	<button type="button" class="site-btn-primary w-full py-4 text-lg" onclick={onResetGame}>
+	<Button type="button" variant="emerald" size="lg" class="w-full" onclick={onResetGame}>
 		Play again
-	</button>
+	</Button>
 </div>

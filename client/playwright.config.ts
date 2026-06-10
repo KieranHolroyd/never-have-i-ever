@@ -70,15 +70,15 @@ export default defineConfig({
 	webServer: [
 		{
 			command: process.env.CI
-				? 'cd ../server && GAME_DATA_DIR=./assets/games/ VALKEY_URI=valkey://localhost:6379 bun run dev'
-				: 'cd ../server && bun run dev',
-			url: 'http://localhost:3000',
+				? 'cd ../server && GAME_DATA_DIR=./assets/games/ PORT=8080 bun run dev'
+				: 'cd ../server && PORT=8080 bun run dev',
+			url: 'http://localhost:8080',
 			reuseExistingServer: !process.env.CI,
 			timeout: 120000
 		},
 		{
 			command:
-				'PUBLIC_API_URL=http://localhost:3000/ PUBLIC_SOCKET_URL=ws://localhost:3000/ws npm run dev',
+				'PUBLIC_API_URL=http://localhost:8080/ PUBLIC_SOCKET_URL=ws://localhost:8080/ws npm run dev',
 			url: 'http://localhost:5173',
 			reuseExistingServer: !process.env.CI,
 			timeout: 120000

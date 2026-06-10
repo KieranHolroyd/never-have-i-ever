@@ -13,6 +13,7 @@
 		type Catagories,
 		type NHIEGameState
 	} from '$lib/types';
+	import { fetchCatagories, parseNHIEGameState } from '$lib/api';
 	import { clearStoredRoomPassword, getStoredRoomPassword, storeRoomPassword } from '$lib/room-password';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import RoomPasswordGate from '../shared/RoomPasswordGate.svelte';
@@ -197,10 +198,13 @@
 		}
 
 		if (catagories === undefined) {
-			fetch(`${env.PUBLIC_API_URL}api/catagories`)
-				.then((res) => res.json() as Promise<Catagories>)
+			void fetchCatagories()
 				.then((data) => {
-					catagories = data;
+					if (data) {
+						catagories = data;
+					} else {
+						error = 'Failed to fetch catagories';
+					}
 				})
 				.catch((err) => {
 					console.error(err);
@@ -531,7 +535,7 @@
 							players: data.game.players
 						});
 
-						syncGameState(data.game as NHIEGameState);
+						syncGameState(parseNHIEGameState(data.game));
 						joinPending = false;
 						passwordPromptVisible = false;
 						roomPasswordError = null;

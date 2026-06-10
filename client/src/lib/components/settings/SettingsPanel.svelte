@@ -4,7 +4,13 @@
 	import MdiCloudOffOutline from '~icons/mdi/cloud-off-outline';
 	import MdiCheckCircle from '~icons/mdi/check-circle';
 	import MdiAlertCircle from '~icons/mdi/alert-circle';
-	import SiteButton from '$lib/components/ui/SiteButton.svelte';
+	import MdiWeatherNight from '~icons/mdi/weather-night';
+	import MdiWhiteBalanceSunny from '~icons/mdi/white-balance-sunny';
+	import { Button } from '$lib/components/ui/button';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { ToggleGroup, ToggleGroupItem } from '$lib/components/ui/toggle-group';
 	import {
 		settingsStore,
 		settingsSyncStatus,
@@ -13,8 +19,10 @@
 	} from '$lib/settings';
 	import type { Settings } from '$lib/types';
 
+	type BooleanSettingKey = 'no_nsfw' | 'no_tutorials' | 'show_hidden' | 'show_debug';
+
 	interface SettingDef {
-		key: keyof Settings;
+		key: BooleanSettingKey;
 		label: string;
 		description: string;
 		section: 'gameplay' | 'advanced';
@@ -48,7 +56,6 @@
 	];
 
 	interface Props {
-		/** Hide the account sync banner (e.g. when embedded in profile). */
 		showAccountBanner?: boolean;
 	}
 
@@ -77,78 +84,80 @@
 </script>
 
 {#if showAccountBanner}
-	<div
-		class="mb-5 rounded-xl border px-4 py-3 text-sm {user
-			? syncStatus === 'error'
-				? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
-				: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-100/90'
-			: 'border-white/10 bg-white/[0.03] text-white/55'}"
-	>
-		<div class="flex items-start gap-3">
-			{#if user}
-				{#if syncStatus === 'synced'}
-					<MdiCheckCircle class="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
-				{:else if syncStatus === 'error'}
-					<MdiAlertCircle class="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
-				{:else}
-					<MdiCloudSync class="mt-0.5 h-5 w-5 shrink-0 text-emerald-400 {syncStatus === 'syncing'
-						? 'animate-pulse'
-						: ''}" />
-				{/if}
+	<Alert variant={user && syncStatus === 'error' ? 'destructive' : 'default'} class="mb-5">
+		{#if user}
+			{#if syncStatus === 'synced'}
+				<MdiCheckCircle />
+			{:else if syncStatus === 'error'}
+				<MdiAlertCircle />
 			{:else}
-				<MdiCloudOffOutline class="mt-0.5 h-5 w-5 shrink-0 text-white/35" />
+				<MdiCloudSync class={syncStatus === 'syncing' ? 'animate-pulse' : ''} />
 			{/if}
-			<div class="min-w-0 flex-1">
-				{#if user}
-					<p class="font-bold text-white">{user.nickname}</p>
-					<p class="mt-0.5 text-xs leading-relaxed opacity-90">{syncLabel}</p>
-				{:else}
-					<p class="font-bold text-white/80">Playing as a guest</p>
-					<p class="mt-0.5 text-xs leading-relaxed">
-						Preferences stay in this browser.
-						<a href="/auth?redirect={encodeURIComponent(page.url.pathname)}" class="font-semibold text-emerald-300 hover:text-emerald-200">Sign in</a>
-						to sync across devices.
-					</p>
-				{/if}
-			</div>
-		</div>
-		{#if user && syncStatus === 'error'}
-			<button
-				type="button"
-				class="mt-3 text-xs font-bold text-rose-200 underline hover:text-white"
-				onclick={retrySync}
-			>
-				Retry sync
-			</button>
+		{:else}
+			<MdiCloudOffOutline />
 		{/if}
-	</div>
+		<AlertTitle>{user ? user.nickname : 'Playing as a guest'}</AlertTitle>
+		<AlertDescription>
+			{#if user}
+				{syncLabel}
+			{:else}
+				Preferences stay in this browser.
+				<a href="/auth?redirect={encodeURIComponent(page.url.pathname)}" class="font-semibold underline">
+					Sign in
+				</a>
+				to sync across devices.
+			{/if}
+		</AlertDescription>
+		{#if user && syncStatus === 'error'}
+			<Button variant="link" size="sm" class="mt-2 h-auto p-0" onclick={retrySync}>Retry sync</Button>
+		{/if}
+	</Alert>
 {/if}
+
+<div class="mb-5 space-y-2">
+	<Label>Theme</Label>
+	<ToggleGroup
+		type="single"
+		value={$settingsStore.theme}
+		onValueChange={(value) => {
+			if (value === 'dark' || value === 'light') patchSettings({ theme: value });
+		}}
+		class="grid w-full grid-cols-2"
+	>
+		<ToggleGroupItem value="dark" class="gap-2">
+			<MdiWeatherNight />
+			Dark
+		</ToggleGroupItem>
+		<ToggleGroupItem value="light" class="gap-2">
+			<MdiWhiteBalanceSunny />
+			Light
+		</ToggleGroupItem>
+	</ToggleGroup>
+</div>
 
 {#each ['gameplay', 'advanced'] as section (section)}
 	{@const items = definitions.filter((d) => d.section === section)}
-	<p class="site-phase-label mb-2 capitalize">{section}</p>
+	<p class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-widest">{section}</p>
 	<div class="mb-5 space-y-2">
 		{#each items as def (def.key)}
-			<label
-				class="flex cursor-pointer gap-3 rounded-xl border border-white/8 bg-zinc-900/60 px-4 py-3 transition hover:border-white/12"
-			>
-				<input
-					type="checkbox"
-					class="mt-1 h-4 w-4 shrink-0 accent-emerald-500"
+			<div class="flex gap-3 rounded-xl border p-4">
+				<Checkbox
+					id={`setting-${def.key}`}
+					class="mt-0.5 shrink-0"
 					checked={$settingsStore[def.key] ?? false}
-					onchange={(e) => patchSettings({ [def.key]: e.currentTarget.checked })}
+					onCheckedChange={(checked) => patchSettings({ [def.key]: checked === true })}
 				/>
-				<span class="min-w-0">
-					<span class="block text-sm font-bold text-white">{def.label}</span>
-					<span class="mt-0.5 block text-xs leading-relaxed text-white/45">{def.description}</span>
-				</span>
-			</label>
+				<Label for={`setting-${def.key}`} class="min-w-0 cursor-pointer font-normal">
+					<span class="block text-sm font-medium">{def.label}</span>
+					<span class="text-muted-foreground mt-0.5 block text-xs">{def.description}</span>
+				</Label>
+			</div>
 		{/each}
 	</div>
 {/each}
 
 {#if !user}
-	<SiteButton type="button" variant="secondary" fullWidth onclick={() => saveSettings()}>
+	<Button type="button" variant="secondary" class="w-full" onclick={() => saveSettings()}>
 		Save on this device
-	</SiteButton>
+	</Button>
 {/if}

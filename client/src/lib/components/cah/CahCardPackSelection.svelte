@@ -4,6 +4,15 @@
 	import MdiCheck from '~icons/mdi/check';
 	import MdiClose from '~icons/mdi/close';
 	import MdiCrown from '~icons/mdi/crown';
+	import MdiMagnify from '~icons/mdi/magnify';
+	import { Input } from '$lib/components/ui/input';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Button } from '$lib/components/ui/button';
+	import {
+		InputGroup,
+		InputGroupAddon,
+		InputGroupInput
+	} from '$lib/components/ui/input-group';
 	import type { CardPack, SelectedPacks } from '$lib/types';
 	import { getCardPacks, calculateTotalCards } from '$lib/card-packs';
 	import posthog from 'posthog-js';
@@ -160,17 +169,17 @@
 	{#if !embedded}
 		<div class="mb-6 flex items-center justify-between gap-4">
 			<div>
-				<p class="site-phase-label">Cards Against Humanity</p>
-				<h1 class="text-2xl font-black text-white">Choose your card packs</h1>
+				<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">Cards Against Humanity</p>
+				<h1 class="text-2xl font-bold">Choose your card packs</h1>
 			</div>
-			<button type="button" class="site-btn-secondary" onclick={goBack}>
-				<MdiClose class="mr-1 inline h-4 w-4" />
+			<Button type="button" variant="secondary" onclick={goBack}>
+				<MdiClose />
 				Cancel
-			</button>
+			</Button>
 		</div>
 	{:else}
 		<div class="mb-4">
-			<p class="site-phase-label">Packs</p>
+			<p class="text-muted-foreground text-xs font-medium uppercase tracking-widest">Packs</p>
 			<h2 class="text-2xl font-black text-white">Pick your decks</h2>
 			<p class="mt-1 text-sm text-white/45">
 				{selectedIds.length > 0
@@ -213,27 +222,16 @@
 				<!-- Search + filters -->
 				<div class="rounded-2xl border border-white/[0.07] bg-[#1a1a1a] p-4">
 					<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-						<div class="relative flex-1">
-							<input
-								type="text"
+						<InputGroup class="flex-1">
+							<InputGroupAddon>
+								<MdiMagnify />
+							</InputGroupAddon>
+							<InputGroupInput
+								type="search"
 								bind:value={searchQuery}
 								placeholder="Search card packs…"
-								class="w-full rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 pl-9 text-sm text-white placeholder-white/20 focus:border-white/30 focus:outline-none"
 							/>
-							<svg
-								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/20"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-								/>
-							</svg>
-						</div>
+						</InputGroup>
 						<div class="flex items-center gap-2">
 							<label
 								class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold transition-colors
@@ -241,7 +239,7 @@
 									? 'border-white/20 bg-white/[0.08] text-white'
 									: 'border-white/[0.07] text-white/35 hover:border-white/15'}"
 							>
-								<input type="checkbox" bind:checked={showNSFW} class="sr-only" />
+								<Checkbox bind:checked={showNSFW} class="sr-only" />
 								NSFW
 							</label>
 							<label
@@ -250,7 +248,7 @@
 									? 'border-white/20 bg-white/[0.08] text-white'
 									: 'border-white/[0.07] text-white/35 hover:border-white/15'}"
 							>
-								<input type="checkbox" bind:checked={showCommunity} class="sr-only" />
+								<Checkbox bind:checked={showCommunity} class="sr-only" />
 								Community
 							</label>
 						</div>
@@ -489,14 +487,14 @@
 									<label class="text-xs font-bold text-white/50" for="max-rounds-desktop">Max rounds</label>
 									<span class="text-xs font-black text-white">{maxRounds}</span>
 								</div>
-								<input
+								<Input
 									id="max-rounds-desktop"
 									type="range"
-									min="3"
-									max="50"
-									step="1"
+									min={3}
+									max={50}
+									step={1}
 									bind:value={maxRounds}
-									class="w-full accent-white h-1 cursor-pointer"
+									class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
 								/>
 								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
 									<span>3</span><span>50</span>
@@ -508,14 +506,14 @@
 									<label class="text-xs font-bold text-white/50" for="hand-size-desktop">Hand size</label>
 									<span class="text-xs font-black text-white">{handSize} cards</span>
 								</div>
-								<input
+								<Input
 									id="hand-size-desktop"
 									type="range"
-									min="3"
-									max="15"
-									step="1"
+									min={3}
+									max={15}
+									step={1}
 									bind:value={handSize}
-									class="w-full accent-white h-1 cursor-pointer"
+									class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
 								/>
 								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
 									<span>3</span><span>15</span>
@@ -527,14 +525,14 @@
 									<label class="text-xs font-bold text-white/50" for="max-players-desktop">Room size</label>
 									<span class="text-xs font-black text-white">{maxPlayers} players</span>
 								</div>
-								<input
+								<Input
 									id="max-players-desktop"
 									type="range"
-									min="3"
-									max="20"
-									step="1"
+									min={3}
+									max={20}
+									step={1}
 									bind:value={maxPlayers}
-									class="w-full accent-white h-1 cursor-pointer"
+									class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
 								/>
 								<div class="flex justify-between text-[10px] text-white/20 mt-0.5">
 									<span>3</span><span>20</span>
@@ -567,14 +565,14 @@
 							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-rounds-mobile">Rounds</label>
 							<span class="text-xs font-black text-white">{maxRounds}</span>
 						</div>
-						<input
+						<Input
 							id="max-rounds-mobile"
 							type="range"
-							min="3"
-							max="50"
-							step="1"
+							min={3}
+							max={50}
+							step={1}
 							bind:value={maxRounds}
-							class="w-full accent-white h-1 cursor-pointer"
+							class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
 						/>
 					</div>
 					<div>
@@ -582,14 +580,14 @@
 							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="hand-size-mobile">Hand</label>
 							<span class="text-xs font-black text-white">{handSize}</span>
 						</div>
-						<input
+						<Input
 							id="hand-size-mobile"
 							type="range"
-							min="3"
-							max="15"
-							step="1"
+							min={3}
+							max={15}
+							step={1}
 							bind:value={handSize}
-							class="w-full accent-white h-1 cursor-pointer"
+							class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
 						/>
 					</div>
 					<div>
@@ -597,14 +595,14 @@
 							<label class="text-[10px] font-black uppercase tracking-[0.2em] text-white/30" for="max-players-mobile">Seats</label>
 							<span class="text-xs font-black text-white">{maxPlayers}</span>
 						</div>
-						<input
+						<Input
 							id="max-players-mobile"
 							type="range"
-							min="3"
-							max="20"
-							step="1"
+							min={3}
+							max={20}
+							step={1}
 							bind:value={maxPlayers}
-							class="w-full accent-white h-1 cursor-pointer"
+							class="h-1 w-full cursor-pointer border-0 bg-transparent p-0 shadow-none accent-white focus-visible:ring-0"
 						/>
 					</div>
 				</div>
@@ -616,14 +614,15 @@
 						</p>
 						<p class="text-xs text-white/35">{totals.totalBlack}B / {totals.totalWhite}W cards</p>
 					</div>
-					<button
+					<Button
 						type="button"
-						class="site-btn-primary shrink-0 disabled:opacity-40"
+						variant="emerald"
+						class="shrink-0"
 						onclick={startGame}
 						disabled={selectedIds.length === 0}
 					>
 						Start game ({selectedIds.length})
-					</button>
+					</Button>
 				</div>
 			</div>
 		</div>

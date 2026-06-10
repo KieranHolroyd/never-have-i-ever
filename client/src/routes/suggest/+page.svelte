@@ -1,48 +1,47 @@
 <script lang="ts">
 	import MdiEmailOutline from '~icons/mdi/email-outline';
 	import MdiArrowLeft from '~icons/mdi/arrow-left';
-	import SiteCard from '$lib/components/ui/SiteCard.svelte';
-	import SiteButton from '$lib/components/ui/SiteButton.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardFooter,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
 </script>
 
-<div class="flex min-h-[60vh] items-start justify-center py-12 px-4">
+<div class="flex min-h-[60vh] items-start justify-center px-4 py-12">
 	<div class="w-full max-w-lg">
-		<a
-			href="/"
-			class="mb-8 inline-flex items-center gap-1.5 text-sm text-white/45 transition hover:text-emerald-300"
-		>
-			<MdiArrowLeft class="h-4 w-4" />
+		<Button href="/" variant="ghost" size="sm" class="mb-8">
+			<MdiArrowLeft />
 			Back to games
-		</a>
+		</Button>
 
-		<p class="site-phase-label mb-2">Contact</p>
-		<h1 class="mb-2 text-3xl font-black text-white">Get in touch</h1>
-		<p class="mb-8 text-white/45">Questions, bug reports, or game suggestions — we want to hear them.</p>
+		<p class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-widest">Contact</p>
+		<h1 class="mb-2 text-3xl font-bold">Get in touch</h1>
+		<p class="text-muted-foreground mb-8">
+			Questions, bug reports, or game suggestions — we want to hear them.
+		</p>
 
-		<SiteCard padding="lg">
-			<div class="flex items-center gap-4 border-b border-white/8 pb-6">
-				<span
-					class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400"
-				>
-					<MdiEmailOutline class="h-5 w-5" />
-				</span>
-				<div>
-					<p class="text-xs text-white/40">Email us directly</p>
-					<a
-						href="mailto:games@kieran.dev"
-						class="font-semibold text-white transition hover:text-emerald-400"
-					>
-						games@kieran.dev
-					</a>
+		<Card>
+			<CardHeader>
+				<div class="flex items-center gap-4">
+					<span class="bg-primary/10 text-primary inline-flex size-10 items-center justify-center rounded-xl">
+						<MdiEmailOutline class="size-5" />
+					</span>
+					<div>
+						<CardDescription>Email us directly</CardDescription>
+						<CardTitle>
+							<a href="mailto:games@kieran.dev" class="hover:underline">games@kieran.dev</a>
+						</CardTitle>
+					</div>
 				</div>
-			</div>
-
-			<button
-				type="button"
-				class="open-feedback site-btn-primary mt-6 w-full"
-			>
-				Send feedback
-			</button>
-		</SiteCard>
+			</CardHeader>
+			<CardFooter>
+				<Button type="button" variant="emerald" class="open-feedback w-full">Send feedback</Button>
+			</CardFooter>
+		</Card>
 	</div>
 </div>

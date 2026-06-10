@@ -1,8 +1,12 @@
 import { env } from '$env/dynamic/public';
+import { parseCAHGameState, parseNHIEGameState } from './api';
+import type { CAHGameState, NHIEGameState } from '@nhie/shared';
 import { Status } from './types';
 import { buildSocketUrl } from './socket-url';
 
-export interface WebSocketManagerConfig {
+type GameState = NHIEGameState | CAHGameState;
+
+export interface WebSocketManagerConfig<TGameState extends GameState = GameState> {
 	gameId: string;
 	playerId: string;
 	playerName: string;
@@ -10,22 +14,25 @@ export interface WebSocketManagerConfig {
 	gameType: 'cards-against-humanity' | 'never-have-i-ever';
 	selectedPackIds?: string[];
 	userId?: string;
-	onGameState: (gameState: any) => void;
+	onGameState: (gameState: TGameState) => void;
 	onError: (error: string) => void;
 	onRemoved?: (message: string) => void;
+	onNewRound?: () => void;
+	onRoundTimeout?: (message: string) => void;
+	onGithubPush?: (payload: { delay: number; notification: string; showReloadButton?: boolean }) => void;
 	onConnectionChange: (status: Status, isReconnecting?: boolean, attempts?: number) => void;
 }
 
-export class WebSocketManager {
+export class WebSocketManager<TGameState extends GameState = GameState> {
 	private socket: WebSocket | null = null;
-	private config: WebSocketManagerConfig;
+	private config: WebSocketManagerConfig<TGameState>;
 	private reconnectAttempts = 0;
 	private maxReconnectAttempts = 10;
 	private reconnectTimeout: number | null = null;
 	private isReconnecting = false;
 	private packsSelected = false;
 
-	constructor(config: WebSocketManagerConfig) {
+	constructor(config: WebSocketManagerConfig<TGameState>) {
 		this.config = config;
 	}
 
@@ -69,7 +76,7 @@ export class WebSocketManager {
 			this.config.onError(''); // Clear any error
 
 			this.socket?.send(
-				JSON.stringify(this.createJoinPayload(true))
+				JSON.stringify({ op: 'join_game', ...this.createJoinPayload(true) })
 			);
 
 			// Send selected packs if available (CAH only)
@@ -106,7 +113,27 @@ export class WebSocketManager {
 							console.warn('Received game_state message without game data');
 							return;
 						}
-						this.config.onGameState(data.game);
+						if (this.config.gameType === 'never-have-i-ever') {
+							this.config.onGameState(parseNHIEGameState(data.game) as TGameState);
+						} else {
+							this.config.onGameState(parseCAHGameState(data.game) as TGameState);
+						}
+						break;
+
+					case 'new_round':
+						this.config.onNewRound?.();
+						break;
+
+					case 'round_timeout':
+						this.config.onRoundTimeout?.(data?.message || 'Round timed out');
+						break;
+
+					case 'github_push':
+						this.config.onGithubPush?.({
+							delay: Number(data.delay ?? 0),
+							notification: String(data.notification ?? ''),
+							showReloadButton: data.showReloadButton
+						});
 						break;
 
 					case 'error':
@@ -188,7 +215,6 @@ export class WebSocketManager {
 
 	private createJoinPayload(create: boolean) {
 		return {
-			op: 'join_game',
 			create,
 			playername: this.config.playerName,
 			...(this.config.roomPassword ? { password: this.config.roomPassword } : {})
