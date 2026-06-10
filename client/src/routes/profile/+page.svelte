@@ -13,6 +13,7 @@
 	import MdiTrophy from '~icons/mdi/trophy';
 	import LogosGoogle from '~icons/logos/google-icon';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+	import { page } from '$app/state';
 	import { Alert, AlertDescription, AlertTitle, AlertAction } from '$lib/components/ui/alert';
 	import {
 		Accordion,
@@ -69,6 +70,7 @@
 	const recentNhieGames = $derived(data.recentNhieGames);
 	const recentCahGames = $derived(data.recentCahGames);
 	const googleAccount = $derived(data.googleAccount);
+	const passwordResetSuccess = $derived(page.url.searchParams.get('reset') === 'success');
 
 	const totalGames = $derived(nhieStats.total_games + cahStats.total_games);
 	const totalWins = $derived(nhieStats.wins + cahStats.wins);
@@ -120,6 +122,13 @@
 					</Button>
 				</form>
 			</AlertAction>
+		</Alert>
+	{/if}
+
+	{#if passwordResetSuccess}
+		<Alert>
+			<MdiCheck />
+			<AlertDescription>Your password has been updated.</AlertDescription>
 		</Alert>
 	{/if}
 

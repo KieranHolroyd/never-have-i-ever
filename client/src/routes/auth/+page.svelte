@@ -19,6 +19,7 @@
 	let mode = $state<AuthMode>('login');
 
 	const redirect = $derived(page.url.searchParams.get('redirect') ?? '');
+	const resetSuccess = $derived(page.url.searchParams.get('reset') === 'success');
 
 	$effect(() => {
 		if (form?.action === 'register' || form?.action === 'login') {
@@ -75,6 +76,11 @@
 			</div>
 
 			<CardContent class="space-y-5 pt-6">
+				{#if resetSuccess}
+					<p class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+						Your password was updated. Sign in with your new password to continue.
+					</p>
+				{/if}
 				<Button
 					href="/auth/google{redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}"
 					variant="outline"

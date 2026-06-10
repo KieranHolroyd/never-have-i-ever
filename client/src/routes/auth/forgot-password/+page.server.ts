@@ -21,6 +21,7 @@ export const actions: Actions = {
 				redirectTo: `${origin}/auth/reset-password`,
 			},
 			headers: request.headers,
+			asResponse: false,
 		}).catch(() => {});
 
 		return { success: true };

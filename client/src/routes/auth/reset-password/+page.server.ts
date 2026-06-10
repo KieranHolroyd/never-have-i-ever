@@ -1,14 +1,38 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
+import { users, verifications } from '@nhie/db/schema';
 import { auth } from '$lib/server/auth';
+import { db } from '$lib/server/db';
 import type { Actions, PageServerLoad } from './$types';
+
+async function findResetVerification(token: string) {
+	const [verification] = await db
+		.select({
+			userId: verifications.value,
+			expiresAt: verifications.expiresAt,
+		})
+		.from(verifications)
+		.where(eq(verifications.identifier, `reset-password:${token}`))
+		.limit(1);
+
+	if (!verification || verification.expiresAt < new Date()) return null;
+	return verification;
+}
 
 export const load: PageServerLoad = async ({ url }) => {
 	const token = url.searchParams.get('token');
 	const error = url.searchParams.get('error');
-	if (error === 'INVALID_TOKEN') {
+
+	if (error === 'INVALID_TOKEN' || !token) {
 		return { token: null, invalid: true };
 	}
-	return { token, invalid: !token };
+
+	const verification = await findResetVerification(token);
+	if (!verification) {
+		return { token: null, invalid: true };
+	}
+
+	return { token, invalid: false };
 };
 
 export const actions: Actions = {
@@ -22,15 +46,45 @@ export const actions: Actions = {
 		if (password.length < 8) return fail(400, { error: 'Password must be at least 8 characters.' });
 		if (password !== confirm) return fail(400, { error: 'Passwords do not match.' });
 
+		const verification = await findResetVerification(token);
+		if (!verification) {
+			return fail(400, { error: 'This reset link is invalid or has expired.' });
+		}
+
+		const [user] = await db
+			.select({ email: users.email })
+			.from(users)
+			.where(eq(users.id, verification.userId))
+			.limit(1);
+
+		if (!user) {
+			return fail(400, { error: 'This reset link is invalid or has expired.' });
+		}
+
 		try {
 			await auth.api.resetPassword({
 				body: { newPassword: password, token },
 				headers: request.headers,
+				asResponse: false,
 			});
-		} catch {
+		} catch (err) {
+			const message = err instanceof Error ? err.message : '';
+			if (message.toLowerCase().includes('password')) {
+				return fail(400, { error: 'Password must be at least 8 characters.' });
+			}
 			return fail(400, { error: 'This reset link is invalid or has expired.' });
 		}
 
-		redirect(302, '/auth?redirect=/profile');
+		try {
+			await auth.api.signInEmail({
+				body: { email: user.email, password },
+				headers: request.headers,
+				asResponse: false,
+			});
+		} catch {
+			redirect(302, '/auth?redirect=/profile&reset=success');
+		}
+
+		redirect(302, '/profile?reset=success');
 	},
 };

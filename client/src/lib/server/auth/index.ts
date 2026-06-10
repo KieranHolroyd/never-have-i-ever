@@ -29,7 +29,7 @@ export const auth = betterAuth({
 		usePlural: true,
 		schema: authSchema,
 	}),
-	experimental: { joins: true },
+	trustedOrigins: [publicOrigin],
 	advanced: {
 		database: {
 			generateId: (options) => {
@@ -60,10 +60,8 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		minPasswordLength: 8,
-		sendResetPassword: async ({ user, token }) => {
-			const callback = encodeURIComponent(`${publicOrigin}/auth/reset-password`);
-			const resetUrl = `${publicOrigin}/api/auth/reset-password/${token}?callbackURL=${callback}`;
-			await sendPasswordResetEmail(user.email, user.name, resetUrl);
+		sendResetPassword: async ({ user, url }) => {
+			await sendPasswordResetEmail(user.email, user.name, url);
 		},
 		password: {
 			hash: hashPassword,
