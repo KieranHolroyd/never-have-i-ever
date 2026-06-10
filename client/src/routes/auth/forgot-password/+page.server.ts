@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { users, verifications } from '@nhie/db/schema';
 import { db } from '$lib/server/db';
 import { sendPasswordResetEmail } from '$lib/server/mailer';
-import { getAuthPublicOrigin } from '$lib/server/auth/public-origin';
+import { getAuthPublicOrigin, AUTH_RESET_PASSWORD_PATH } from '$lib/server/auth/public-origin';
 import type { Actions, PageServerLoad } from './$types';
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
@@ -37,8 +37,7 @@ export const actions: Actions = {
 		const token = createResetToken();
 		const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 		const origin = getAuthPublicOrigin(url.origin);
-		const redirectTo = `${origin}/auth/reset-password`;
-		const resetUrl = `${origin}/api/auth/reset-password/${token}?callbackURL=${encodeURIComponent(redirectTo)}`;
+		const resetUrl = `${origin}/api/auth/reset-password/${token}?callbackURL=${encodeURIComponent(AUTH_RESET_PASSWORD_PATH)}`;
 
 		try {
 			await db.insert(verifications).values({

@@ -10,7 +10,7 @@ import { verifications } from '@nhie/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendEmailVerificationEmail, sendPasswordResetEmail } from '$lib/server/mailer';
 import { hashPassword, verifyPassword } from './password';
-import { getAuthPublicOrigin, getAuthTrustedOrigins } from './public-origin';
+import { getAuthPublicOrigin, getAuthTrustedOrigins, AUTH_PROFILE_PATH } from './public-origin';
 
 const authSchema = {
 	...schema,
@@ -32,7 +32,8 @@ export const auth = betterAuth({
 		usePlural: true,
 		schema: authSchema,
 	}),
-	trustedOrigins: getAuthTrustedOrigins(),
+	trustedOrigins: async (request) =>
+		getAuthTrustedOrigins(request ? new URL(request.url).origin : undefined),
 	advanced: {
 		database: {
 			generateId: (options) => {
@@ -86,8 +87,7 @@ export const auth = betterAuth({
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, token }) => {
-			const callback = encodeURIComponent(`${publicOrigin}/profile`);
-			const verifyUrl = `${publicOrigin}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=${callback}`;
+			const verifyUrl = `${publicOrigin}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=${encodeURIComponent(AUTH_PROFILE_PATH)}`;
 			await sendEmailVerificationEmail(user.email, user.name, verifyUrl);
 		},
 	},
