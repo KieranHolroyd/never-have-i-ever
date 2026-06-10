@@ -1,9 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { users, verifications } from '@nhie/db/schema';
+import { and, eq } from 'drizzle-orm';
+import { accounts, users, verifications } from '@nhie/db/schema';
 import { auth } from '$lib/server/auth';
+import { hashPassword } from '$lib/server/auth/password';
 import { db } from '$lib/server/db';
 import type { Actions, PageServerLoad } from './$types';
+
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
 
 async function findResetVerification(token: string) {
 	const [verification] = await db
@@ -43,7 +47,14 @@ export const actions: Actions = {
 		const confirm = String(data.get('confirm') ?? '');
 
 		if (!token) return fail(400, { error: 'This reset link is invalid or has expired.' });
-		if (password.length < 8) return fail(400, { error: 'Password must be at least 8 characters.' });
+		if (password.length < MIN_PASSWORD_LENGTH) {
+			return fail(400, { error: 'Password must be at least 8 characters.' });
+		}
+		if (password.length > MAX_PASSWORD_LENGTH) {
+			return fail(400, {
+				error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`,
+			});
+		}
 		if (password !== confirm) return fail(400, { error: 'Passwords do not match.' });
 
 		const verification = await findResetVerification(token);
@@ -62,17 +73,43 @@ export const actions: Actions = {
 		}
 
 		try {
-			await auth.api.resetPassword({
-				body: { newPassword: password, token },
-				headers: request.headers,
-				asResponse: false,
-			});
-		} catch (err) {
-			const message = err instanceof Error ? err.message : '';
-			if (message.toLowerCase().includes('password')) {
-				return fail(400, { error: 'Password must be at least 8 characters.' });
+			const hashedPassword = await hashPassword(password);
+			const [credentialAccount] = await db
+				.select({ id: accounts.id })
+				.from(accounts)
+				.where(
+					and(
+						eq(accounts.userId, verification.userId),
+						eq(accounts.providerId, 'credential')
+					)
+				)
+				.limit(1);
+
+			if (credentialAccount) {
+				await db
+					.update(accounts)
+					.set({ password: hashedPassword, updatedAt: new Date() })
+					.where(eq(accounts.id, credentialAccount.id));
+			} else {
+				await db.insert(accounts).values({
+					id: crypto.randomUUID(),
+					userId: verification.userId,
+					accountId: verification.userId,
+					providerId: 'credential',
+					password: hashedPassword,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				});
 			}
-			return fail(400, { error: 'This reset link is invalid or has expired.' });
+
+			await db
+				.delete(verifications)
+				.where(eq(verifications.identifier, `reset-password:${token}`));
+		} catch (err) {
+			console.error('[auth] Password reset failed:', err);
+			return fail(400, {
+				error: 'Could not reset your password. Please try again or request a new link.',
+			});
 		}
 
 		try {
@@ -81,7 +118,8 @@ export const actions: Actions = {
 				headers: request.headers,
 				asResponse: false,
 			});
-		} catch {
+		} catch (err) {
+			console.error('[auth] Auto sign-in after password reset failed:', err);
 			redirect(302, '/auth?redirect=/profile&reset=success');
 		}
 
