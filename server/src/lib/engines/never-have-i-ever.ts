@@ -280,7 +280,11 @@ export function createNeverHaveIEverEngine(
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
     // -----------------------------------------------------------------------
     join_game: async (ws, data) => {
-      const { create, playername } = data;
+      const { create } = data;
+      const playername = typeof data.playername === "string" ? data.playername.trim() : "";
+      if (!playername) {
+        throw new ValidationError("Player name is required");
+      }
       const gameId = ws.data.game;
       const roomPassword = normalizeRoomPassword(data.password);
 
@@ -323,18 +327,16 @@ export function createNeverHaveIEverEngine(
         if (players.length >= (meta?.max_players ?? 20)) {
           throw new GameFullError(meta?.max_players ?? 20);
         }
-
-        const player: NHIEPlayer = {
-          id: ws.data.player,
-          name: playername,
-          score: 0,
-          connected: true,
-          this_round: { vote: null, voted: false },
-        };
-        await gameStateService.addPlayer(gameId, player, ws.data.userId);
-      } else {
-        await gameStateService.updatePlayerConnected(gameId, ws.data.player, true);
       }
+
+      const player: NHIEPlayer = {
+        id: ws.data.player,
+        name: playername,
+        score: existing?.score ?? 0,
+        connected: true,
+        this_round: existing?.this_round ?? { vote: null, voted: false },
+      };
+      await gameStateService.addPlayer(gameId, player, ws.data.userId);
 
       await ensureConnectedCreator(gameId, ws.data.player);
 

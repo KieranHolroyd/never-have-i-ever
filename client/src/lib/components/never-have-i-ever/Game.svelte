@@ -297,15 +297,34 @@
 		};
 	}
 
+	function clearSocket() {
+		if (socket) {
+			try {
+				socket.close();
+			} catch (_) {}
+			socket = null;
+		}
+		if (ping_timeout) {
+			clearInterval(ping_timeout);
+			ping_timeout = null;
+		}
+	}
+
+	function sendJoin() {
+		if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+		socket.send(JSON.stringify(getJoinPayload()));
+		return true;
+	}
+
 	function attemptJoin() {
 		joinPending = true;
 		roomPasswordError = null;
 
-		if (socket && socket.readyState === WebSocket.OPEN) {
-			socket.send(JSON.stringify(getJoinPayload()));
-			return;
-		}
+		if (sendJoin()) return;
 
+		if (socket?.readyState === WebSocket.CONNECTING) return;
+
+		clearSocket();
 		setupsock();
 	}
 
@@ -537,8 +556,10 @@
 	let reconnect_scheduled = false;
 	let reconnect_inflight = false;
 	function setupsock() {
-		// Prevent attaching duplicate listeners to an existing socket
-		if (socket !== null) return;
+		if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) {
+			return;
+		}
+		if (socket) clearSocket();
 		const nextPlayerId = player_id ?? LocalPlayer.id;
 		if (!nextPlayerId) {
 			console.log('[DEBUG] Cannot create socket without a player id');
@@ -578,6 +599,12 @@
 						});
 
 						syncGameState(parseNHIEGameState(data.game));
+
+						if (player_id && !players.some((player) => player.id === player_id)) {
+							sendJoin();
+							return;
+						}
+
 						joinPending = false;
 						passwordPromptVisible = false;
 						roomPasswordError = null;
@@ -682,7 +709,7 @@
 		socket?.addEventListener('open', (event) => {
 			connection = Status.CONNECTED;
 			measure_ping();
-			socket?.send(JSON.stringify(getJoinPayload()));
+			sendJoin();
 			posthog.capture('game_joined', { game_type: 'never-have-i-ever', game_id: id });
 			retry_count = 0;
 			// Clear any pending timeouts on successful connection
@@ -701,6 +728,7 @@
 		// socket closed
 		socket?.addEventListener('close', (event) => {
 			connection = Status.DISCONNECTED;
+			socket = null;
 			if (ping_timeout) {
 				clearInterval(ping_timeout);
 				ping_timeout = null;
@@ -723,6 +751,7 @@
 		// error handler
 		socket?.addEventListener('error', (event) => {
 			connection = Status.DISCONNECTED;
+			socket = null;
 			if (ping_timeout) {
 				clearInterval(ping_timeout);
 				ping_timeout = null;

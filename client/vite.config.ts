@@ -73,6 +73,7 @@ export default defineConfig({
 		// better-auth pulls optional kysely adapters that break Vite bundling
 		external: [
 			'better-auth',
+			'better-auth/crypto',
 			'@better-auth/drizzle-adapter',
 			'@better-auth/core',
 			'@better-auth/kysely-adapter',

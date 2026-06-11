@@ -1,8 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
-import { accounts, users, verifications } from '@nhie/db/schema';
+import { eq } from 'drizzle-orm';
+import { users, verifications } from '@nhie/db/schema';
 import { auth } from '$lib/server/auth';
-import { hashPassword } from '$lib/server/auth/password';
+import {
+	applyPasswordReset,
+	parseResetUserId,
+	resetPasswordErrorMessage,
+} from '$lib/server/auth/reset-password';
 import { db } from '$lib/server/db';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -20,7 +24,11 @@ async function findResetVerification(token: string) {
 		.limit(1);
 
 	if (!verification || verification.expiresAt < new Date()) return null;
-	return verification;
+
+	const userId = parseResetUserId(verification.userId);
+	if (!userId) return null;
+
+	return { userId, expiresAt: verification.expiresAt };
 }
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -42,7 +50,7 @@ export const load: PageServerLoad = async ({ url }) => {
 export const actions: Actions = {
 	default: async ({ request, url }) => {
 		const data = await request.formData();
-		const token = String(data.get('token') ?? url.searchParams.get('token') ?? '');
+		const token = String(data.get('token') ?? url.searchParams.get('token') ?? '').trim();
 		const password = String(data.get('password') ?? '');
 		const confirm = String(data.get('confirm') ?? '');
 
@@ -73,42 +81,11 @@ export const actions: Actions = {
 		}
 
 		try {
-			const hashedPassword = await hashPassword(password);
-			const [credentialAccount] = await db
-				.select({ id: accounts.id })
-				.from(accounts)
-				.where(
-					and(
-						eq(accounts.userId, verification.userId),
-						eq(accounts.providerId, 'credential')
-					)
-				)
-				.limit(1);
-
-			if (credentialAccount) {
-				await db
-					.update(accounts)
-					.set({ password: hashedPassword, updatedAt: new Date() })
-					.where(eq(accounts.id, credentialAccount.id));
-			} else {
-				await db.insert(accounts).values({
-					id: crypto.randomUUID(),
-					userId: verification.userId,
-					accountId: verification.userId,
-					providerId: 'credential',
-					password: hashedPassword,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				});
-			}
-
-			await db
-				.delete(verifications)
-				.where(eq(verifications.identifier, `reset-password:${token}`));
+			await applyPasswordReset(verification.userId, password, token, request.headers);
 		} catch (err) {
 			console.error('[auth] Password reset failed:', err);
 			return fail(400, {
-				error: 'Could not reset your password. Please try again or request a new link.',
+				error: resetPasswordErrorMessage(err, MAX_PASSWORD_LENGTH),
 			});
 		}
 

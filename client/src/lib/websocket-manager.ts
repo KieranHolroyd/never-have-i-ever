@@ -37,7 +37,13 @@ export class WebSocketManager<TGameState extends GameState = GameState> {
 	}
 
 	connect(): void {
-		if (this.socket) return;
+		if (this.socket) {
+			const state = this.socket.readyState;
+			if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
+				return;
+			}
+			this.disconnect();
+		}
 
 		// Clear any pending reconnect timeout
 		if (this.reconnectTimeout) {

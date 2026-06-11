@@ -232,7 +232,10 @@ export function createCardsAgainstHumanityEngine(
   const handlers: Record<string, (ws: GameSocket, data: any) => Promise<void>> = {
 
     join_game: async (ws, data) => {
-      const { playername } = data;
+      const playername = typeof data.playername === "string" ? data.playername.trim() : "";
+      if (!playername) {
+        throw new ValidationError("Player name is required");
+      }
       const gameId = ws.data.game;
       const roomPassword = normalizeRoomPassword(data.password);
 
@@ -294,13 +297,9 @@ export function createCardsAgainstHumanityEngine(
           }
         }
       } else {
-        const nextName = typeof playername === "string" && playername.trim().length > 0
-          ? playername.trim()
-          : existing.name;
-
         await cahService.addPlayer(gameId, {
           ...existing,
-          name: nextName,
+          name: playername,
           connected: true,
         }, ws.data.userId);
 
@@ -320,10 +319,13 @@ export function createCardsAgainstHumanityEngine(
 
       await ensureConnectedCreator(gameId, ws.data.player);
 
-      try {
-        ws.subscribe(gameId);
-        ws.subscribe("notifications");
-      } catch (_) {}
+      if (!ws.data.subscribedToGame) {
+        try {
+          ws.subscribe(gameId);
+          ws.subscribe("notifications");
+          ws.data.subscribedToGame = true;
+        } catch (_) {}
+      }
 
       wsService.addWebSocket(gameId, ws);
       ingestEvent({ gameID: gameId, event: "cah_player_joined", playerID: ws.data.player, details: { name: playername } });

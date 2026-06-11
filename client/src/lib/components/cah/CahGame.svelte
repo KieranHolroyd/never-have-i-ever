@@ -231,6 +231,11 @@
 	function handleGameState(newGameState: CAHGameState) {
 		gameStore.set(newGameState);
 		currentPlayerStore.set(newGameState?.players.find((p) => p.id === LocalPlayer.id) || null);
+		const me = newGameState?.players.find((p) => p.id === LocalPlayer.id);
+		if (!me?.connected) {
+			wsManager?.joinGame(true);
+			return;
+		}
 		roomMaxPlayers = newGameState.maxPlayers ?? 20;
 		creatorPlayerId = newGameState.creatorPlayerId ?? null;
 		roomProtected = Boolean(newGameState.passwordProtected);
