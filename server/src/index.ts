@@ -178,6 +178,11 @@ const server = Bun.serve({
       }
     },
     perMessageDeflate: true,
+    // Deliver published messages back to the publishing socket when it is
+    // subscribed to the topic. The broadcast helpers publish from one socket in
+    // the game (wsAny) and rely on every subscriber — including that socket —
+    // receiving exactly one copy, so the originating client stays in sync.
+    publishToSelf: true,
   },
   port: SERVER_CONFIG.PORT,
 });
