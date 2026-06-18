@@ -42,7 +42,7 @@
 	);
 </script>
 
-<div class="fixed top-[7.25rem] right-3 z-40 hidden md:block">
+<div class="fixed top-[var(--nhie-sticky-top)] right-3 z-40 mt-2 hidden md:block">
 	<Popover>
 		<PopoverTrigger>
 			{#snippet child({ props })}

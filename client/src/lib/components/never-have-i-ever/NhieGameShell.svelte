@@ -74,13 +74,19 @@
 	const mainClass = $derived(
 		currentStep === 'play' ? 'nhie-main nhie-main--play' : 'nhie-main'
 	);
+
+	const headerClass = $derived(
+		currentStep === 'play'
+			? 'py-1.5 sm:py-2'
+			: 'py-2 sm:py-2.5'
+	);
 </script>
 
 <div class="nhie-shell bg-background text-foreground relative">
 	<header
-		class="bg-background/80 sticky top-14 z-20 border-b px-3 py-2 backdrop-blur-xl sm:px-4 sm:py-2.5"
+		class="nhie-game-header bg-background/80 sticky z-20 border-b px-3 backdrop-blur-xl sm:px-4 {headerClass}"
 	>
-		<div class="mx-auto flex max-w-4xl items-center justify-between gap-2 sm:gap-3">
+		<div class="mx-auto flex h-full max-w-4xl items-center justify-between gap-2 sm:gap-3">
 			<div class="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
 				<span class="text-foreground hidden shrink-0 text-sm font-bold sm:block">NHIE</span>
 				<div class="bg-border hidden h-4 w-px shrink-0 sm:block"></div>

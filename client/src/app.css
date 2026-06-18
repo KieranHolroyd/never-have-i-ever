@@ -257,27 +257,53 @@ button:not([data-slot='button']) {
 }
 
 /* Never Have I Ever — mobile layout tokens */
-.nhie-shell {
-	min-height: 100dvh;
-	overflow-x: clip;
-}
-
-.nhie-main {
-	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6.5rem);
-}
-
-.nhie-main--play {
-	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14rem);
+:root {
+	--nhie-nav-height: 3.5rem;
+	--nhie-game-header-height: 2.75rem;
+	--nhie-sticky-top: calc(env(safe-area-inset-top, 0px) + var(--nhie-nav-height));
+	--nhie-vote-bar-height: 14rem;
+	--nhie-sticky-bar-height: 6.5rem;
 }
 
 @media (min-width: 640px) {
-	.nhie-main--play {
-		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 13rem);
+	:root {
+		--nhie-game-header-height: 3rem;
+		--nhie-vote-bar-height: 13rem;
 	}
 }
 
 @media (min-width: 1024px) {
+	:root {
+		--nhie-vote-bar-height: 7.5rem;
+	}
+}
+
+.nhie-shell {
+	min-height: 100dvh;
+	overflow-x: clip;
+	overscroll-behavior-y: contain;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.nhie-route {
+	--nhie-nav-height: 3rem;
+}
+
+.nhie-game-header {
+	top: var(--nhie-sticky-top);
+	min-height: var(--nhie-game-header-height);
+}
+
+.nhie-main {
+	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--nhie-sticky-bar-height) + 0.5rem);
+}
+
+.nhie-main--play {
+	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--nhie-vote-bar-height) + 0.75rem);
+}
+
+@media (max-width: 639px) {
 	.nhie-main--play {
-		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7.5rem);
+		scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--nhie-vote-bar-height) + 1rem);
 	}
 }

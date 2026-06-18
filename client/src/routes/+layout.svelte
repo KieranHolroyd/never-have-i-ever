@@ -57,11 +57,11 @@
 	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 
-<div class="bg-background text-foreground relative flex min-h-screen flex-col">
+<div class="bg-background text-foreground relative flex min-h-[100dvh] flex-col">
 	<Navbar compact={isGameRoute} bind:settingsOpen />
 
 	{#if isGameRoute}
-		<div class="flex flex-1 flex-col">
+		<div class="nhie-route flex flex-1 flex-col">
 			{@render children()}
 		</div>
 	{:else}
@@ -73,6 +73,6 @@
 		</div>
 	{/if}
 
-	<Toaster position="top-right" closeButton richColors />
+	<Toaster position={isGameRoute ? 'bottom-center' : 'top-right'} closeButton richColors />
 	<Settings bind:show={settingsOpen} embedded />
 </div>

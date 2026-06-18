@@ -141,9 +141,9 @@
 		</div>
 
 		{#if !expanded}
-			<div class="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+			<div class="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 				{#each sortPlayers(players) as player (player.id)}
-					<div class="shrink-0">
+					<div class="shrink-0 snap-start">
 						<Card class="relative min-w-[4.75rem] p-2.5">
 							<Badge class="absolute -top-1 -right-1 h-4 px-1 text-[9px]" variant="outline">
 								{player.score}

@@ -75,33 +75,36 @@
 </script>
 
 {#if shouldShow && !hidden}
-	<div class="fixed inset-0 z-50 flex items-center justify-center" onkeydown={onKeydown}>
+	<div
+		class="fixed inset-0 z-50 flex items-end justify-center p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:items-center sm:p-4"
+		onkeydown={onKeydown}
+	>
 		<!-- Backdrop -->
 		<div
 			class="absolute inset-0 bg-black/60 backdrop-blur-sm"
 			data-overlay="backdrop"
 			onclick={onBackdrop}
 			transition:fade={{ duration: 150 }}
-		/>
+		></div>
 
 		<!-- Modal -->
 		<div
 			role="dialog"
 			aria-modal="true"
-			class="relative w-[min(680px,95vw)] max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl ring-1 ring-emerald-500/10"
+			class="relative flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem))] w-full max-w-[min(680px,100%)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl ring-1 ring-emerald-500/10"
 			in:scale={{ start: 0.96, duration: 150 }}
 		>
 			<!-- Header -->
-			<div class="border-b border-white/8 bg-zinc-900/80 px-6 py-4">
-				<div class="flex items-center justify-between gap-4">
-					<div>
-						<h2 class="text-xl font-bold tracking-tight">
+			<div class="border-b border-white/8 bg-zinc-900/80 px-4 py-3 sm:px-6 sm:py-4">
+				<div class="flex items-start justify-between gap-3 sm:items-center sm:gap-4">
+					<div class="min-w-0">
+						<h2 class="text-lg font-bold tracking-tight sm:text-xl">
 							{steps.length > 0 ? steps[currentStep]?.title || title : title}
 						</h2>
 						<p class="text-xs text-white/40">{currentStep + 1} / {totalSteps}</p>
 					</div>
 					<button
-						class="rounded-md px-2 py-1 text-white/50 hover:bg-white/5 hover:text-white"
+						class="touch-manipulation shrink-0 rounded-md px-2 py-1 text-sm text-white/50 hover:bg-white/5 hover:text-white"
 						aria-label="Skip tutorial"
 						onclick={skip}
 					>
@@ -111,7 +114,7 @@
 			</div>
 
 			<!-- Body -->
-			<div class="px-6 py-5 overflow-auto max-h-[58vh]">
+			<div class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
 				{#if steps.length > 0}
 					{#if steps[currentStep]?.content}
 						<div class="prose dark:prose-invert prose-p:leading-relaxed prose-li:leading-relaxed">
@@ -130,17 +133,17 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="border-t px-6 py-4">
-				<div class="flex items-center justify-between gap-4">
+			<div class="border-t px-4 py-3 sm:px-6 sm:py-4">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 					<div class="flex items-center gap-2">
 						<Checkbox id={`dontshow-${id}`} bind:checked={dontShowAgain} />
-						<Label for={`dontshow-${id}`} class="font-normal">Don't show again</Label>
+						<Label for={`dontshow-${id}`} class="text-sm font-normal">Don't show again</Label>
 					</div>
 					<div class="flex items-center gap-2">
-						<Button variant="secondary" size="sm" onclick={prev} disabled={currentStep === 0}>
+						<Button variant="secondary" size="sm" class="touch-manipulation flex-1 sm:flex-none" onclick={prev} disabled={currentStep === 0}>
 							Back
 						</Button>
-						<Button variant="emerald" size="sm" onclick={next}>
+						<Button variant="emerald" size="sm" class="touch-manipulation flex-1 sm:flex-none" onclick={next}>
 							{isLastStep ? 'Finish' : 'Next'}
 						</Button>
 					</div>

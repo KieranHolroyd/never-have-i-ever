@@ -72,7 +72,7 @@
 	<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
 		<Input
 			type="number"
-			class="min-w-0 flex-1"
+			class="min-w-0 flex-1 text-base"
 			bind:value={draftMaxPlayers}
 			min={minPlayers}
 			max={maxLimit}

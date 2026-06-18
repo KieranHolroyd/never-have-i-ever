@@ -36,10 +36,14 @@
 </script>
 
 <nav class="bg-background/95 sticky top-0 z-40 border-b backdrop-blur-md">
-	<div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-		<Button href="/" variant="ghost" class="min-w-0 px-2 font-bold">
+	<div
+		class="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8 {compact
+			? 'h-12'
+			: 'h-14'}"
+	>
+		<Button href="/" variant="ghost" class="min-w-0 px-1.5 font-bold sm:px-2">
 			<img src="/favicon.png" alt="" class="size-7 shrink-0" />
-			<span class="truncate">games.kieran.dev</span>
+			<span class="truncate {compact ? 'hidden min-[420px]:inline' : ''}">games.kieran.dev</span>
 		</Button>
 
 		<div class="flex items-center gap-1">

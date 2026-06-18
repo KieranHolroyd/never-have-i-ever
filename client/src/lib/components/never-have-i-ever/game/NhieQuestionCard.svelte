@@ -81,7 +81,7 @@
 
 				{#if roundPhase === 'answer' && !hasMyVote}
 					<p
-						class="text-muted-foreground mt-4 flex items-center justify-center gap-1.5 text-xs sm:mt-5 sm:text-sm"
+						class="text-muted-foreground mt-4 hidden items-center justify-center gap-1.5 text-xs sm:mt-5 sm:flex sm:text-sm lg:hidden"
 						in:fly={{ y: 6, duration: 220, easing: backOut }}
 					>
 						<MdiHandPointDown class="size-4 shrink-0 text-emerald-500" />
@@ -91,8 +91,8 @@
 			</CardContent>
 
 			{#if waitingForPlayers || roundPhase === 'answer'}
-				<CardFooter class="flex-col gap-2 border-t px-4 pt-3 sm:px-6 sm:pt-4" role="status">
-					<div class="flex w-full flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
+				<CardFooter class="flex flex-col gap-1.5 border-t px-4 pt-2.5 sm:gap-2 sm:px-6 sm:pt-4" role="status">
+					<div class="flex w-full flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] sm:text-xs">
 						<span class="text-muted-foreground">
 							{#if roundPhase === 'answer'}
 								<span class="text-foreground font-semibold">Your turn</span>
@@ -133,7 +133,7 @@
 					{#if roundPhase !== 'answer'}
 						<Progress
 							value={progressPct}
-							class="h-1.5 {allVoted || roundPhase === 'results'
+							class="h-1 {allVoted || roundPhase === 'results'
 								? '[&_[data-slot=progress-indicator]]:bg-emerald-500'
 								: '[&_[data-slot=progress-indicator]]:bg-amber-400'}"
 						/>

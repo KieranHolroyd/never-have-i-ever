@@ -84,15 +84,17 @@
 				{/if}
 
 				<div class="lg:hidden">
-					{#if revealVotes}
-						<NhieVoteTally players={connectedPlayers} />
+					{#if revealVotes || roundPhase === 'waiting'}
+						{#if revealVotes}
+							<NhieVoteTally players={connectedPlayers} />
+						{/if}
+						<NhiePlayerStrip
+							players={connectedPlayers}
+							{currentPlayerId}
+							{revealVotes}
+							{roundPhase}
+						/>
 					{/if}
-					<NhiePlayerStrip
-						players={connectedPlayers}
-						{currentPlayerId}
-						{revealVotes}
-						{roundPhase}
-					/>
 				</div>
 			</div>
 

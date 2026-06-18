@@ -72,6 +72,7 @@
 					type="password"
 					placeholder="Enter password"
 					autocomplete="current-password"
+					class="text-base"
 					bind:value={password}
 					onkeydown={(event) => {
 						if (event.key === 'Enter') submit();
