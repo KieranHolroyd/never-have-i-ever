@@ -122,8 +122,8 @@
 						in:fly={{ y: 6, duration: 220, easing: quintOut }}
 						animate:flip={{ duration: 250 }}
 					>
-						<Item variant="outline" class={player.connected ? '' : 'opacity-55'}>
-							<ItemMedia>
+						<Item variant="outline" class="gap-2 {player.connected ? '' : 'opacity-55'}">
+							<ItemMedia class="shrink-0">
 								<Avatar size="lg">
 									<AvatarFallback class="text-xs font-bold {avatarColorClass(player.id)}">
 										{initials(player.name)}
@@ -133,8 +133,8 @@
 									/>
 								</Avatar>
 							</ItemMedia>
-							<ItemContent>
-								<ItemTitle>
+							<ItemContent class="min-w-0 flex-1">
+								<ItemTitle class="flex min-w-0 items-center gap-1">
 									<span class="truncate">{player.name}</span>
 									{#if player.id === currentPlayerId}
 										<span class="text-muted-foreground text-xs font-normal">(you)</span>
@@ -144,7 +144,7 @@
 									{player.connected ? 'Online' : 'Away'}
 								</p>
 							</ItemContent>
-							<ItemActions>
+							<ItemActions class="ml-auto shrink-0 flex-wrap justify-end gap-1">
 								{#if player.id === creatorPlayerId}
 									<Badge
 										variant="secondary"
@@ -157,6 +157,7 @@
 									<Button
 										variant="destructive"
 										size="sm"
+										class="h-7 px-2 text-xs"
 										disabled={removingPlayerId !== null}
 										onclick={() => onRemovePlayer?.(player.id)}
 									>

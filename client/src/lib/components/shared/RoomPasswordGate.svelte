@@ -51,7 +51,7 @@
 	}
 </script>
 
-<div class="mx-auto flex min-h-[60vh] max-w-sm items-center justify-center px-4 py-10">
+<div class="mx-auto flex min-h-[50dvh] max-w-sm items-center justify-center px-4 py-8 sm:min-h-[60vh] sm:py-10">
 	<Card class="w-full border-emerald-500/30">
 		<CardHeader class="text-center">
 			<Badge variant="outline" class="mx-auto mb-2 w-fit">

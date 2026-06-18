@@ -47,14 +47,14 @@
 				</div>
 
 				<!-- Legend -->
-				<div class="grid grid-cols-3 gap-1">
+				<div class="grid grid-cols-3 gap-1 sm:gap-1.5">
 					{#each counts as { label, dot, text, count } (label)}
-						<div class="flex flex-col gap-0.5 {count === 0 ? 'opacity-40' : ''}">
-							<span class="text-muted-foreground flex items-center gap-1 text-[10px]">
-								<span class="size-1.5 rounded-full {dot}"></span>
-								{label}
+						<div class="min-w-0 flex flex-col gap-0.5 {count === 0 ? 'opacity-40' : ''}">
+							<span class="text-muted-foreground flex items-center gap-1 truncate text-[10px]">
+								<span class="size-1.5 shrink-0 rounded-full {dot}"></span>
+								<span class="truncate">{label === 'Have Not' ? 'Nope' : label}</span>
 							</span>
-							<span class="text-lg font-bold tabular-nums {count > 0 ? text : 'text-muted-foreground'}">
+							<span class="text-base font-bold tabular-nums sm:text-lg {count > 0 ? text : 'text-muted-foreground'}">
 								{count}
 							</span>
 							{#if count > 0}

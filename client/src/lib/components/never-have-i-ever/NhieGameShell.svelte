@@ -2,6 +2,7 @@
 	import { Status, type Player } from '$lib/types';
 	import ConnectionInfoPanel from './ConnectionInfoPanel.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 	import {
 		DropdownMenu,
 		DropdownMenuContent,
@@ -45,24 +46,65 @@
 		onOpenCategories,
 		confirmResetVisible = false
 	}: Props = $props();
+
+	const connectionVariant = $derived(
+		connection === Status.CONNECTED
+			? 'default'
+			: connection === Status.DISCONNECTED
+				? 'destructive'
+				: 'secondary'
+	);
+
+	const connectionLabel = $derived(
+		connection === Status.CONNECTED
+			? 'Connected'
+			: connection === Status.CONNECTING
+				? 'Connecting…'
+				: 'Offline'
+	);
+
+	const connectionDotClass = $derived(
+		connection === Status.CONNECTED
+			? 'bg-emerald-500'
+			: connection === Status.CONNECTING
+				? 'animate-pulse bg-amber-500'
+				: 'bg-destructive'
+	);
+
+	const mainClass = $derived(
+		currentStep === 'play' ? 'nhie-main nhie-main--play' : 'nhie-main'
+	);
 </script>
 
-<div class="bg-background text-foreground relative min-h-screen">
+<div class="nhie-shell bg-background text-foreground relative">
 	<header
-		class="bg-background/80 sticky top-14 z-20 border-b px-3 py-2.5 backdrop-blur-xl sm:px-4"
+		class="bg-background/80 sticky top-14 z-20 border-b px-3 py-2 backdrop-blur-xl sm:px-4 sm:py-2.5"
 	>
-		<div class="mx-auto flex max-w-4xl items-center justify-between gap-3">
-			<!-- Left: contextual info slot -->
-			<div class="flex min-w-0 flex-1 items-center gap-2">
+		<div class="mx-auto flex max-w-4xl items-center justify-between gap-2 sm:gap-3">
+			<div class="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
 				<span class="text-foreground hidden shrink-0 text-sm font-bold sm:block">NHIE</span>
 				<div class="bg-border hidden h-4 w-px shrink-0 sm:block"></div>
 				{#if headerInfo}
-					{@render headerInfo()}
+					<div class="min-w-0 flex-1 overflow-hidden">
+						{@render headerInfo()}
+					</div>
 				{/if}
 			</div>
 
-			<!-- Right: actions -->
 			<div class="flex shrink-0 items-center gap-0.5">
+				<Badge
+					variant={connectionVariant}
+					class="hidden h-6 gap-1 px-1.5 text-[10px] sm:inline-flex"
+					title={connectionLabel}
+				>
+					<span class="size-1.5 rounded-full {connectionDotClass}"></span>
+					{connectionLabel}
+				</Badge>
+				<span
+					class="size-2 shrink-0 rounded-full sm:hidden {connectionDotClass}"
+					title={connectionLabel}
+					aria-label={connectionLabel}
+				></span>
 				{#if onShare}
 					<Button variant="ghost" size="icon-sm" title="Share game" onclick={onShare}>
 						<MdiShareOutline />
@@ -98,11 +140,7 @@
 		</div>
 	</header>
 
-	<main
-		class="mx-auto w-full max-w-4xl px-3 sm:px-4 {currentStep === 'play'
-			? 'pb-[calc(env(safe-area-inset-bottom)+13rem)] lg:pb-[calc(env(safe-area-inset-bottom)+9rem)]'
-			: ''}"
-	>
+	<main class="mx-auto w-full max-w-4xl px-3 sm:px-4 {mainClass}">
 		{@render children?.()}
 	</main>
 

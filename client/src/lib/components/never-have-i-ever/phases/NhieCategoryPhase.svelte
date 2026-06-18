@@ -38,7 +38,7 @@
 	);
 </script>
 
-<div class="space-y-5 pb-32 pt-3" data-testid="nhie-categories">
+<div class="space-y-4 pb-28 pt-2 sm:pb-32 sm:pt-3" data-testid="nhie-categories">
 	<div class="space-y-1">
 		<div class="flex items-center justify-between gap-3">
 			<p class="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Step 2 of 3</p>
@@ -47,14 +47,14 @@
 				Back
 			</Button>
 		</div>
-		<h2 class="text-3xl font-bold tracking-tight">Pick your decks</h2>
+		<h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Pick your decks</h2>
 		<p class="text-muted-foreground text-sm leading-relaxed">
 			Mix and match — questions are shuffled from every selected deck.
 		</p>
 	</div>
 
 	{#if catagoriesLoaded}
-		<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4">
 			{#each visibleCatagories as [catagory_name, catagory], index (catagory_name)}
 				{@const isSelected = selectedCategories.includes(catagory_name)}
 				<div
@@ -69,7 +69,7 @@
 						type="button"
 						aria-pressed={isSelected}
 						data-state={isSelected ? 'on' : 'off'}
-						class="group border-input hover:bg-muted hover:text-foreground aria-pressed:border-emerald-500 aria-pressed:bg-emerald-500/10 relative inline-flex h-auto min-h-[6rem] w-full flex-col items-start justify-start gap-0.5 rounded-xl border bg-transparent p-4 text-left text-sm font-medium transition-colors duration-150 hover:border-emerald-500/40 hover:bg-emerald-500/5"
+						class="group border-input hover:bg-muted hover:text-foreground aria-pressed:border-emerald-500 aria-pressed:bg-emerald-500/10 relative inline-flex h-auto min-h-[5.25rem] w-full touch-manipulation flex-col items-start justify-start gap-0.5 rounded-xl border bg-transparent p-3 text-left text-sm font-medium transition-colors duration-150 hover:border-emerald-500/40 hover:bg-emerald-500/5 sm:min-h-[6rem] sm:p-4"
 						data-testid="category-chip"
 						onclick={() => onToggleCategory(catagory_name)}
 					>
@@ -102,7 +102,7 @@
 			{/each}
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4">
 			{#each Array.from({ length: 8 }) as _, index (index)}
 				<Skeleton class="h-[5.75rem] rounded-xl" />
 			{/each}
@@ -122,7 +122,7 @@
 		<Button
 			variant="emerald"
 			size="lg"
-			class="h-12 w-full text-base font-semibold sm:w-auto sm:px-8"
+			class="touch-manipulation h-11 w-full text-base font-semibold sm:h-12 sm:w-auto sm:px-8"
 			disabled={selectedCategoryCount === 0}
 			onclick={onConfirm}
 		>

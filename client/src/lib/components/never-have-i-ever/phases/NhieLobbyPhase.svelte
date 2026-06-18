@@ -92,11 +92,11 @@
 	}
 </script>
 
-<div class="grid gap-4 pb-32 pt-3 lg:grid-cols-5 lg:items-start" data-testid="nhie-lobby">
+<div class="grid gap-4 pb-28 pt-2 sm:pb-32 sm:pt-3 lg:grid-cols-5 lg:items-start" data-testid="nhie-lobby">
 	<div class="space-y-4 lg:col-span-3">
 	<Card>
-		<CardHeader>
-			<div class="flex items-center justify-between gap-2">
+		<CardHeader class="gap-3">
+			<div class="flex flex-wrap items-center justify-between gap-2">
 				<Badge variant="outline" class="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
 					<MdiAccountGroup class="size-3.5" />
 					Step 1 of 3
@@ -110,7 +110,7 @@
 					{roomPrivacyLabel}
 				</Badge>
 			</div>
-			<CardTitle class="mt-2 text-3xl tracking-tight">
+			<CardTitle class="mt-2 text-2xl tracking-tight sm:text-3xl">
 				{connectedPlayerCount >= 2 ? "Everyone's here" : 'Waiting for players'}
 			</CardTitle>
 			<CardDescription class="text-sm leading-relaxed">
@@ -146,16 +146,16 @@
 			<!-- Invite link -->
 			<div class="space-y-1.5">
 				<p class="text-muted-foreground text-[10px] font-semibold uppercase tracking-widest">Invite link</p>
-				<div class="flex items-stretch gap-2">
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
 					<div
-						class="bg-muted text-muted-foreground flex min-w-0 flex-1 items-center rounded-lg px-3 py-2 font-mono text-xs"
+						class="bg-muted text-muted-foreground flex min-h-10 min-w-0 flex-1 items-center rounded-lg px-3 py-2 font-mono text-[11px] sm:text-xs"
 					>
 						<span class="truncate">{inviteUrl}</span>
 					</div>
 					<Button
 						variant={copied ? 'secondary' : 'default'}
 						size="sm"
-						class="h-auto shrink-0 px-3 {copied ? 'text-emerald-600 dark:text-emerald-400' : ''}"
+						class="touch-manipulation h-10 shrink-0 px-3 sm:h-auto {copied ? 'text-emerald-600 dark:text-emerald-400' : ''}"
 						onclick={copyInviteLink}
 					>
 						{#if copied}
@@ -243,7 +243,7 @@
 		<Button
 			variant="emerald"
 			size="lg"
-			class="h-12 w-full text-base font-semibold sm:w-auto sm:px-8"
+			class="touch-manipulation h-11 w-full text-base font-semibold sm:h-12 sm:w-auto sm:px-8"
 			disabled={!readyForCategories}
 			onclick={onContinueToCategories}
 		>

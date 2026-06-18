@@ -44,7 +44,7 @@
 	}
 </script>
 
-<div class="space-y-4 pt-3 pb-28" data-testid="nhie-game-over" in:fade={{ duration: 300 }}>
+<div class="space-y-4 pt-2 pb-24 sm:pt-3 sm:pb-28" data-testid="nhie-game-over" in:fade={{ duration: 300 }}>
 
 	<!-- Winner spotlight -->
 	{#if winner}
@@ -52,7 +52,7 @@
 			<Card class="text-center">
 				<CardHeader class="pb-2">
 					<div class="mx-auto mb-2 text-5xl" aria-hidden="true">🏆</div>
-					<CardTitle class="text-2xl font-bold tracking-tight">{winner.name} wins!</CardTitle>
+					<CardTitle class="text-xl font-bold tracking-tight sm:text-2xl">{winner.name} wins!</CardTitle>
 					<CardDescription>with {winner.score} point{winner.score === 1 ? '' : 's'}</CardDescription>
 				</CardHeader>
 				<CardContent class="pb-5">
@@ -79,8 +79,8 @@
 					{@const rank = i + 1}
 					<div in:fly={{ y: 8, duration: 240, delay: i * 50, easing: quintOut }}>
 						<Card size="sm" class={rowClass(rank)}>
-							<CardContent class="flex items-center gap-3 py-3">
-								<span class="w-8 text-center text-xl shrink-0">{rankLabel(rank)}</span>
+							<CardContent class="flex items-center gap-2 py-3 sm:gap-3">
+								<span class="w-7 shrink-0 text-center text-lg sm:w-8 sm:text-xl">{rankLabel(rank)}</span>
 								<Avatar size="lg">
 									<AvatarFallback class="text-xs font-bold {avatarColorClass(player.id)}">
 										{initials(player.name)}
@@ -107,7 +107,7 @@
 			<Button
 				variant="emerald"
 				size="lg"
-				class="h-12 w-full text-base font-semibold sm:w-auto sm:px-8"
+				class="touch-manipulation h-11 w-full text-base font-semibold sm:h-12 sm:w-auto sm:px-8"
 				onclick={onReset}
 			>
 				Play again

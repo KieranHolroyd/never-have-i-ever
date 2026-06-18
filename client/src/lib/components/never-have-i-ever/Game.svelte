@@ -948,22 +948,22 @@
 	>
 		{#snippet headerInfo()}
 			{#if nhieStep === 'lobby'}
-				<span class="text-muted-foreground text-sm">
+				<span class="text-muted-foreground truncate text-xs sm:text-sm">
 					<span class="text-foreground font-medium">{connectedPlayerCount}</span>
-					{connectedPlayerCount === 1 ? 'player' : 'players'} in room
+					{connectedPlayerCount === 1 ? ' player' : ' players'}
 				</span>
 			{:else if nhieStep === 'categories'}
-				<span class="text-muted-foreground text-sm">
+				<span class="text-muted-foreground truncate text-xs sm:text-sm">
 					<span class="text-foreground font-medium">{selectedCategoryCount}</span>
-					{selectedCategoryCount === 1 ? 'deck' : 'decks'} selected
+					{selectedCategoryCount === 1 ? ' deck' : ' decks'}
 				</span>
 			{:else if nhieStep === 'play'}
-				<span class="text-muted-foreground flex min-w-0 items-center gap-2 text-sm">
-					<span class="text-foreground font-medium tabular-nums">
+				<span class="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs sm:gap-2 sm:text-sm">
+					<span class="text-foreground shrink-0 font-medium tabular-nums">
 						Round {game_state.history.length + 1}
 					</span>
 					{#if current_question?.catagory}
-						<span class="bg-border h-3.5 w-px shrink-0"></span>
+						<span class="bg-border hidden h-3.5 w-px shrink-0 sm:block"></span>
 						<span class="min-w-0 truncate">{current_question.catagory}</span>
 					{/if}
 					{#if game_state.current_catagory.length > 0}
@@ -974,9 +974,9 @@
 					{/if}
 				</span>
 			{:else if nhieStep === 'results'}
-				<span class="text-muted-foreground text-sm">
+				<span class="text-muted-foreground truncate text-xs sm:text-sm">
 					<span class="text-foreground font-medium">{game_state.history.length}</span>
-					{game_state.history.length === 1 ? 'round' : 'rounds'} played
+					{game_state.history.length === 1 ? ' round' : ' rounds'}
 					{#if game_state.current_catagory.length > 0}
 						<span class="hidden sm:inline">
 							· {game_state.current_catagory.join(', ')}

@@ -42,7 +42,7 @@
 	);
 </script>
 
-<div class="fixed top-16 right-3 z-40">
+<div class="fixed top-[7.25rem] right-3 z-40 hidden md:block">
 	<Popover>
 		<PopoverTrigger>
 			{#snippet child({ props })}

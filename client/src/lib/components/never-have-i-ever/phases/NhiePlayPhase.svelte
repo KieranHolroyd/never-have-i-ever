@@ -60,10 +60,10 @@
 	}: Props = $props();
 </script>
 
-<div class="pt-4" data-testid="nhie-play">
+<div class="pt-2 sm:pt-4" data-testid="nhie-play">
 	{#if currentQuestion?.content}
-		<div class="grid gap-4 lg:grid-cols-3 lg:items-start">
-			<div class="space-y-4 lg:col-span-2">
+		<div class="grid gap-3 sm:gap-4 lg:grid-cols-3 lg:items-start">
+			<div class="min-w-0 space-y-3 sm:space-y-4 lg:col-span-2">
 				<NhieQuestionCard
 					category={currentQuestion.catagory}
 					content={currentQuestion.content}
@@ -82,9 +82,21 @@
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				{/if}
+
+				<div class="lg:hidden">
+					{#if revealVotes}
+						<NhieVoteTally players={connectedPlayers} />
+					{/if}
+					<NhiePlayerStrip
+						players={connectedPlayers}
+						{currentPlayerId}
+						{revealVotes}
+						{roundPhase}
+					/>
+				</div>
 			</div>
 
-			<div class="space-y-4">
+			<div class="hidden min-w-0 space-y-4 lg:block">
 				{#if revealVotes}
 					<NhieVoteTally players={connectedPlayers} />
 				{/if}

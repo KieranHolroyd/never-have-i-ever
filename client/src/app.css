@@ -7,7 +7,7 @@
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 
-button {
+button:not([data-slot='button']) {
 	@apply font-bold py-2 px-4 rounded;
 }
 .green-button {
@@ -249,9 +249,35 @@ button {
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply bg-background text-foreground;
+		@apply bg-background text-foreground overflow-x-clip;
 	}
 	html {
 		@apply font-sans;
+	}
+}
+
+/* Never Have I Ever — mobile layout tokens */
+.nhie-shell {
+	min-height: 100dvh;
+	overflow-x: clip;
+}
+
+.nhie-main {
+	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6.5rem);
+}
+
+.nhie-main--play {
+	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14rem);
+}
+
+@media (min-width: 640px) {
+	.nhie-main--play {
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 13rem);
+	}
+}
+
+@media (min-width: 1024px) {
+	.nhie-main--play {
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7.5rem);
 	}
 }

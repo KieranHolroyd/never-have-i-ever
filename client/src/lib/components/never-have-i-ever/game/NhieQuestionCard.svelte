@@ -42,10 +42,10 @@
 {#key content}
 	<div in:fade={{ duration: 200, easing: quintOut }}>
 		<Card class={roundPhase === 'results' ? 'border-emerald-500/30' : ''}>
-			<CardHeader class="pb-0">
-				<div class="flex items-center justify-between gap-2">
+			<CardHeader class="gap-2 pb-0">
+				<div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
 					<span class="text-muted-foreground text-xs">Round {roundNumber}</span>
-					<div class="flex items-center gap-2">
+					<div class="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
 						{#if roundPhase === 'results'}
 							<Badge
 								variant="secondary"
@@ -68,12 +68,12 @@
 				</div>
 			</CardHeader>
 
-			<CardContent class="px-6 py-8 text-center">
-				<p class="text-muted-foreground mb-4 text-xs font-medium tracking-[0.2em] uppercase">
+			<CardContent class="px-4 py-6 text-center sm:px-6 sm:py-8">
+				<p class="text-muted-foreground mb-3 text-[10px] font-medium tracking-[0.16em] uppercase sm:mb-4 sm:text-xs sm:tracking-[0.2em]">
 					Never have I ever…
 				</p>
 				<p
-					class="text-3xl leading-tight font-bold tracking-tight text-balance sm:text-4xl"
+					class="text-xl leading-snug font-bold tracking-tight text-balance sm:text-3xl sm:leading-tight lg:text-4xl"
 					data-testid="question-content"
 				>
 					{content}
@@ -81,7 +81,7 @@
 
 				{#if roundPhase === 'answer' && !hasMyVote}
 					<p
-						class="text-muted-foreground mt-5 flex items-center justify-center gap-1.5 text-sm"
+						class="text-muted-foreground mt-4 flex items-center justify-center gap-1.5 text-xs sm:mt-5 sm:text-sm"
 						in:fly={{ y: 6, duration: 220, easing: backOut }}
 					>
 						<MdiHandPointDown class="size-4 shrink-0 text-emerald-500" />
@@ -91,8 +91,8 @@
 			</CardContent>
 
 			{#if waitingForPlayers || roundPhase === 'answer'}
-				<CardFooter class="flex-col gap-2.5 border-t pt-4" role="status">
-					<div class="flex w-full items-center justify-between gap-2 text-xs">
+				<CardFooter class="flex-col gap-2 border-t px-4 pt-3 sm:px-6 sm:pt-4" role="status">
+					<div class="flex w-full flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
 						<span class="text-muted-foreground">
 							{#if roundPhase === 'answer'}
 								<span class="text-foreground font-semibold">Your turn</span>

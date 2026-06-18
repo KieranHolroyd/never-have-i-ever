@@ -36,18 +36,21 @@
 		{
 			option: VoteOptions.Have,
 			label: 'Have',
+			shortLabel: 'Have',
 			emoji: '🙋',
 			active: 'border-emerald-600 bg-emerald-600 text-white'
 		},
 		{
 			option: VoteOptions.Kinda,
 			label: 'Kinda',
+			shortLabel: 'Kinda',
 			emoji: '🤷',
 			active: 'border-sky-600 bg-sky-600 text-white'
 		},
 		{
 			option: VoteOptions.HaveNot,
 			label: 'Have not',
+			shortLabel: 'Nope',
 			emoji: '🙅',
 			active: 'border-rose-600 bg-rose-600 text-white'
 		}
@@ -72,16 +75,16 @@
 	});
 </script>
 
-<div class="fixed bottom-0 left-0 z-30 w-full">
+<div class="fixed inset-x-0 bottom-0 z-30 w-full max-w-[100vw]">
 	<div
-		class="bg-background/95 border-t pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur-md {roundPhase ===
+		class="bg-background/95 border-t pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur-md {roundPhase ===
 		'results'
 			? 'border-emerald-500/20'
 			: ''}"
 	>
-		<div class="mx-auto max-w-4xl space-y-2.5 px-3 pt-3 sm:px-4">
+		<div class="mx-auto max-w-4xl space-y-2 px-3 pt-2 sm:space-y-2.5 sm:px-4 sm:pt-3">
 			<p
-				class="text-center text-[11px] font-medium tracking-widest uppercase lg:text-left {roundPhase ===
+				class="text-center text-[10px] font-medium tracking-wide uppercase sm:text-[11px] sm:tracking-widest lg:text-left {roundPhase ===
 				'results'
 					? 'text-emerald-600 dark:text-emerald-400'
 					: ''}"
@@ -96,32 +99,37 @@
 				{/if}
 			</p>
 
-			<div class="flex flex-col gap-2 lg:flex-row lg:items-stretch">
+			<div class="flex flex-col gap-1.5 sm:gap-2 lg:flex-row lg:items-stretch">
 				<div
-					class="grid w-full grid-cols-3 gap-2 lg:flex-1 {roundPhase === 'answer' && !hasMyVote
-						? 'ring-emerald-500/30 rounded-xl ring-2 ring-offset-2 ring-offset-background'
+					class="grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2 lg:flex-1 {roundPhase === 'answer' &&
+					!hasMyVote
+						? 'ring-emerald-500/30 rounded-xl ring-2 ring-offset-1 ring-offset-background sm:ring-offset-2'
 						: ''}"
 					role="group"
 					aria-label="Your vote"
 				>
-					{#each votes as { option, label, emoji, active: activeClass } (label)}
+					{#each votes as { option, label, shortLabel, emoji, active: activeClass } (label)}
 						{@const active = isVoteActive(option)}
 						<Button
 							type="button"
 							variant="outline"
 							aria-pressed={active}
-							class="h-16 flex-col gap-0.5 rounded-xl text-sm font-semibold transition-colors {active
+							aria-label={label}
+							class="touch-manipulation h-14 flex-col gap-0 rounded-xl px-1 text-xs font-semibold sm:h-16 sm:px-2 sm:text-sm {active
 								? activeClass
 								: ''}"
 							data-testid={label === 'Have' ? 'have-button' : label === 'Have not' ? 'have-not-button' : undefined}
 							onclick={() => onVote(option)}
 						>
 							{#if active}
-								<MdiCheck class="size-5" />
+								<MdiCheck class="size-4 sm:size-5" />
 							{:else}
-								<span class="text-lg leading-none" aria-hidden="true">{emoji}</span>
+								<span class="text-base leading-none sm:text-lg" aria-hidden="true">{emoji}</span>
 							{/if}
-							<span>{label}</span>
+							<span class="max-w-full truncate">
+								<span class="sm:hidden">{shortLabel}</span>
+								<span class="hidden sm:inline">{label}</span>
+							</span>
 						</Button>
 					{/each}
 				</div>
@@ -131,21 +139,21 @@
 						? 'emerald'
 						: 'secondary'}
 					size="lg"
-					class="h-11 w-full gap-2 lg:h-16 lg:w-56"
+					class="touch-manipulation h-10 w-full shrink-0 gap-2 text-sm sm:h-11 lg:h-16 lg:w-56 lg:text-base"
 					onclick={onAdvance}
 					disabled={!canAdvanceRound}
 				>
 					{#if roundPhase === 'results'}
-						Next question
+						<span class="truncate">Next question</span>
 						{#if roundTimeout > 0}
-							<span class="text-emerald-100/90 text-xs tabular-nums">({roundTimeout}s)</span>
+							<span class="text-emerald-100/90 shrink-0 text-xs tabular-nums">({roundTimeout}s)</span>
 						{/if}
-						<MdiArrowRight class="size-4" />
+						<MdiArrowRight class="size-4 shrink-0" />
 					{:else if roundPhase === 'answer'}
-						<MdiSkipNext class="size-4" />
-						Skip question
+						<MdiSkipNext class="size-4 shrink-0" />
+						<span class="truncate">Skip question</span>
 					{:else if roundPhase === 'waiting'}
-						{votedCount}/{totalCount} voted
+						<span class="tabular-nums">{votedCount}/{totalCount} voted</span>
 					{:else}
 						Waiting…
 					{/if}
